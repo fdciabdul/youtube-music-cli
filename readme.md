@@ -47,7 +47,13 @@ Your support helps keep this project alive and improving!
 
 ## Roadmap
 
-Visit [`SUGGESTIONS.md`](SUGGESTIONS.md) for the full backlog and use `docs/roadmap.md` to understand the current implementation focus (crossfade + gapless playback) and the next steps planned for equalizer/enhancements. The roadmap doc also explains how to pick up work so reviewers and contributors remain aligned.
+**0.1.0** is out — [celebratory notes](docs/releases/v0.1.0.md). Visit [`SUGGESTIONS.md`](SUGGESTIONS.md) for the backlog and [`docs/roadmap.md`](docs/roadmap.md) for post-0.1.0 focus (hardening, discovery, offline, web v1.1).
+
+## What's new in 0.1.0
+
+- Bundled **web companion** (`--web` / `--web-only`) — no extra build step
+- Live streams + radio, Win32 immersive, and playback reliability fixes from the 0.0.x centennial era
+- Full highlight reel: [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)
 
 ## Prerequisites
 

@@ -1,21 +1,26 @@
 # scripts/release.ps1
-$ErrorActionPreference = 'Stop' # Exit immediately if a command exits with a non-zero status.
+param(
+	[ValidateSet('patch', 'minor', 'major')]
+	[string]$Bump = 'patch',
+	[switch]$Yes
+)
 
-Write-Host "Optimizing new version submission flow (PowerShell compatible)..."
+$ErrorActionPreference = 'Stop'
+
+Write-Host "youtube-music-cli release ($Bump bump)..."
 
 # 1. Ensure clean git working directory
 Write-Host "Checking for uncommitted changes..."
 $gitStatus = git status --porcelain
 if ($gitStatus) {
-  Write-Host "Error: Uncommitted changes detected. Please commit or stash them before running the release script."
-  exit 1
+	Write-Host "Error: Uncommitted changes detected. Please commit or stash them before running the release script."
+	exit 1
 }
 
 # 2. Bump version, create commit and tag
-Write-Host "Bumping version and creating tag..."
-# `bun pm version patch` automatically updates package.json and bun.lockb, then creates a commit and a tag like vX.Y.Z
-$newVersionOutput = bun pm version patch
-$NEW_VERSION = ($newVersionOutput | Select-Object -Last 1).Trim() # Assumes the last line is the version, e.g., "v1.0.1"
+Write-Host "Bumping version ($Bump)..."
+$newVersionOutput = bun pm version $Bump
+$NEW_VERSION = ($newVersionOutput | Select-Object -Last 1).Trim()
 Write-Host "Version bumped to $NEW_VERSION"
 
 # 2a. Update msix-config.json version to match (Windows 4-part format X.Y.Z.0)
@@ -25,7 +30,6 @@ $msixVersion = "$semver.0"
 $msixConfig = Get-Content -Raw msix-config.json | ConvertFrom-Json
 $msixConfig.version = $msixVersion
 $msixJson = $msixConfig | ConvertTo-Json -Depth 10
-# Preserve trailing newline and consistent formatting
 [System.IO.File]::WriteAllText((Resolve-Path msix-config.json), ($msixJson + "`n"))
 Write-Host "msix-config.json updated to $msixVersion"
 
@@ -33,32 +37,57 @@ Write-Host "msix-config.json updated to $msixVersion"
 Write-Host "Generating CHANGELOG.md..."
 bun run changelog
 
-# 4. Run format and lint:fix to ensure all files (including package.json and CHANGELOG.md) adhere to standards
-# This step might modify package.json and CHANGELOG.md again if they were not perfectly formatted
-Write-Host "Running Build to ensure consistency..."
-bun run build # Reformats files, including package.json and CHANGELOG.md if needed
-#bun run lint:fix # Fixes linting issues, could touch files again
+# 3a. If a hand-written milestone notes file exists, remind / prepend pointer
+$notesPath = "docs/releases/v$semver.md"
+if (Test-Path $notesPath) {
+	Write-Host "Milestone notes found at $notesPath (used by GitHub Actions for release body)."
+}
 
-# 5. Stage all changes that occurred since the last commit (which was the version bump)
-# This includes CHANGELOG.md and any reformatting applied to package.json (or other files touched by format/lint)
-Write-Host "Staging all remaining changes (CHANGELOG.md and formatting updates)..."
-git add . # Use 'git add .' to stage all modifications
-
-# 6. Amend the previous commit (the version bump commit) to include these new staged changes
-# git commit --amend --no-edit keeps the existing commit message (e.g., "vX.Y.Z")
-Write-Host "Amending previous commit to include CHANGELOG.md and formatting changes..."
-git commit --amend --no-edit
-
-# 7. Force update the tag to point to the amended commit (important!)
-# `git commit --amend` creates a new commit SHA. We need to update the tag to point to this new SHA.
-Write-Host "Updating Git tag $NEW_VERSION to new commit SHA..."
-git tag -f $NEW_VERSION HEAD
-
-# 8. Run the project build (dist/ is ignored, so it's not committed)
-Write-Host "Running project build..."
+# 4. Format / build for consistency (prebuild runs format + lint + typecheck)
+Write-Host "Running build to ensure consistency..."
 bun run build
 
-Write-Host "Release process complete for version $NEW_VERSION."
-Write-Host "Now Running: git push && git push --tags"
+# 5. Stage all changes since the version bump commit
+Write-Host "Staging changelog, msix-config, and formatting updates..."
+git add .
+
+# 6. Amend the version bump commit to include those changes
+Write-Host "Amending version commit..."
+git commit --amend --no-edit
+
+# 7. Force update the tag to the amended commit
+Write-Host "Updating Git tag $NEW_VERSION..."
+git tag -f $NEW_VERSION HEAD
+
+# 8. Final build (dist is gitignored)
+Write-Host "Running final project build..."
+bun run build
+
+Write-Host ""
+Write-Host "Release prepared for $NEW_VERSION."
+
+$isMilestone = $Bump -eq 'minor' -or $Bump -eq 'major'
+if ($isMilestone) {
+	Write-Host ""
+	Write-Host "=== Milestone checklist ($NEW_VERSION) ==="
+	Write-Host "[ ] CHANGELOG / docs/releases notes look good"
+	Write-Host "[ ] README What's new updated"
+	Write-Host "[ ] Smoke: bun run start -- --web-only (or --version)"
+	Write-Host "[ ] Confirm tag $NEW_VERSION"
+	Write-Host "========================================="
+	Write-Host ""
+
+	if (-not $Yes) {
+		$answer = Read-Host "Push commit + tags to origin now? [y/N]"
+		if ($answer -notmatch '^[Yy]') {
+			Write-Host "Skipped push. When ready:"
+			Write-Host "  git push && git push --tags"
+			exit 0
+		}
+	}
+}
+
+Write-Host "Pushing: git push && git push --tags"
 git push
 git push --tags
+Write-Host "Done. npm/GitHub publish should follow from the v* tag workflow."

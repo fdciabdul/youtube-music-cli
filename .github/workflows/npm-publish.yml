@@ -26,9 +26,17 @@ jobs:
         run: bun run compile
       - name: Compile Windows
         run: bun build source/cli.tsx --compile --target=bun-windows-x64 --outfile dist/youtube-music-cli.exe
-      - name: Extract Latest Changelog
+      - name: Prepare release notes
         run: |
-          awk '/^#+ \[?[0-9]/ { if (p) exit; p=1 } p' CHANGELOG.md > latest-release.md
+          TAG="${GITHUB_REF_NAME#v}"
+          NOTES="docs/releases/v${TAG}.md"
+          if [ -f "$NOTES" ]; then
+            cp "$NOTES" latest-release.md
+            echo "Using milestone notes: $NOTES"
+          else
+            awk '/^#+ \[?[0-9]/ { if (p) exit; p=1 } p' CHANGELOG.md > latest-release.md
+            echo "Using CHANGELOG slice"
+          fi
       - uses: JS-DevTools/npm-publish@v4
         with:
           token: ${{ secrets.NPM_TOKEN }}
@@ -37,6 +45,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         if: github.ref_type == 'tag'
         with:
+          name: ${{ github.ref_name }}
           files: |
             dist/youtube-music-cli
             dist/youtube-music-cli.exe
