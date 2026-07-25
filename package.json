@@ -91,7 +91,7 @@
 		"node-notifier": "^10.0.1",
 		"node-youtube-music": "^0.10.3",
 		"play-sound": "^1.1.6",
-		"react": "^19.2.8",
+		"react": "19.2.8",
 		"ws": "^8.21.1",
 		"youtubei.js": "^17.2.0"
 	},
