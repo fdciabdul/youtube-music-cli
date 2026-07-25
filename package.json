@@ -41,7 +41,7 @@
 	],
 	"scripts": {
 		"prebuild": "bun run format && bun run lint:fix && bun run typecheck",
-		"build": "bun run build:bun && bun run build:node && bun run copy:tray-icon",
+		"build": "bun run build:bun && bun run build:node && bun run copy:tray-icon && bun run build:web",
 		"copy:tray-icon": "bun -e \"import{copyFileSync,existsSync,mkdirSync}from'fs';import path from'path';const src=path.join('assets','icon.ico');if(!existsSync(src))process.exit(0);mkdirSync('dist',{recursive:true});copyFileSync(src,path.join('dist','tray-icon.ico'))\"",
 		"build:bun": "bun build source/cli.tsx --outfile dist/source/cli.js --target bun --footer \"//Copyright (c) 2026 involvex\" --production",
 		"build:node": "bun build source/cli.tsx --outfile dist/source/cli.js --target node --footer \"//Copyright (c) 2026 involvex\" --production",

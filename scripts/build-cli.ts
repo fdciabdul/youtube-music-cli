@@ -1,3 +1,4 @@
+import {cpSync, existsSync} from 'node:fs';
 import path from 'node:path';
 import pkg from '../package.json' with {type: 'json'};
 
@@ -79,3 +80,14 @@ console.log(
 	'Build succeeded:',
 	result.outputs.map(output => output.path),
 );
+
+const webDist = path.join(rootDir, 'dist', 'web');
+const webBesideBinary = path.join(path.dirname(outfile), 'web');
+if (existsSync(path.join(webDist, 'index.html'))) {
+	cpSync(webDist, webBesideBinary, {recursive: true});
+	console.log('Copied web UI to', webBesideBinary);
+} else {
+	console.warn(
+		'Web UI not found at dist/web — run bun run build:web before compile for --web support',
+	);
+}

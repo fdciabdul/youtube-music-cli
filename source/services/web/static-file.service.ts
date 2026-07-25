@@ -1,7 +1,7 @@
 // Static file serving service for web UI
-import {readFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
-import {extname, join, dirname, normalize, resolve} from 'node:path';
+import {readFile} from 'node:fs/promises';
+import {dirname, extname, join, normalize, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {logger} from '../logger/logger.service.ts';
 
@@ -22,33 +22,44 @@ const MIME_TYPES: Record<string, string> = {
 	'.eot': 'application/vnd.ms-fontobject',
 };
 
+/**
+ * Resolve the web UI dist directory by probing known layouts.
+ * Prefers the first candidate that contains index.html.
+ */
+export function resolveWebDistDir(
+	moduleUrl: string,
+	cwd: string,
+	execPath: string = process.execPath,
+): string {
+	const currentFile = fileURLToPath(moduleUrl);
+	const currentDir = dirname(currentFile);
+	const candidates = [
+		// Bundled CLI: dist/source/cli.js → dist/web
+		join(currentDir, '..', 'web'),
+		// Unbundled: source/services/web/*.ts → projectRoot/dist/web
+		join(currentDir, '..', '..', '..', 'dist', 'web'),
+		// Compiled binary sibling: <exeDir>/web
+		join(dirname(execPath), 'web'),
+		// CWD fallback (dev / monorepo)
+		join(cwd, 'dist', 'web'),
+	];
+
+	for (const dir of candidates) {
+		if (existsSync(join(dir, 'index.html'))) {
+			return dir;
+		}
+	}
+
+	return candidates[0]!;
+}
+
 class StaticFileService {
 	private webDistDir: string;
 	private indexHtml: string | null = null;
 	private indexHtmlLoaded = false;
 
 	constructor() {
-		// Web UI is built to dist/web/ relative to the project root
-		// Get the directory of the current file
-		const currentFile = fileURLToPath(import.meta.url);
-		const currentDir = dirname(currentFile);
-
-		// Detect if running from dist/ or source/
-		// dist/source/services/web -> need to go up 4 levels to reach project root
-		// source/services/web -> need to go up 3 levels to reach project root
-		const isDist =
-			currentFile.includes('/dist/') || currentFile.includes('\\dist\\');
-
-		let projectRoot: string;
-		if (isDist) {
-			// dist/source/services/web -> services/web -> services -> source -> dist -> project root
-			projectRoot = join(currentDir, '..', '..', '..', '..');
-		} else {
-			// source/services/web -> services/web -> services -> source -> project root
-			projectRoot = join(currentDir, '..', '..', '..');
-		}
-
-		this.webDistDir = join(projectRoot, 'dist', 'web');
+		this.webDistDir = resolveWebDistDir(import.meta.url, process.cwd());
 
 		logger.debug('StaticFileService', 'Path resolved', {
 			webDistDir: this.webDistDir,
@@ -132,15 +143,14 @@ class StaticFileService {
 				});
 				res.end(this.indexHtml);
 			} else {
-				// Web UI not built, serve a simple message
 				res.writeHead(503, {'Content-Type': 'text/html'});
 				res.end(`
 					<!DOCTYPE html>
 					<html>
-					<head><title>Web UI Not Built</title></head>
+					<head><title>Web UI Missing</title></head>
 					<body>
-						<h1>Web UI Not Built</h1>
-						<p>Run <code>bun run build:web</code> to build the web UI.</p>
+						<h1>Web UI Missing</h1>
+						<p>Web UI missing from this install. Rebuild with <code>bun run build</code>.</p>
 					</body>
 					</html>
 				`);
@@ -157,20 +167,18 @@ class StaticFileService {
 		}
 
 		try {
-			// Check if file exists
 			if (!existsSync(filePath)) {
 				res.writeHead(404, {'Content-Type': 'text/plain'});
 				res.end('Not Found');
 				return;
 			}
 
-			// Read and serve file
 			const content = await readFile(filePath);
 			const mimeType = this.getMimeType(filePath);
 
 			res.writeHead(200, {
 				'Content-Type': mimeType,
-				'Cache-Control': 'public, max-age=86400', // 1 day
+				'Cache-Control': 'public, max-age=86400',
 			});
 			res.end(content);
 		} catch (error) {
@@ -209,4 +217,9 @@ export function getStaticFileService(): StaticFileService {
 		staticFileServiceInstance = new StaticFileService();
 	}
 	return staticFileServiceInstance;
+}
+
+/** Test-only: reset singleton so path resolution can be re-evaluated. */
+export function resetStaticFileServiceForTests(): void {
+	staticFileServiceInstance = null;
 }
