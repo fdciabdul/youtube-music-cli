@@ -151,9 +151,10 @@ export function buildPlayerShortcutLine(maxWidth: number): string {
 	const required = [
 		'[←→] Track',
 		'[+/-]',
-		'[Space] Play',
+		'[Space]',
 		'[Shift+S] Shuffle',
 		'[R] Repeat',
+		'[Shift+A] Autoplay',
 		'[F] Fav',
 		'[L] Library',
 		'[I] Radio',
@@ -162,12 +163,7 @@ export function buildPlayerShortcutLine(maxWidth: number): string {
 		'[/] Search',
 		'[Q] Quit',
 	];
-	const optional = [
-		'[Shift+A] Autoplay',
-		'[P] Playlists',
-		'[E] Favorites',
-		'[D] Disco',
-	];
+	const optional = ['[P] Playlists', '[E] Favorites', '[D] Disco'];
 
 	let line = required.join('  ');
 	for (const segment of optional) {
