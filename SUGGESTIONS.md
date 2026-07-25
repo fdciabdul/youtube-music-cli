@@ -238,7 +238,7 @@ Want to work on any of these? Check our [Contributing Guide](CONTRIBUTING.md) an
 - **[Stable] Imports & Exports** - Done. Spotify and YouTube playlist import, JSON and M3U8 export.
 - **[Stable] Stats Dashboard** - Done. Top tracks/artists, listening time, streaks, 14-day timeline.
 - **[Stable] Plugin System** - Done. Full lifecycle management with install, enable, disable, update, remove.
-- **[In progress] Web frontend** - A web UI workspace was initialized for browser-based remote control.
+- **[Stable] Web frontend** - Bundled Phosphor Console companion UI (`web/` → `dist/web/`) with WebSocket sync; enabled via `--web` / `--web-only`.
 - **[Next] Smart recommendations** - Extend suggestions with AI-powered or similarity-based discovery beyond YouTube's built-in algorithm.
 - **[Next] Playlist radio mode** - Endless radio-like playback from a playlist seed.
 - **[Next] Better error handling** - Fix race conditions in HistoryService/FavoritesService (#23), improve error messages.

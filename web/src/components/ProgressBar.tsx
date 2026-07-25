@@ -1,9 +1,21 @@
-import {useState, useRef, useEffect} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 interface Props {
 	progress: number;
 	duration: number;
 	onSeek: (position: number) => void;
+}
+
+function formatTime(seconds: number): string {
+	const mins = Math.floor(seconds / 60);
+	const secs = Math.floor(seconds % 60);
+	return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function formatAriaTime(seconds: number): string {
+	const mins = Math.floor(seconds / 60);
+	const secs = Math.floor(seconds % 60);
+	return `${mins} minutes ${secs} seconds`;
 }
 
 export default function ProgressBar({progress, duration, onSeek}: Props) {
@@ -13,99 +25,80 @@ export default function ProgressBar({progress, duration, onSeek}: Props) {
 
 	const percentage = duration > 0 ? (progress / duration) * 100 : 0;
 	const displayPercentage = isDragging
-		? (dragPosition / duration) * 100
+		? duration > 0
+			? (dragPosition / duration) * 100
+			: 0
 		: percentage;
+	const displayValue = isDragging ? dragPosition : progress;
 
-	const formatTime = (seconds: number) => {
-		const mins = Math.floor(seconds / 60);
-		const secs = Math.floor(seconds % 60);
-		return `${mins}:${secs.toString().padStart(2, '0')}`;
-	};
-
-	const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-		setIsDragging(true);
-		updatePosition(e);
-	};
-
-	const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-		if (isDragging) {
-			updatePosition(e);
-		}
-	};
-
-	const updatePosition = (e: React.MouseEvent<HTMLDivElement>) => {
-		const rect = progressBarRef.current?.getBoundingClientRect();
-		if (!rect) return;
-
-		const x = e.clientX - rect.left;
-		const newPosition = (x / rect.width) * duration;
-		setDragPosition(Math.max(0, Math.min(duration, newPosition)));
-	};
+	const updateFromClientX = useCallback(
+		(clientX: number) => {
+			const rect = progressBarRef.current?.getBoundingClientRect();
+			if (!rect || duration <= 0) return;
+			const x = clientX - rect.left;
+			const newPosition = (x / rect.width) * duration;
+			setDragPosition(Math.max(0, Math.min(duration, newPosition)));
+		},
+		[duration],
+	);
 
 	useEffect(() => {
-		if (isDragging) {
-			const handleGlobalMouseUp = () => {
-				onSeek(dragPosition);
-				setIsDragging(false);
-			};
-			const handleGlobalMouseMove = (e: globalThis.MouseEvent) => {
-				const rect = progressBarRef.current?.getBoundingClientRect();
-				if (rect) {
-					const x = e.clientX - rect.left;
-					const newPosition = (x / rect.width) * duration;
-					setDragPosition(Math.max(0, Math.min(duration, newPosition)));
-				}
-			};
+		if (!isDragging) return;
 
-			document.addEventListener('mouseup', handleGlobalMouseUp);
-			document.addEventListener('mousemove', handleGlobalMouseMove);
+		const handleGlobalMouseUp = () => {
+			onSeek(dragPosition);
+			setIsDragging(false);
+		};
+		const handleGlobalMouseMove = (e: MouseEvent) => {
+			updateFromClientX(e.clientX);
+		};
 
-			return () => {
-				document.removeEventListener('mouseup', handleGlobalMouseUp);
-				document.removeEventListener('mousemove', handleGlobalMouseMove);
-			};
-		}
-	}, [isDragging, dragPosition, duration, onSeek]);
+		document.addEventListener('mouseup', handleGlobalMouseUp);
+		document.addEventListener('mousemove', handleGlobalMouseMove);
+		return () => {
+			document.removeEventListener('mouseup', handleGlobalMouseUp);
+			document.removeEventListener('mousemove', handleGlobalMouseMove);
+		};
+	}, [isDragging, dragPosition, duration, onSeek, updateFromClientX]);
 
 	return (
-		<div style={{width: '100%'}}>
+		<div className="progress">
 			<div
 				ref={progressBarRef}
-				onMouseDown={handleMouseDown}
-				onMouseMove={handleMouseMove}
-				style={{
-					position: 'relative',
-					height: '6px',
-					backgroundColor: 'var(--color-bg-secondary)',
-					borderRadius: '3px',
-					cursor: 'pointer',
-					overflow: 'hidden',
+				className="progress__track"
+				role="slider"
+				tabIndex={0}
+				aria-valuemin={0}
+				aria-valuemax={Math.floor(duration)}
+				aria-valuenow={Math.floor(displayValue)}
+				aria-valuetext={`${formatAriaTime(displayValue)} of ${formatAriaTime(duration)}`}
+				aria-label="Seek"
+				onMouseDown={e => {
+					setIsDragging(true);
+					updateFromClientX(e.clientX);
+				}}
+				onKeyDown={e => {
+					if (duration <= 0) return;
+					const step = 5;
+					if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+						e.preventDefault();
+						onSeek(Math.min(duration, progress + step));
+					} else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+						e.preventDefault();
+						onSeek(Math.max(0, progress - step));
+					}
 				}}
 			>
 				<div
+					className="progress__fill"
 					style={{
-						position: 'absolute',
-						left: 0,
-						top: 0,
-						height: '100%',
-						width: `${displayPercentage}%`,
-						backgroundColor: 'var(--color-primary)',
-						borderRadius: '3px',
-						transition: isDragging ? 'none' : 'width 0.1s linear',
+						transform: `scaleX(${Math.max(0, Math.min(100, displayPercentage)) / 100})`,
+						transition: isDragging ? 'none' : 'transform 0.1s linear',
 					}}
 				/>
 			</div>
-
-			<div
-				style={{
-					display: 'flex',
-					justifyContent: 'space-between',
-					marginTop: '0.5rem',
-					fontSize: '0.875rem',
-					color: 'var(--color-text-dim)',
-				}}
-			>
-				<span>{formatTime(isDragging ? dragPosition : progress)}</span>
+			<div className="progress__times">
+				<span>{formatTime(displayValue)}</span>
 				<span>{formatTime(duration)}</span>
 			</div>
 		</div>

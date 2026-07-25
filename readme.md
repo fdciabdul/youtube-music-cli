@@ -30,6 +30,7 @@ A powerful Terminal User Interface (TUI) music player for YouTube Music
 - 🔌 **Plugin System** - Extend functionality with plugins
 - ⌨️ **Keyboard-Driven** - Efficient vim-style navigation
 - 🖥️ **Immersive Mode** - Fullscreen Windows TUI with audio visualizer and disco effects
+- 🌐 **Web Companion** - Browser UI with synced playback controls (`--web`); included in every production build
 - 💾 **Downloads** - Save tracks/playlists/artists with `Shift+D`
 - 🏷️ **Metadata Tagging** - Auto-tag title/artist/album with optional cover art
 - ⚡️ **Shell Completions** - `ymc completions <bash|zsh|powershell|fish>` emits scripts you can source or save so the CLI (also available as `ymc`) tab-completes subcommands and flags
@@ -205,6 +206,23 @@ bun run build:win32
 dist/ymc-win32.exe
 ```
 
+### Web Companion UI
+
+Every production build (`bun run build`) includes the browser companion at `dist/web/`. No separate `build:web` step is required for users.
+
+```bash
+# TUI + web UI (default http://localhost:8080)
+youtube-music-cli --web
+
+# Web UI only (no terminal interface)
+youtube-music-cli --web-only
+
+# Custom host/port and optional auth token
+youtube-music-cli --web --web-host 0.0.0.0 --web-port 3000 --web-auth secret
+```
+
+Open the printed URL in a browser for synced playback controls, queue, search, volume, shuffle/repeat/autoplay, and dark/light theme. State stays in sync with the CLI over WebSocket (`/ws`).
+
 **Hotkeys in Immersive Mode:**
 
 | Key        | Action                                       |
@@ -275,9 +293,14 @@ If you installed the CLI globally with an alias or script name, make sure `ymc` 
 | `--volume`   | `-v`  | Initial volume (0-100)                       |
 | `--shuffle`  | `-s`  | Enable shuffle mode                          |
 | `--repeat`   | `-r`  | Repeat mode: `off`, `all`, `one`             |
-| `--headless` |       | Run without TUI                              |
-| `--win32`    |       | Immersive fullscreen mode (Windows only)     |
-| `--help`     | `-h`  | Show help                                    |
+| `--headless`  |       | Run without TUI                              |
+| `--web`       |       | Enable web companion UI (bundled in build)   |
+| `--web-only`  |       | Web UI only (no TUI)                         |
+| `--web-host`  |       | Web server host (default: `localhost`)       |
+| `--web-port`  |       | Web server port (default: `8080`)            |
+| `--web-auth`  |       | Optional auth token for the web server       |
+| `--win32`     |       | Immersive fullscreen mode (Windows only)     |
+| `--help`      | `-h`  | Show help                                    |
 
 ### Examples
 

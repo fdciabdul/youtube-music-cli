@@ -2,38 +2,47 @@ import {create} from 'zustand';
 
 type Theme = 'dark' | 'light';
 
+const STORAGE_KEY = 'ymc-theme';
+
 interface ThemeStore {
 	theme: Theme;
 	toggleTheme: () => void;
 	setTheme: (theme: Theme) => void;
 }
 
+function applyTheme(theme: Theme): void {
+	document.documentElement.dataset.theme = theme;
+	localStorage.setItem(STORAGE_KEY, theme);
+}
+
+function readStoredTheme(): Theme {
+	const stored = localStorage.getItem(STORAGE_KEY);
+	if (stored === 'light' || stored === 'dark') {
+		return stored;
+	}
+	// Migrate legacy key
+	const legacy = localStorage.getItem('theme');
+	if (legacy === 'light' || legacy === 'dark') {
+		return legacy;
+	}
+	return 'dark';
+}
+
 export const useTheme = create<ThemeStore>(
 	(set: (partial: Partial<ThemeStore>) => void, get: () => ThemeStore) => ({
-		theme: (localStorage.getItem('theme') as Theme) || 'dark',
+		theme: readStoredTheme(),
 
 		toggleTheme: () => {
-			const currentTheme = get().theme;
-			const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+			const newTheme = get().theme === 'dark' ? 'light' : 'dark';
+			applyTheme(newTheme);
 			set({theme: newTheme});
-			localStorage.setItem('theme', newTheme);
-
-			// Update document class
-			document.body.classList.toggle('light-theme', newTheme === 'light');
 		},
 
 		setTheme: (theme: Theme) => {
+			applyTheme(theme);
 			set({theme});
-			localStorage.setItem('theme', theme);
-
-			// Update document class
-			document.body.classList.toggle('light-theme', theme === 'light');
 		},
 	}),
 );
 
-// Initialize theme class on load
-const initialTheme = (localStorage.getItem('theme') as Theme) || 'dark';
-if (initialTheme === 'light') {
-	document.body.classList.add('light-theme');
-}
+applyTheme(readStoredTheme());

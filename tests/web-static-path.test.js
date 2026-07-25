@@ -38,7 +38,11 @@ test('resolveWebDistDir finds projectRoot/dist/web from source/services/web', t 
 	const moduleUrl = pathToFileURL(
 		join(serviceDir, 'static-file.service.ts'),
 	).href;
-	const resolved = resolveWebDistDir(moduleUrl, join(root, 'other'), join(root, 'fake-exe'));
+	const resolved = resolveWebDistDir(
+		moduleUrl,
+		join(root, 'other'),
+		join(root, 'fake-exe'),
+	);
 
 	t.is(resolved, webDir);
 });
@@ -54,7 +58,11 @@ test('resolveWebDistDir falls back to cwd dist/web', t => {
 	writeFileSync(join(webDir, 'index.html'), '<html></html>');
 
 	const moduleUrl = pathToFileURL(join(moduleDir, 'cli.js')).href;
-	const resolved = resolveWebDistDir(moduleUrl, root, join(root, 'no-web', 'exe'));
+	const resolved = resolveWebDistDir(
+		moduleUrl,
+		root,
+		join(root, 'no-web', 'exe'),
+	);
 
 	t.is(resolved, webDir);
 });

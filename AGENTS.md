@@ -14,8 +14,9 @@ This file provides guidance for AI agents operating in this repository.
 | ------------------- | ---------------------------------------------- |
 | `bun run dev`       | Start in watch mode (TypeScript compilation)   |
 | `bun run dev:watch` | Watch mode with auto-restart                   |
-| `bun run build`     | Compile TypeScript to `dist/`                  |
-| `bun run start`     | Run compiled CLI binary (`dist/source/cli.js`) |
+| `bun run build`     | Compile CLI to `dist/source/` and web UI to `dist/web/` |
+| `bun run build:web` | Build web companion only (`web/` → `dist/web/`)         |
+| `bun run start`     | Run compiled CLI binary (`dist/source/cli.js`)          |
 | `bun run clean`     | Remove `dist/` directory                       |
 
 ### Code Quality
@@ -228,6 +229,8 @@ youtube-music-cli search <query>     # Search and play
 youtube-music-cli playlist <id>      # Play playlist
 youtube-music-cli --theme=matrix    # Set theme
 youtube-music-cli --headless         # Run without TUI
+youtube-music-cli --web              # TUI + bundled web companion
+youtube-music-cli --web-only         # Web companion only
 youtube-music-cli --win32            # Windows immersive mode (Bun native)
 ```
 
@@ -258,3 +261,4 @@ youtube-music-cli --win32            # Windows immersive mode (Bun native)
 - Ink TUI and immersive stall watchdogs attempt IPC reconnect when progress freezes while mpv is still alive
 - Downloads prefer **yt-dlp**, then youtubei.js stream URLs, then Invidious; progress is reported via `onProgress` (`formatDownloadProgress`) in Ink search/playlist and immersive search overlay
 - Invidious instance health / discovery lives in `source/services/invidious/invidious-health.service.ts`, persisted to `~/.youtube-music-cli/invidious-health.json` (24h discovery TTL from `api.invidious.io/instances.json`)
+- Web companion lives in workspace `web/` (Vite + React); `bun run build` always runs `build:web` into `dist/web/`. Served by `source/services/web/` (`--web` / `--web-only`). Static path resolution is `resolveWebDistDir()` in `static-file.service.ts`. Keep root/`web` `react` and `react-dom` pinned to the same version (19.2.8) to avoid React error #527
