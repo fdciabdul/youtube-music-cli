@@ -1,8 +1,19 @@
+# [0.1.0](https://github.com/involvex/youtube-music-cli/compare/v0.0.100...v0.1.0) (2026-07-25)
+
+### Bug Fixes
+
+- **web:** align react and react-dom to 19.2.8 ([24b2994](https://github.com/involvex/youtube-music-cli/commit/24b2994a2c254963e12e21549ec86236c89f9338))
+- **web:** ship dist/web with build and resolve static path ([2101684](https://github.com/involvex/youtube-music-cli/commit/2101684d60aced734ac55b80d7a31d4e8bcc5c9c))
+
+### Features
+
+- **web:** Phosphor Console responsive companion UI ([e80d361](https://github.com/involvex/youtube-music-cli/commit/e80d361c5f3424e908b1f1c53e9abad717734aba))
+
 ## [0.0.100](https://github.com/involvex/youtube-music-cli/compare/v0.0.99...v0.0.100) (2026-07-25)
 
 ### Features
 
-- add live streams view and queue/history UX ([e5d10c7](https://github.com/involvex/youtube-music-cli/commit/e5d10c7c4f4a79452e73e5d5ac888dc230848daa))
+- add live streams view and queue/history UX ([42a563f](https://github.com/involvex/youtube-music-cli/commit/42a563fda12e68ea3d8002e0fc11f88d207f25d9))
 
 ## [0.0.99](https://github.com/involvex/youtube-music-cli/compare/v0.0.97...v0.0.99) (2026-07-18)
 
