@@ -127,7 +127,9 @@
 	},
 	"sponsors": "https://github.com/sponsors/involvex",
 	"overrides": {
-		"minimatch": "^10.2.1"
+		"minimatch": "^10.2.1",
+		"react": "19.2.8",
+		"react-dom": "19.2.8"
 	},
 	"trustedDependencies": [
 		"unrs-resolver"
