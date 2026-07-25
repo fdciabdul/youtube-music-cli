@@ -293,14 +293,14 @@ If you installed the CLI globally with an alias or script name, make sure `ymc` 
 | `--volume`   | `-v`  | Initial volume (0-100)                       |
 | `--shuffle`  | `-s`  | Enable shuffle mode                          |
 | `--repeat`   | `-r`  | Repeat mode: `off`, `all`, `one`             |
-| `--headless`  |       | Run without TUI                              |
-| `--web`       |       | Enable web companion UI (bundled in build)   |
-| `--web-only`  |       | Web UI only (no TUI)                         |
-| `--web-host`  |       | Web server host (default: `localhost`)       |
-| `--web-port`  |       | Web server port (default: `8080`)            |
-| `--web-auth`  |       | Optional auth token for the web server       |
-| `--win32`     |       | Immersive fullscreen mode (Windows only)     |
-| `--help`      | `-h`  | Show help                                    |
+| `--headless` |       | Run without TUI                              |
+| `--web`      |       | Enable web companion UI (bundled in build)   |
+| `--web-only` |       | Web UI only (no TUI)                         |
+| `--web-host` |       | Web server host (default: `localhost`)       |
+| `--web-port` |       | Web server port (default: `8080`)            |
+| `--web-auth` |       | Optional auth token for the web server       |
+| `--win32`    |       | Immersive fullscreen mode (Windows only)     |
+| `--help`     | `-h`  | Show help                                    |
 
 ### Examples
 

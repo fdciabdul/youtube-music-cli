@@ -10,14 +10,14 @@ This file provides guidance for AI agents operating in this repository.
 
 ### Development
 
-| Command             | Description                                    |
-| ------------------- | ---------------------------------------------- |
-| `bun run dev`       | Start in watch mode (TypeScript compilation)   |
-| `bun run dev:watch` | Watch mode with auto-restart                   |
+| Command             | Description                                             |
+| ------------------- | ------------------------------------------------------- |
+| `bun run dev`       | Start in watch mode (TypeScript compilation)            |
+| `bun run dev:watch` | Watch mode with auto-restart                            |
 | `bun run build`     | Compile CLI to `dist/source/` and web UI to `dist/web/` |
 | `bun run build:web` | Build web companion only (`web/` → `dist/web/`)         |
 | `bun run start`     | Run compiled CLI binary (`dist/source/cli.js`)          |
-| `bun run clean`     | Remove `dist/` directory                       |
+| `bun run clean`     | Remove `dist/` directory                                |
 
 ### Code Quality
 

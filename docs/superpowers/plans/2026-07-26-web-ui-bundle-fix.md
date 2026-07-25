@@ -3,7 +3,7 @@ name: Web UI Bundle Fix
 overview: Fix the blank React web UI (version mismatch), make `dist/web` always produced and correctly resolved from the bundled CLI, and redesign the companion UI as a responsive dark-first Phosphor Console with full WebSocket-synced player controls.
 todos:
   - id: pin-react
-    content: "Pin react/react-dom to 19.2.8 in web + root overrides; reinstall; verify no #527"
+    content: 'Pin react/react-dom to 19.2.8 in web + root overrides; reinstall; verify no #527'
     status: completed
   - id: build-path
     content: Include build:web in build; fix resolveWebDistDir; copy web beside compiled binary; AVA tests
@@ -42,19 +42,19 @@ isProject: false
 
 ## File map
 
-| File | Responsibility |
-|------|----------------|
-| [`web/package.json`](web/package.json) | Pin `react`/`react-dom` to `19.2.8` |
-| Root [`package.json`](package.json) | `build` includes `build:web`; optional overrides |
-| [`source/services/web/static-file.service.ts`](source/services/web/static-file.service.ts) | Multi-candidate `dist/web` resolution |
-| [`scripts/release.ps1`](scripts/release.ps1) | Ensure web assets built (inherits from `build`) |
-| [`scripts/build-cli.ts`](scripts/build-cli.ts) | After compile, copy `dist/web` beside the binary |
-| [`web/src/styles/tokens.css`](web/src/styles/tokens.css) | Phosphor tokens + fonts |
-| [`web/src/styles/layout.css`](web/src/styles/layout.css) | Responsive shell breakpoints |
-| [`web/src/components/shell/*`](web/src/components/shell/) | AppShell, TopBar, Nav, Stage, Queue, Dock |
-| [`web/src/App.tsx`](web/src/App.tsx) | Wire shell + existing WS hooks |
-| [`tests/web-static-path.test.js`](tests/web-static-path.test.js) | Path resolution + “built” detection |
-| [`README.md`](README.md) / [`AGENTS.md`](AGENTS.md) | Document `--web` as zero-extra-step |
+| File                                                                                       | Responsibility                                   |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| [`web/package.json`](web/package.json)                                                     | Pin `react`/`react-dom` to `19.2.8`              |
+| Root [`package.json`](package.json)                                                        | `build` includes `build:web`; optional overrides |
+| [`source/services/web/static-file.service.ts`](source/services/web/static-file.service.ts) | Multi-candidate `dist/web` resolution            |
+| [`scripts/release.ps1`](scripts/release.ps1)                                               | Ensure web assets built (inherits from `build`)  |
+| [`scripts/build-cli.ts`](scripts/build-cli.ts)                                             | After compile, copy `dist/web` beside the binary |
+| [`web/src/styles/tokens.css`](web/src/styles/tokens.css)                                   | Phosphor tokens + fonts                          |
+| [`web/src/styles/layout.css`](web/src/styles/layout.css)                                   | Responsive shell breakpoints                     |
+| [`web/src/components/shell/*`](web/src/components/shell/)                                  | AppShell, TopBar, Nav, Stage, Queue, Dock        |
+| [`web/src/App.tsx`](web/src/App.tsx)                                                       | Wire shell + existing WS hooks                   |
+| [`tests/web-static-path.test.js`](tests/web-static-path.test.js)                           | Path resolution + “built” detection              |
+| [`README.md`](README.md) / [`AGENTS.md`](AGENTS.md)                                        | Document `--web` as zero-extra-step              |
 
 ```mermaid
 flowchart LR
@@ -81,6 +81,7 @@ flowchart LR
 ### Task 1: Pin React versions (blank-page fix)
 
 **Files:**
+
 - Modify: [`web/package.json`](web/package.json)
 - Modify: root [`package.json`](package.json) (optional `overrides` for `react` / `react-dom`)
 - Regenerate: `bun.lock`
@@ -113,6 +114,7 @@ flowchart LR
 ### Task 2: Always build web + fix static path resolution
 
 **Files:**
+
 - Modify: [`package.json`](package.json) scripts
 - Modify: [`source/services/web/static-file.service.ts`](source/services/web/static-file.service.ts)
 - Modify: [`scripts/build-cli.ts`](scripts/build-cli.ts) (copy `dist/web` next to compiled binary)
@@ -123,22 +125,22 @@ flowchart LR
 
 ```typescript
 export function resolveWebDistDir(moduleUrl: string, cwd: string): string {
-  const currentFile = fileURLToPath(moduleUrl);
-  const currentDir = dirname(currentFile);
-  const candidates = [
-    // Bundled CLI: dist/source/cli.js → dist/web
-    join(currentDir, '..', 'web'),
-    // Unbundled: source/services/web/*.ts → projectRoot/dist/web
-    join(currentDir, '..', '..', '..', 'dist', 'web'),
-    // Compiled binary sibling: <exeDir>/web
-    join(dirname(process.execPath), 'web'),
-    // CWD fallback (dev / monorepo)
-    join(cwd, 'dist', 'web'),
-  ];
-  for (const dir of candidates) {
-    if (existsSync(join(dir, 'index.html'))) return dir;
-  }
-  return candidates[0]!;
+	const currentFile = fileURLToPath(moduleUrl);
+	const currentDir = dirname(currentFile);
+	const candidates = [
+		// Bundled CLI: dist/source/cli.js → dist/web
+		join(currentDir, '..', 'web'),
+		// Unbundled: source/services/web/*.ts → projectRoot/dist/web
+		join(currentDir, '..', '..', '..', 'dist', 'web'),
+		// Compiled binary sibling: <exeDir>/web
+		join(dirname(process.execPath), 'web'),
+		// CWD fallback (dev / monorepo)
+		join(cwd, 'dist', 'web'),
+	];
+	for (const dir of candidates) {
+		if (existsSync(join(dir, 'index.html'))) return dir;
+	}
+	return candidates[0]!;
 }
 ```
 
@@ -160,6 +162,7 @@ export function resolveWebDistDir(moduleUrl: string, cwd: string): string {
 ### Task 3: Phosphor tokens, fonts, theme hook
 
 **Files:**
+
 - Create: [`web/src/styles/tokens.css`](web/src/styles/tokens.css)
 - Modify: [`web/src/styles/globals.css`](web/src/styles/globals.css)
 - Modify: [`web/index.html`](web/index.html) (Google Fonts: Syne, IBM Plex Sans, IBM Plex Mono)
@@ -176,6 +179,7 @@ export function resolveWebDistDir(moduleUrl: string, cwd: string): string {
 ### Task 4: Responsive shell + player controls UI
 
 **Files:**
+
 - Create: `web/src/components/shell/AppShell.tsx`, `TopBar.tsx`, `NavRail.tsx`, `Stage.tsx`, `QueuePanel.tsx`, `MobileDock.tsx`, `MobileTabBar.tsx`
 - Create: `web/src/components/player/Transport.tsx`, `NowPlaying.tsx` (SVG icons via lucide-react direct imports—not barrel if avoidable, or keep lucide with Vite optimize)
 - Modify: [`PlayerControls.tsx`](web/src/components/PlayerControls.tsx), [`ProgressBar.tsx`](web/src/components/ProgressBar.tsx), [`QueueList.tsx`](web/src/components/QueueList.tsx), [`NavigationBar.tsx`](web/src/components/NavigationBar.tsx) — either refactor into shell pieces or thin wrappers
@@ -183,11 +187,13 @@ export function resolveWebDistDir(moduleUrl: string, cwd: string): string {
 - Create: [`web/src/styles/layout.css`](web/src/styles/layout.css)
 
 **Layout:**
+
 - Desktop ≥1024px: TopBar + Nav 220px | Stage flex | Queue 300px
 - Tablet 768–1023: chip nav, stage + queue
 - Mobile &lt;768: artwork stage + fixed Transport dock + tab bar (Player / Search / Queue / Settings); sheets for non-player views
 
 **Behavior (keep protocol):**
+
 - Reuse `useWebSocket`, `usePlayerStore`, `sendCommand` for play/pause/prev/next/seek/volume/shuffle/repeat/autoplay/queue select/remove/search
 - Sync pip: connected = solid `--ok`, connecting pulse, disconnected `--danger`
 - `prefers-reduced-motion`: opacity-only transitions
@@ -203,6 +209,7 @@ export function resolveWebDistDir(moduleUrl: string, cwd: string): string {
 ### Task 5: Docs + verification gate
 
 **Files:**
+
 - Modify: [`README.md`](README.md) — `--web` / `--web-only` usage; note that release builds include UI
 - Modify: [`AGENTS.md`](AGENTS.md) — web workspace + `build` includes web
 - Modify: [`SUGGESTIONS.md`](SUGGESTIONS.md) — mark web frontend shipped
@@ -224,14 +231,14 @@ cd web && bun run typecheck
 
 ## Spec coverage (self-check)
 
-| Requirement | Task |
-|-------------|------|
-| Release “Web UI Not Built” | 2 (build pipeline + path fix) |
-| Blank page / React #527 | 1 |
+| Requirement                        | Task                                                             |
+| ---------------------------------- | ---------------------------------------------------------------- |
+| Release “Web UI Not Built”         | 2 (build pipeline + path fix)                                    |
+| Blank page / React #527            | 1                                                                |
 | Always bundled, no extra user step | 2 (`build` includes web; npm `files: ["dist"]` already ships it) |
-| Full synced stream + controls | 4 (existing WS; UI surfaces all commands) |
-| Responsive UI | 4 |
-| Dark mode | 3 + 4 |
-| Distinctive non-slop design | 3 + 4 (Phosphor Console) |
+| Full synced stream + controls      | 4 (existing WS; UI surfaces all commands)                        |
+| Responsive UI                      | 4                                                                |
+| Dark mode                          | 3 + 4                                                            |
+| Distinctive non-slop design        | 3 + 4 (Phosphor Console)                                         |
 
 Also save a copy at `docs/superpowers/plans/2026-07-26-web-ui-bundle-fix.md` during implementation (same content as this plan).
