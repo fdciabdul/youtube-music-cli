@@ -157,6 +157,7 @@ export function buildPlayerShortcutLine(maxWidth: number): string {
 		'[F] Fav',
 		'[L] Library',
 		'[I] Radio',
+		'[V] Live',
 		'[,] Settings',
 		'[/] Search',
 		'[Q] Quit',

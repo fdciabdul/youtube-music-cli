@@ -21,6 +21,8 @@ These work from any screen.
 | `,`       | Open settings        |
 | `q`       | Quit application     |
 | `Esc`     | Go back / Close menu |
+| `Shift+I` | Open Radio Streams   |
+| `Shift+V` | Open Live Streams    |
 
 ## Playback Controls
 
@@ -52,14 +54,15 @@ These work from any screen.
 
 ## Search
 
-| Key       | Action                                 |
-| --------- | -------------------------------------- |
-| `/`       | Focus search input                     |
-| `Enter`   | Execute search                         |
-| `Esc`     | Clear search / Close                   |
-| `]`       | Show more results                      |
-| `[`       | Show fewer results                     |
-| `Shift+D` | Download selected song/artist/playlist |
+| Key        | Action                      |
+| ---------- | --------------------------- |
+| `/`        | Focus search input          |
+| `Enter`    | Execute search              |
+| `Esc`      | Clear search / Close        |
+| `]/` / `[` | More / fewer search results |
+| `W`        | Add track to playback queue |
+| `Y`        | Play track next in queue    |
+| `Shift+H`  | Queue & History view        |
 
 ## Playlist
 

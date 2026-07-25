@@ -193,6 +193,25 @@ export function KeyboardManager() {
 								if (mainKey === '+' && input === '+') return true;
 								if (mainKey === '+' && key.shift && input === '=') return true;
 
+								// Ctrl+letter control codes (SOH–SUB)
+								if (hasCtrl && /^[a-z]$/.test(mainKey) && input.length === 1) {
+									const charCode = input.charCodeAt(0);
+									if (charCode >= 1 && charCode <= 26) {
+										const derived = String.fromCharCode(charCode + 64);
+										if (derived.toLowerCase() === mainKey) return true;
+									}
+								}
+
+								// Ctrl+symbol (e.g. ctrl+,) when terminal reports key.ctrl
+								if (
+									hasCtrl &&
+									key.ctrl &&
+									input.length === 1 &&
+									input.toLowerCase() === mainKey
+								) {
+									return true;
+								}
+
 								return (
 									input.toLowerCase() === mainKey && !key.ctrl && !key.meta
 								);
@@ -242,14 +261,15 @@ export function KeyboardManager() {
 				const lowerBinding = binding.toLowerCase();
 
 				// A. Match Special Keys (Highest precedence)
+				// Skip Enter/Return when Ctrl is held so Ctrl+M (ASCII CR) can bind separately.
 				const isSpecialMatch =
 					(lowerBinding === 'up' && key.upArrow) ||
 					(lowerBinding === 'down' && key.downArrow) ||
 					(lowerBinding === 'left' && key.leftArrow) ||
 					(lowerBinding === 'right' && key.rightArrow) ||
 					(lowerBinding === 'escape' && key.escape) ||
-					(lowerBinding === 'return' && key.return) ||
-					(lowerBinding === 'enter' && key.return) ||
+					(lowerBinding === 'return' && key.return && !key.ctrl) ||
+					(lowerBinding === 'enter' && key.return && !key.ctrl) ||
 					(lowerBinding === 'tab' && key.tab) ||
 					(lowerBinding === 'backspace' && key.backspace) ||
 					(lowerBinding === 'pageup' && key.pageUp) ||
@@ -312,13 +332,27 @@ export function KeyboardManager() {
 					}
 				}
 
+				// Ctrl+non-letter (e.g. ctrl+,) when terminal reports modifiers + symbol
+				if (
+					hasCtrl &&
+					!isLetter &&
+					key.ctrl &&
+					input.length === 1 &&
+					input.toLowerCase() === mainKey
+				) {
+					handler();
+					return;
+				}
+
 				// Check for symbol/char match
 				const inputLower = input.toLowerCase();
 				const isSymbolMatch =
 					(mainKey === '=' && input === '=') ||
 					(mainKey === '+' && input === '+') ||
 					(mainKey === '+' && key.shift && input === '=') ||
-					(mainKey === '-' && input === '-');
+					(mainKey === '-' && input === '-') ||
+					(mainKey === ']' && input === ']') ||
+					(mainKey === '[' && input === '[');
 
 				if (
 					isSymbolMatch ||

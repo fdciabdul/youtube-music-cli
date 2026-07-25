@@ -76,6 +76,11 @@ export interface AddToQueueAction {
 	track: Track;
 }
 
+export interface PlayNextAction {
+	readonly category: 'PLAY_NEXT';
+	track: Track;
+}
+
 export interface RemoveFromQueueAction {
 	readonly category: 'REMOVE_FROM_QUEUE';
 	index: number;

@@ -38,9 +38,9 @@ function SearchResults({
 }: Props) {
 	const {theme} = useTheme();
 	const {dispatch} = useNavigation();
-	const {play, dispatch: playerDispatch} = usePlayer();
+	const {play, dispatch: playerDispatch, addToQueue, playNext} = usePlayer();
 	const {isFavorite, toggleFavorite} = useFavorites();
-	const {columns} = useTerminalSize();
+	const {columns, rows} = useTerminalSize();
 	const musicService = getMusicService();
 	const downloadService = getDownloadService();
 	const {createPlaylist} = usePlaylist();
@@ -314,9 +314,27 @@ function SearchResults({
 		}
 	}, [downloadService, isActive, isDownloading, results, selectedIndex]);
 
+	const enqueueSelected = useCallback(() => {
+		if (!isActive) return;
+		const selected = results[selectedIndex];
+		if (selected?.type === 'song') {
+			addToQueue(selected.data as Track);
+		}
+	}, [isActive, results, selectedIndex, addToQueue]);
+
+	const playNextSelected = useCallback(() => {
+		if (!isActive) return;
+		const selected = results[selectedIndex];
+		if (selected?.type === 'song') {
+			playNext(selected.data as Track);
+		}
+	}, [isActive, results, selectedIndex, playNext]);
+
 	useKeyBinding(KEYBINDINGS.UP, navigateUp);
 	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
 	useKeyBinding(KEYBINDINGS.SELECT, handleSelect);
+	useKeyBinding(KEYBINDINGS.ADD_TO_QUEUE, enqueueSelected);
+	useKeyBinding(KEYBINDINGS.PLAY_NEXT, playNextSelected);
 	useKeyBinding(KEYBINDINGS.CREATE_MIX, () => {
 		void createMixPlaylist();
 	});
@@ -340,6 +358,15 @@ function SearchResults({
 	}
 
 	// Calculate responsive truncation
+	const maxVisible = Math.max(5, rows - 18);
+	const start = Math.max(
+		0,
+		Math.min(
+			selectedIndex - Math.floor(maxVisible / 2),
+			Math.max(0, results.length - maxVisible),
+		),
+	);
+	const visibleResults = results.slice(start, start + maxVisible);
 	const maxTitleWidth = Math.max(20, Math.floor(columns * 0.35));
 
 	// Extract track info helper
@@ -356,7 +383,8 @@ function SearchResults({
 	return (
 		<Box flexDirection="column">
 			{/* Results list */}
-			{results.map((result, index) => {
+			{visibleResults.map((result, offset) => {
+				const index = start + offset;
 				const isSelected = index === selectedIndex;
 				const data = result.data;
 

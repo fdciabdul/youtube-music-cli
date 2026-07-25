@@ -89,13 +89,13 @@ function SearchLayout() {
 
 	// Handle search action
 	const performSearch = useCallback(
-		async (query: string) => {
+		async (query: string, limitOverride?: number) => {
 			if (!query || isSearching) return;
 
 			setIsSearching(true);
 			const response = await search(query, {
 				type: navState.searchType,
-				limit: navState.searchLimit,
+				limit: limitOverride ?? navState.searchLimit,
 			});
 
 			if (response) {
@@ -111,17 +111,43 @@ function SearchLayout() {
 		[search, navState.searchType, navState.searchLimit, dispatch, isSearching],
 	);
 
-	// Adjust results limit
+	// Adjust results limit and re-run search when results are showing
 	const increaseLimit = useCallback(() => {
-		dispatch({category: 'SET_SEARCH_LIMIT', limit: navState.searchLimit + 5});
-	}, [navState.searchLimit, dispatch]);
+		const nextLimit = Math.min(50, navState.searchLimit + 5);
+		dispatch({category: 'SET_SEARCH_LIMIT', limit: nextLimit});
+		const query = navState.searchQuery.trim();
+		if (navState.hasSearched && query) {
+			void performSearch(query, nextLimit);
+		}
+	}, [
+		navState.searchLimit,
+		navState.searchQuery,
+		navState.hasSearched,
+		dispatch,
+		performSearch,
+	]);
 
 	const decreaseLimit = useCallback(() => {
-		dispatch({category: 'SET_SEARCH_LIMIT', limit: navState.searchLimit - 5});
-	}, [navState.searchLimit, dispatch]);
+		const nextLimit = Math.max(1, navState.searchLimit - 5);
+		dispatch({category: 'SET_SEARCH_LIMIT', limit: nextLimit});
+		const query = navState.searchQuery.trim();
+		if (navState.hasSearched && query) {
+			void performSearch(query, nextLimit);
+		}
+	}, [
+		navState.searchLimit,
+		navState.searchQuery,
+		navState.hasSearched,
+		dispatch,
+		performSearch,
+	]);
 
-	useKeyBinding(KEYBINDINGS.INCREASE_RESULTS, increaseLimit);
-	useKeyBinding(KEYBINDINGS.DECREASE_RESULTS, decreaseLimit);
+	useKeyBinding(KEYBINDINGS.INCREASE_RESULTS, increaseLimit, {
+		bypassBlock: true,
+	});
+	useKeyBinding(KEYBINDINGS.DECREASE_RESULTS, decreaseLimit, {
+		bypassBlock: true,
+	});
 
 	// Open search history
 	const goToHistory = useCallback(() => {
@@ -131,14 +157,26 @@ function SearchLayout() {
 	}, [isTyping, dispatch]);
 
 	useKeyBinding(['h'], goToHistory);
-	useKeyBinding(KEYBINDINGS.SEARCH_FILTER_ARTIST, () =>
-		beginFilterEdit('artist'),
+	useKeyBinding(
+		KEYBINDINGS.SEARCH_FILTER_ARTIST,
+		() => beginFilterEdit('artist'),
+		{
+			bypassBlock: true,
+		},
 	);
-	useKeyBinding(KEYBINDINGS.SEARCH_FILTER_ALBUM, () =>
-		beginFilterEdit('album'),
+	useKeyBinding(
+		KEYBINDINGS.SEARCH_FILTER_ALBUM,
+		() => beginFilterEdit('album'),
+		{
+			bypassBlock: true,
+		},
 	);
-	useKeyBinding(KEYBINDINGS.SEARCH_FILTER_YEAR, () => beginFilterEdit('year'));
-	useKeyBinding(KEYBINDINGS.SEARCH_FILTER_DURATION, cycleDurationFilter);
+	useKeyBinding(KEYBINDINGS.SEARCH_FILTER_YEAR, () => beginFilterEdit('year'), {
+		bypassBlock: true,
+	});
+	useKeyBinding(KEYBINDINGS.SEARCH_FILTER_DURATION, cycleDurationFilter, {
+		bypassBlock: true,
+	});
 
 	// Initial search if query is in state (usually from CLI flags)
 	useEffect(() => {
@@ -261,7 +299,7 @@ function SearchLayout() {
 			)}
 
 			<Text color={theme.colors.dim}>
-				Limit: {navState.searchLimit} (Use Ctrl+M/Ctrl+, to adjust)
+				Limit: {navState.searchLimit} (Use ] / [ to adjust)
 			</Text>
 
 			<SearchBar
@@ -331,7 +369,7 @@ function SearchLayout() {
 			<Text color={theme.colors.dim}>
 				{isTyping
 					? 'Type to search, Enter to start, Esc to clear'
-					: `Arrows to navigate, Enter to play, M mix, Shift+D download, Ctrl+M/Ctrl+, more/fewer results (${navState.searchLimit}), H history, Esc to type`}
+					: `Arrows navigate, Enter play, W queue, Y play next, M mix, Shift+D download, ]/[ results (${navState.searchLimit}), H history, Esc type`}
 			</Text>
 		</Box>
 	);

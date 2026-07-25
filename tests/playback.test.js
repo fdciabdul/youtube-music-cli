@@ -57,11 +57,41 @@ test('TOGGLE_SHUFFLE flips shuffle from true to false', async t => {
 	t.false(next.shuffle);
 });
 
-test('NEXT with empty queue returns unchanged state', async t => {
+test('PLAY_NEXT inserts track after current queue position', async t => {
 	const {playerReducer} = await import('../source/stores/player.store.tsx');
-	const state = makeState({shuffle: true, queue: [], queuePosition: 0});
-	const next = playerReducer(state, {category: 'NEXT'});
-	t.is(next, state); // referential equality — no change
+	const a = makeTrack('a');
+	const b = makeTrack('b');
+	const c = makeTrack('c');
+	const state = makeState({
+		queue: [a, b],
+		queuePosition: 0,
+		currentTrack: a,
+		explicitQueueLength: 2,
+	});
+	const next = playerReducer(state, {category: 'PLAY_NEXT', track: c});
+	t.deepEqual(
+		next.queue.map(track => track.videoId),
+		['a', 'c', 'b'],
+	);
+	t.is(next.queuePosition, 0);
+	t.is(next.explicitQueueLength, 3);
+});
+
+test('ADD_TO_QUEUE appends and bumps explicitQueueLength', async t => {
+	const {playerReducer} = await import('../source/stores/player.store.tsx');
+	const a = makeTrack('a');
+	const b = makeTrack('b');
+	const state = makeState({
+		queue: [a],
+		queuePosition: 0,
+		explicitQueueLength: 1,
+	});
+	const next = playerReducer(state, {category: 'ADD_TO_QUEUE', track: b});
+	t.deepEqual(
+		next.queue.map(track => track.videoId),
+		['a', 'b'],
+	);
+	t.is(next.explicitQueueLength, 2);
 });
 
 test('NEXT with shuffle=true and single-track queue falls through sequentially (no-op)', async t => {

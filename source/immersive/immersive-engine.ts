@@ -90,6 +90,15 @@ import {
 	toggleSelectedRadioFavorite,
 	type RadioOverlayState,
 } from './ui/radio-overlay.ts';
+import {
+	createLiveStreamsOverlayState,
+	closeLiveStreamsOverlay,
+	getSelectedLiveStation,
+	handleLiveStreamsOverlayInput,
+	openLiveStreamsOverlay,
+	renderLiveStreamsOverlay,
+	type LiveStreamsOverlayState,
+} from './ui/live-streams-overlay.ts';
 import type {RadioStation} from '../types/radio-station.types.ts';
 import {
 	getUpcomingTracks,
@@ -185,6 +194,8 @@ export class ImmersiveEngine {
 	private libraryOverlay: LibraryOverlayState = createLibraryOverlayState();
 	private settingsOverlay: SettingsOverlayState = createSettingsOverlayState();
 	private radioOverlay: RadioOverlayState = createRadioOverlayState();
+	private liveStreamsOverlay: LiveStreamsOverlayState =
+		createLiveStreamsOverlayState();
 
 	private options: ImmersiveOptions;
 	private effectiveWidth: number;
@@ -427,6 +438,7 @@ export class ImmersiveEngine {
 				this.libraryOverlay,
 				this.settingsOverlay,
 				this.radioOverlay,
+				this.liveStreamsOverlay,
 			);
 			renderSearchOverlay(fb, tw, th, this.searchOverlay);
 			renderLibraryOverlay(
@@ -445,6 +457,7 @@ export class ImmersiveEngine {
 				this.options.getSettingsRows?.() ?? [],
 			);
 			renderRadioOverlay(fb, tw, th, this.radioOverlay);
+			renderLiveStreamsOverlay(fb, tw, th, this.liveStreamsOverlay);
 
 			const isDisco =
 				playerState?.isDiscoMode ?? this.options.discoMode ?? false;
@@ -560,6 +573,11 @@ export class ImmersiveEngine {
 			return;
 		}
 
+		if (this.liveStreamsOverlay.active) {
+			void this.handleLiveStreamsKey(keyName);
+			return;
+		}
+
 		if (this.searchOverlay.active) {
 			void this.handleSearchKey(keyName);
 			return;
@@ -592,6 +610,9 @@ export class ImmersiveEngine {
 			case 'i':
 				openRadioOverlay(this.radioOverlay);
 				void preloadRadioOverlayStations(this.radioOverlay);
+				break;
+			case 'v':
+				openLiveStreamsOverlay(this.liveStreamsOverlay);
 				break;
 			case 'p':
 				openPlaylistPicker(this.libraryOverlay);
@@ -961,6 +982,32 @@ export class ImmersiveEngine {
 		} catch (error) {
 			this.radioOverlay.status =
 				error instanceof Error ? error.message : 'Failed to play station';
+		}
+	}
+
+	private async handleLiveStreamsKey(key: string): Promise<void> {
+		const action = handleLiveStreamsOverlayInput(this.liveStreamsOverlay, key);
+
+		if (action === 'close') {
+			return;
+		}
+
+		if (action !== 'play') {
+			return;
+		}
+
+		const station = getSelectedLiveStation(this.liveStreamsOverlay);
+		if (!station) {
+			return;
+		}
+
+		try {
+			this.liveStreamsOverlay.status = `Connecting to ${station.name}...`;
+			await this.options.onPlayRadioStation?.(station);
+			closeLiveStreamsOverlay(this.liveStreamsOverlay);
+		} catch (error) {
+			this.liveStreamsOverlay.status =
+				error instanceof Error ? error.message : 'Failed to play stream';
 		}
 	}
 
@@ -1569,6 +1616,7 @@ function renderControls(
 	libraryOverlay: LibraryOverlayState,
 	settingsOverlay: SettingsOverlayState,
 	radioOverlay: RadioOverlayState,
+	liveStreamsOverlay: LiveStreamsOverlayState,
 ): void {
 	const separatorY = layoutFooterY(height, 0);
 	const modeY = layoutFooterY(height, 1);
@@ -1608,6 +1656,8 @@ function renderControls(
 	} else if (settingsOverlay.active) {
 		controls = '[↑↓] Navigate   [Enter] Cycle   [Esc] Close';
 	} else if (radioOverlay.active) {
+		controls = '[↑↓] Select   [Enter] Play   [Esc] Close';
+	} else if (liveStreamsOverlay.active) {
 		controls = '[↑↓] Select   [Enter] Play   [Esc] Close';
 	} else if (playerState) {
 		modeLine = buildModeStatusLine(playerState);

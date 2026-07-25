@@ -12,7 +12,7 @@ import {KEYBINDINGS} from '../../utils/constants.ts';
 export default function FavoritesList() {
 	const {theme} = useTheme();
 	const {favorites, removeFavorite} = useFavorites();
-	const {play, dispatch: playerDispatch} = usePlayer();
+	const {play, dispatch: playerDispatch, addToQueue, playNext} = usePlayer();
 	const {columns, rows} = useTerminalSize();
 	const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -31,6 +31,16 @@ export default function FavoritesList() {
 			play(track);
 		}
 	}, [favorites, selectedIndex, play]);
+
+	const enqueueSelected = useCallback(() => {
+		const track = favorites[selectedIndex];
+		if (track) addToQueue(track);
+	}, [favorites, selectedIndex, addToQueue]);
+
+	const playNextSelected = useCallback(() => {
+		const track = favorites[selectedIndex];
+		if (track) playNext(track);
+	}, [favorites, selectedIndex, playNext]);
 
 	const playAll = useCallback(() => {
 		if (favorites.length === 0) return;
@@ -61,6 +71,8 @@ export default function FavoritesList() {
 	useKeyBinding(KEYBINDINGS.UP, navigateUp);
 	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
 	useKeyBinding(KEYBINDINGS.SELECT, playSelected);
+	useKeyBinding(KEYBINDINGS.ADD_TO_QUEUE, enqueueSelected);
+	useKeyBinding(KEYBINDINGS.PLAY_NEXT, playNextSelected);
 	useKeyBinding(['delete', 'd', 'backspace'], handleRemove);
 	useKeyBinding(['f'], handleRemove); // Toggle off in this view means remove
 	useKeyBinding(['shift+p'], playAll); // Reuse playlist play shortcut? Or just Enter on a "Play All" button?
@@ -104,7 +116,8 @@ export default function FavoritesList() {
 				</Text>
 				<Text color={theme.colors.dim}> • </Text>
 				<Text color={theme.colors.dim}>
-					[Enter] Play • [p] Play All • [s] Shuffle • [f/Del] Remove
+					[Enter] Play • [W] Queue · [Y] Next · [p] Play All • [s] Shuffle •
+					[f/Del] Remove
 				</Text>
 			</Box>
 

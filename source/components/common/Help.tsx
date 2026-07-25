@@ -53,6 +53,10 @@ export default function Help() {
 						<Text color={theme.colors.text}>Shift+Q</Text> - Background Play
 						<Text> | </Text>
 						<Text color={theme.colors.text}>Shift+R</Text> - Resume Control
+						<Text> | </Text>
+						<Text color={theme.colors.text}>Shift+I</Text> - Radio Streams
+						<Text> | </Text>
+						<Text color={theme.colors.text}>Shift+V</Text> - Live Streams
 					</Text>
 				</Box>
 
@@ -110,7 +114,15 @@ export default function Help() {
 						<Text> | </Text>
 						<Text color={theme.colors.text}>Esc</Text> - Clear Search
 						<Text> | </Text>
-						<Text color={theme.colors.text}>[ / ]</Text> - Results Limit
+						<Text color={theme.colors.text}>Shift+H</Text> - Queue & History
+						<Text> | </Text>
+						<Text color={theme.colors.text}>]</Text> /{' '}
+						<Text color={theme.colors.text}>[</Text> - More / fewer search
+						results
+						<Text> | </Text>
+						<Text color={theme.colors.text}>W</Text> - Add to queue
+						<Text> | </Text>
+						<Text color={theme.colors.text}>Y</Text> - Play next
 					</Text>
 				</Box>
 

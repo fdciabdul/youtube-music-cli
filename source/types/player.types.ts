@@ -24,6 +24,7 @@ import type {
 	ToggleAutoplayAction,
 	SetQueueAction,
 	AddToQueueAction,
+	PlayNextAction,
 	RemoveFromQueueAction,
 	ClearQueueAction,
 	SetQueuePositionAction,
@@ -82,6 +83,7 @@ export type PlayerAction =
 	| ToggleAutoplayAction
 	| SetQueueAction
 	| AddToQueueAction
+	| PlayNextAction
 	| RemoveFromQueueAction
 	| ClearQueueAction
 	| SetQueuePositionAction

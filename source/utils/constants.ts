@@ -71,6 +71,7 @@ export const VIEW = {
 	AI_RECOMMENDATIONS: 'ai_recommendations',
 	STATS: 'stats',
 	RADIO: 'radio',
+	LIVE_STREAMS: 'live_streams',
 } as const;
 
 // Search types
@@ -105,6 +106,7 @@ export const KEYBINDINGS = {
 	// Radio
 	TOGGLE_RADIO: ['shift+x'],
 	RADIO_STREAMS: ['shift+i'],
+	LIVE_STREAMS: ['shift+v'],
 
 	// Player
 	PLAY_PAUSE: [' '],
@@ -140,13 +142,17 @@ export const KEYBINDINGS = {
 
 	// Search
 	CLEAR_SEARCH: ['escape'],
-	INCREASE_RESULTS: ['ctrl+m'],
-	DECREASE_RESULTS: ['ctrl+,'], // Changed from 'ctrl+l' to avoid conflict with album filter
+	INCREASE_RESULTS: [']'],
+	DECREASE_RESULTS: ['['],
 	TOGGLE_SUBTITLES: ['u'],
 	SEARCH_FILTER_ARTIST: ['ctrl+a'],
 	SEARCH_FILTER_ALBUM: ['ctrl+l'],
 	SEARCH_FILTER_YEAR: ['ctrl+y'],
 	SEARCH_FILTER_DURATION: ['ctrl+d'],
+
+	// Queue
+	ADD_TO_QUEUE: ['w'],
+	PLAY_NEXT: ['y'],
 
 	// Playlist
 	ADD_TO_PLAYLIST: ['a'],

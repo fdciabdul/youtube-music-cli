@@ -4,7 +4,7 @@ export interface RadioStation {
 	streamUrl: string;
 	region?: string;
 	genre?: string;
-	source?: 'builtin' | 'radio-browser';
+	source?: 'builtin' | 'radio-browser' | 'live-catalog';
 	stationuuid?: string;
 }
 

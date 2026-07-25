@@ -242,6 +242,8 @@ youtube-music-cli --win32            # Windows immersive mode (Bun native)
 
 - Win32 immersive mode (`--win32`, `bun run dev:win32`, `build:win32`) lives under `source/immersive/` and is separate from the Ink TUI
 - Immersive library and search overlays share helpers in `source/immersive/actions/playback-actions.ts`; shortcuts include `=`/`+`/`-` (player volume), L/P/E (library), Shift+S (shuffle), R (repeat), `,` / Ctrl+, (settings), Tab/Ctrl+A/Ctrl+L/+/- (search filters and limit), Shift+D (download), M (mix), and F (favorite); tray right-click offers Settings and Exit
+- Live Streams (`VIEW.LIVE_STREAMS`, Ink `Shift+V`, immersive `v`) is a curated yt-dlp/mpv catalog in `source/data/builtin-live-streams.ts`; plays via `PLAY_STREAM` / `toRadioStation` (`source: 'live-catalog'`); Radio Streams (`Shift+I` / `i`) remains Radio Browser + regional builtins
+- Queue & History (`Shift+H` / `VIEW.HISTORY`) merges playback queue + recently played in a compact scrollable list; queue persists via `player-state.json`; Search/Favorites use `W` (add to queue) and `Y` (play next / `PLAY_NEXT`); search result limit uses `]` / `[` (re-fetches)
 - Immersive settings overlay mirrors Ink TUI with 23 rows (`IMMERSIVE_SETTINGS_COUNT` in `source/immersive/settings/settings-items.ts`)
 - `playback-actions.ts` types music calls via `ImmersiveMusicService` instead of importing `getMusicService()`, so immersive AVA tests avoid loading the heavy YouTube API module
 - Immersive stdin uses raw `process.stdin.on('data')` without escape buffering; `Ctrl+,` on Windows Terminal may need `\x0c` plus CSI u sequences in `key-parser.ts`

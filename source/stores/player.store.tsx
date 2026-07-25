@@ -253,7 +253,26 @@ export function playerReducer(
 			};
 
 		case 'ADD_TO_QUEUE':
-			return {...state, queue: [...state.queue, action.track]};
+			return {
+				...state,
+				queue: [...state.queue, action.track],
+				explicitQueueLength:
+					(state.explicitQueueLength ?? state.queue.length) + 1,
+			};
+
+		case 'PLAY_NEXT': {
+			const insertAt = Math.min(state.queuePosition + 1, state.queue.length);
+			const newQueue = [...state.queue];
+			newQueue.splice(insertAt, 0, action.track);
+			const explicitBase = state.explicitQueueLength ?? state.queue.length;
+			const explicitQueueLength =
+				insertAt <= explicitBase ? explicitBase + 1 : explicitBase;
+			return {
+				...state,
+				queue: newQueue,
+				explicitQueueLength,
+			};
+		}
 
 		case 'REMOVE_FROM_QUEUE': {
 			const newQueue = [...state.queue];
@@ -420,6 +439,7 @@ type PlayerContextValue = {
 	toggleAutoplay: () => void;
 	setQueue: (queue: Track[]) => void;
 	addToQueue: (track: Track) => void;
+	playNext: (track: Track) => void;
 	removeFromQueue: (index: number) => void;
 	clearQueue: () => void;
 	setQueuePosition: (position: number) => void;
@@ -1415,6 +1435,7 @@ export function PlayerProvider({children}: {children: ReactNode}) {
 			toggleAutoplay: () => dispatch({category: 'TOGGLE_AUTOPLAY'}),
 			setQueue: (queue: Track[]) => dispatch({category: 'SET_QUEUE', queue}),
 			addToQueue: (track: Track) => dispatch({category: 'ADD_TO_QUEUE', track}),
+			playNext: (track: Track) => dispatch({category: 'PLAY_NEXT', track}),
 			removeFromQueue: (index: number) =>
 				dispatch({category: 'REMOVE_FROM_QUEUE', index}),
 			clearQueue: () => dispatch({category: 'CLEAR_QUEUE'}),

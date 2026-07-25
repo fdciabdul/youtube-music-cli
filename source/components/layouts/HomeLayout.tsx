@@ -80,7 +80,8 @@ export default function HomeLayout() {
 		{label: '🆕 New Releases', view: VIEW.NEW_RELEASES},
 		{label: '❤️ Favorites', view: VIEW.FAVORITES},
 		{label: '📻 Radio Streams', view: VIEW.RADIO},
-		{label: '🕒 History', view: VIEW.HISTORY},
+		{label: '📡 Live Streams', view: VIEW.LIVE_STREAMS},
+		{label: '🕒 Queue & History', view: VIEW.HISTORY},
 		{label: '🎲 Play Random Song', action: handlePlayRandom},
 		{label: '🎵 Play Random Favorite', action: handlePlayRandomFavorite},
 	];
