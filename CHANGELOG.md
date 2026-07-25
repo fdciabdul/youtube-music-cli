@@ -1,3 +1,9 @@
+## [0.0.100](https://github.com/involvex/youtube-music-cli/compare/v0.0.99...v0.0.100) (2026-07-25)
+
+### Features
+
+- add live streams view and queue/history UX ([e5d10c7](https://github.com/involvex/youtube-music-cli/commit/e5d10c7c4f4a79452e73e5d5ac888dc230848daa))
+
 ## [0.0.99](https://github.com/involvex/youtube-music-cli/compare/v0.0.97...v0.0.99) (2026-07-18)
 
 ### Bug Fixes
