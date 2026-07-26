@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: docs-verify
     content: README/AGENTS docs; full build/lint/typecheck/manual --web-only verification
-    status: in_progress
+    status: completed
 isProject: false
 ---
 

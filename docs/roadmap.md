@@ -26,13 +26,14 @@ How ideas in `SUGGESTIONS.md` become concrete work, and what to pick up next.
 - Immersive Windows mode (`--win32`)
 - Favorites, shell completions, radio streams, live streams catalog
 - Download pipeline (yt-dlp → youtubei → Invidious) + mpv IPC hardening
+- History/Favorites save hardening (#23) + clearer error formatting
+- Prefer local downloads (`preferLocalPlayback`, downloads index, Local badge)
 
 ## Active focus (post-0.1.0)
 
-1. **Hardening** — History/Favorites race conditions (#23); clearer user-facing errors.
-2. **Discovery** — Smart recommendations beyond YouTube’s built-in related tracks; playlist radio mode.
-3. **Offline** — Prefer cached downloads when the network fails.
-4. **Web v1.1** — Media Session API, favorites/live in the web nav, mini-player route.
+1. **Discovery** — Smart recommendations beyond YouTube’s built-in related tracks; playlist radio mode.
+2. **Offline** — Prefer cached downloads when the network fails; deepen offline-only playback UX.
+3. **Web v1.1** — Media Session API, favorites/live in the web nav, mini-player route.
 
 ## Toward 1.0.0
 

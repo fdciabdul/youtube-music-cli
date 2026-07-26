@@ -88,6 +88,10 @@ This document tracks potential features, enhancements, and improvements for yout
 - Planned **Configurable Layout** - User-adjustable panel sizes and component arrangement
 - Planned **Terminal Title Integration** - Set terminal window title to currently playing track
 
+### Low Priority
+
+- Planned **Startup Screen** - Branded splash / first-run tips when launching the TUI
+
 ## 🔌 Integration & Plugins
 
 ### High Priority
@@ -196,8 +200,8 @@ This document tracks potential features, enhancements, and improvements for yout
 ## 🐛 Known Issues
 
 - Fixed ~~Pause restarts track from beginning instead of resuming~~ (#24)
-- Open **Race condition in HistoryService/FavoritesService saves** - Concurrent saves use same temp file, causing `ENOENT` errors. Mutex pattern needed. (#23)
-- Open **mpv stderr errors on some Linux setups** - Investigate mpv spawn arguments for compatibility with various Linux audio setups. (#22)
+- Fixed ~~Race condition in HistoryService/FavoritesService saves~~ (#23) — save mutex + unique temp files; clearer error formatting via `formatError`
+- Fixed ~~mpv stderr errors on some Linux setups~~ (#22)
 - Known **Search results sometimes don't include all available tracks** - YouTube API pagination limitations
 - Known **Theme colors may not render correctly on some terminal emulators** - Limited 256-color support in some terminals
 - Known **Volume control precision varies by audio backend** - mpv volume step granularity
@@ -240,7 +244,7 @@ Want to work on any of these? Check our [Contributing Guide](CONTRIBUTING.md) an
 - **[Stable] Stats Dashboard** - Done. Top tracks/artists, listening time, streaks, 14-day timeline.
 - **[Stable] Plugin System** - Done. Full lifecycle management with install, enable, disable, update, remove.
 - **[Stable] Web frontend** - Bundled Phosphor Console companion UI (`web/` → `dist/web/`) with WebSocket sync; enabled via `--web` / `--web-only`.
+- **[Stable] History/Favorites save hardening** - Done. Save mutex, unique temp files (#23), and `formatError` for user-facing messages.
 - **[Next] Smart recommendations** - Extend suggestions with AI-powered or similarity-based discovery beyond YouTube's built-in algorithm.
 - **[Next] Playlist radio mode** - Endless radio-like playback from a playlist seed.
-- **[Next] Better error handling** - Fix race conditions in HistoryService/FavoritesService (#23), improve error messages.
 - **[Next] Offline mode** - Cache downloaded tracks for playback without network.
