@@ -1,840 +1,991 @@
-import test from 'ava';
+import {afterEach, expect, test} from 'bun:test';
 
-test('parseKeyName maps arrow keys and control keys', async t => {
-	const {parseKeyName} =
-		await import('../source/immersive/input/key-parser.ts');
-
-	t.is(parseKeyName('\x1B[A'), 'up');
-	t.is(parseKeyName('\x1B[B'), 'down');
-	t.is(parseKeyName('\x1B[C'), 'right');
-	t.is(parseKeyName('\x1B[D'), 'left');
-	t.is(parseKeyName(' '), ' ');
-	t.is(parseKeyName('\x03'), 'Ctrl+C');
-	t.is(parseKeyName('/'), '/');
-	t.is(parseKeyName('\r'), 'enter');
-	t.is(parseKeyName('S'), 'Shift+S');
-	t.is(parseKeyName('D'), 'Shift+D');
-	t.is(parseKeyName('s'), 's');
-	t.is(parseKeyName(','), ',');
-	t.is(parseKeyName('\t'), 'tab');
-	t.is(parseKeyName('\x01'), 'Ctrl+A');
-	t.is(parseKeyName('\x0c'), 'Ctrl+L');
-	t.is(parseKeyName('+'), '+');
-	t.is(parseKeyName('='), '+');
-	t.is(parseKeyName('-'), '-');
-	t.is(parseKeyName('\x1b[44;5u'), 'Ctrl+,');
-	t.is(parseKeyName('\x1b[44;5;1u'), 'Ctrl+,');
-	t.is(parseKeyName('\x1c'), null);
-});
-
-test('StdinKeyBuffer assembles chunked Ctrl+, sequences', async t => {
-	const {StdinKeyBuffer} =
-		await import('../source/immersive/input/stdin-buffer.ts');
-
-	const keys = [];
-	const buffer = new StdinKeyBuffer(key => {
-		keys.push(key);
-	});
-
-	buffer.push('\x1b');
-	t.is(keys.length, 0);
-
-	buffer.push('[44;5;1u');
-	t.deepEqual(keys, ['Ctrl+,']);
-
-	buffer.dispose();
-});
-
-test('AudioCollector processes frequency bands', async t => {
-	const {AudioCollector} =
-		await import('../source/immersive/visualizer/audio-collector.ts');
-
-	const collector = new AudioCollector(256);
-	const samples = new Float32Array(256);
-	for (let i = 0; i < samples.length; i++) {
-		samples[i] = Math.sin(i / 10);
+const __fileTeardowns = [];
+afterEach(() => {
+	while (__fileTeardowns.length) {
+		const fn = __fileTeardowns.pop();
+		fn();
 	}
-
-	const processed = collector.processAudioData(samples);
-	const bands = collector.getFrequencyBands(processed);
-
-	t.true(processed.length > 0);
-	t.true(bands.bass >= 0);
-	t.true(bands.treble >= 0);
 });
 
-test('FrameBuffer setText and clear work', async t => {
-	const {FrameBuffer} =
-		await import('../source/immersive/renderer/frame-buffer.ts');
-
-	const fb = new FrameBuffer(20, 5);
-	fb.setText(2, 1, 'Hello', null, null, {bold: true});
-	t.is(fb.getCell(2, 1)?.char, 'H');
-	t.is(fb.getCell(2, 1)?.bold, true);
-
-	fb.clear();
-	t.is(fb.getCell(2, 1)?.char, ' ');
-});
-
-test('BrailleCanvas accumulates dots in the same cell', async t => {
-	const {FrameBuffer} =
-		await import('../source/immersive/renderer/frame-buffer.ts');
-	const {BrailleCanvas} =
-		await import('../source/immersive/renderer/braille-canvas.ts');
-
-	const fb = new FrameBuffer(10, 10);
-	const canvas = new BrailleCanvas(fb);
-
-	canvas.setPixel(0, 0, [255, 0, 0]);
-	canvas.setPixel(1, 0, [0, 255, 0]);
-
-	const cell = fb.getCell(0, 0);
-	t.not(cell?.char, ' ');
-	t.not(cell?.char, String.fromCharCode(0x2800));
-});
-
-test('queue-state advances and rewinds queue', async t => {
-	const {advanceQueue, createInitialImmersiveState, previousQueue, setQueue} =
-		await import('../source/immersive/state/queue-state.ts');
-
-	const state = createInitialImmersiveState();
-	setQueue(state, [
-		{videoId: 'a', title: 'A', artists: []},
-		{videoId: 'b', title: 'B', artists: []},
-		{videoId: 'c', title: 'C', artists: []},
-	]);
-
-	t.is(state.currentTrack?.videoId, 'a');
-	t.is(advanceQueue(state)?.videoId, 'b');
-	t.is(advanceQueue(state)?.videoId, 'c');
-	t.is(advanceQueue(state), null);
-
-	state.currentTime = 1;
-	state.queueIndex = 2;
-	state.currentTrack = state.queue[2] ?? null;
-	t.is(previousQueue(state)?.videoId, 'b');
-});
-
-test('queue-state supports shuffle and repeat-all', async t => {
-	const {advanceQueue, createInitialImmersiveState, setQueue} =
-		await import('../source/immersive/state/queue-state.ts');
-
-	const state = createInitialImmersiveState({shuffle: true});
-	setQueue(state, [
-		{videoId: 'a', title: 'A', artists: []},
-		{videoId: 'b', title: 'B', artists: []},
-		{videoId: 'c', title: 'C', artists: []},
-	]);
-
-	const first = advanceQueue(state)?.videoId;
-	t.not(first, 'a');
-	t.true(['b', 'c'].includes(first ?? ''));
-
-	state.shuffle = false;
-	state.repeat = 'all';
-	state.autoplay = false;
-	state.queueIndex = 2;
-	state.currentTrack = state.queue[2] ?? null;
-	t.is(advanceQueue(state)?.videoId, 'a');
-});
-
-test('queue-state shuffle with repeat-all at end picks a different track', async t => {
-	const {
-		advanceQueue,
-		createInitialImmersiveState,
-		setQueue,
-		shuffleQueueOrder,
-	} = await import('../source/immersive/state/queue-state.ts');
-
-	const state = createInitialImmersiveState({
-		shuffle: true,
-		repeat: 'all',
-		autoplay: false,
-	});
-	setQueue(state, [
-		{videoId: 'a', title: 'A', artists: []},
-		{videoId: 'b', title: 'B', artists: []},
-		{videoId: 'c', title: 'C', artists: []},
-	]);
-	state.queueIndex = 2;
-	state.currentTrack = state.queue[2] ?? null;
-	shuffleQueueOrder(state, 2);
-
-	const next = advanceQueue(state);
-	t.truthy(next);
-	t.not(next?.videoId, 'c');
-	t.true(['a', 'b'].includes(next?.videoId ?? ''));
-});
-
-test('getUpcomingTracks wraps with repeat-all at last shuffle index', async t => {
-	const {
-		createInitialImmersiveState,
-		getUpcomingTracks,
-		setQueue,
-		shuffleQueueOrder,
-	} = await import('../source/immersive/state/queue-state.ts');
-
-	const state = createInitialImmersiveState({
-		shuffle: true,
-		repeat: 'all',
-		autoplay: false,
-	});
-	setQueue(state, [
-		{videoId: 'a', title: 'A', artists: []},
-		{videoId: 'b', title: 'B', artists: []},
-		{videoId: 'c', title: 'C', artists: []},
-	]);
-	state.queueIndex = 2;
-	state.currentTrack = state.queue[2] ?? null;
-	shuffleQueueOrder(state, 2);
-
-	const upcoming = getUpcomingTracks(state, 5);
-	t.true(upcoming.length >= 2);
-	t.not(upcoming[0]?.videoId, 'c');
-});
-
-test('getUpcomingTracks wraps sequentially with repeat-all at queue end', async t => {
-	const {createInitialImmersiveState, getUpcomingTracks, setQueue} =
-		await import('../source/immersive/state/queue-state.ts');
-
-	const state = createInitialImmersiveState({repeat: 'all', autoplay: false});
-	setQueue(state, [
-		{videoId: 'a', title: 'A', artists: []},
-		{videoId: 'b', title: 'B', artists: []},
-		{videoId: 'c', title: 'C', artists: []},
-	]);
-	state.queueIndex = 2;
-	state.currentTrack = state.queue[2] ?? null;
-
-	const upcoming = getUpcomingTracks(state, 3);
-	t.deepEqual(
-		upcoming.map(track => track.videoId),
-		['a', 'b'],
-	);
-});
-
-test('advanceQueue with playbackOrder does not repeat current track', async t => {
-	const {advanceQueue, createInitialImmersiveState, setQueue} =
-		await import('../source/immersive/state/queue-state.ts');
-
-	const state = createInitialImmersiveState({
-		shuffle: true,
-		repeat: 'all',
-		autoplay: false,
-	});
-	setQueue(state, [
-		{videoId: 'a', title: 'A', artists: []},
-		{videoId: 'b', title: 'B', artists: []},
-		{videoId: 'c', title: 'C', artists: []},
-	]);
-
-	const firstId = state.currentTrack?.videoId;
-	const second = advanceQueue(state);
-	t.not(second?.videoId, firstId);
-});
-
-test('resolveRandomFavoriteStartIndex stays within queue bounds', async t => {
-	const {resolveRandomFavoriteStartIndex} =
-		await import('../source/immersive/state/queue-state.ts');
-
-	for (let i = 0; i < 20; i++) {
-		const index = resolveRandomFavoriteStartIndex(15);
-		t.true(index >= 0);
-		t.true(index < 15);
-	}
-	t.is(resolveRandomFavoriteStartIndex(0), 0);
-});
-
-test('toggleShuffle rebuilds and clears playback order', async t => {
-	const {createInitialImmersiveState, setQueue, toggleShuffle} =
-		await import('../source/immersive/state/queue-state.ts');
-
-	const state = createInitialImmersiveState();
-	setQueue(state, [
-		{videoId: 'a', title: 'A', artists: []},
-		{videoId: 'b', title: 'B', artists: []},
-	]);
-	t.is(state.playbackOrder, null);
-
-	t.true(toggleShuffle(state));
-	t.truthy(state.playbackOrder);
-	t.is(state.playbackOrder?.length, 2);
-
-	t.false(toggleShuffle(state));
-	t.is(state.playbackOrder, null);
-});
-
-test('playback-sync re-exports mpv-event-policy helpers', async t => {
-	const {ADVANCE_DEBOUNCE_MS, shouldDebounceAdvance, shouldSyncPauseFromMpv} =
-		await import('../source/immersive/state/playback-sync.ts');
-
-	const now = 10_000;
-	t.false(
-		shouldSyncPauseFromMpv({
-			paused: true,
-			isAdvancing: true,
-			eofTimestamp: 0,
-			now,
-		}),
-	);
-	t.true(
-		shouldSyncPauseFromMpv({
-			paused: true,
-			eofTimestamp: 0,
-			now,
-		}),
-	);
-
-	t.true(shouldDebounceAdvance(0, ADVANCE_DEBOUNCE_MS - 1));
-	t.false(shouldDebounceAdvance(0, ADVANCE_DEBOUNCE_MS));
-});
-
-test('queue-state cycles repeat modes', async t => {
-	const {createInitialImmersiveState, cycleRepeat} =
-		await import('../source/immersive/state/queue-state.ts');
-
-	const state = createInitialImmersiveState();
-	t.is(cycleRepeat(state), 'all');
-	t.is(cycleRepeat(state), 'one');
-	t.is(cycleRepeat(state), 'off');
-});
-
-test('settings overlay navigates and cycles rows', async t => {
-	const {
-		closeSettingsOverlay,
-		createSettingsOverlayState,
-		handleSettingsInput,
-		openSettingsOverlay,
-		SETTINGS_ROW_COUNT,
-	} = await import('../source/immersive/ui/settings-overlay.ts');
-
-	const overlay = createSettingsOverlayState();
-	openSettingsOverlay(overlay);
-	t.true(overlay.active);
-	t.is(SETTINGS_ROW_COUNT, 23);
-
-	t.is(handleSettingsInput(overlay, 'down', SETTINGS_ROW_COUNT), 'none');
-	t.is(overlay.selectedIndex, 1);
-	t.is(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT), 'cycle');
-	overlay.selectedIndex = 10;
-	t.is(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT), 'begin_text');
-	overlay.selectedIndex = 19;
-	t.is(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT), 'navigate');
-	t.is(handleSettingsInput(overlay, 'escape', SETTINGS_ROW_COUNT), 'close');
-	t.false(overlay.active);
-
-	closeSettingsOverlay(overlay);
-});
-
-test('immersive settings items match TUI row count and cycle values', async t => {
-	const {
-		buildImmersiveSettingsRows,
-		cycleImmersiveSetting,
-		createSleepTimerState,
-	} = await import('../source/immersive/settings/settings-items.ts');
-	const {getConfigService} =
-		await import('../source/services/config/config.service.ts');
-
-	const config = getConfigService();
-	const sleepTimer = createSleepTimerState();
-	const rows = buildImmersiveSettingsRows(config);
-
-	t.is(rows.length, 23);
-	t.true(rows[0]?.label.includes('Stream Quality'));
-	t.true(rows[18]?.label.includes('Sleep Timer'));
-	t.true(rows[22]?.label.includes('Manage Plugins'));
-
-	const message = cycleImmersiveSetting(config, 6, {
-		sleepTimer,
-		onSleepTimerExpire: () => {},
-	});
-	t.true(message?.includes('Subtitles'));
-});
-
-test('tray helpers parse actions and resolve icon path', async t => {
-	const {parseTrayActionLine, resolveTrayIconPath, truncateTrayTooltip} =
-		await import('../source/immersive/native/tray.ts');
-
-	t.is(parseTrayActionLine('ACTION:settings'), 'settings');
-	t.is(parseTrayActionLine('ACTION:exit'), 'exit');
-	t.is(parseTrayActionLine('TOOLTIP:foo'), null);
-
-	const iconPath = resolveTrayIconPath();
-	t.true(iconPath === null || /\.(ico|png|jpe?g)$/i.test(iconPath));
-
-	const long = 'A'.repeat(80);
-	t.is(truncateTrayTooltip(long).length, 63);
-});
-
-test('player shortcut line includes volume keys', async t => {
-	const {buildPlayerShortcutLine} =
-		await import('../source/immersive/ui/layout.ts');
-
-	const line = buildPlayerShortcutLine(120);
-	t.true(line.includes('[+/-]'));
-});
-
-test('HybridAudioSource reacts to playback state', async t => {
-	const {HybridAudioSource} =
-		await import('../source/immersive/visualizer/hybrid-audio.ts');
-
-	const source = new HybridAudioSource(64);
-
-	for (let i = 0; i < 20; i++) {
-		source.update(
-			{currentTime: i, duration: 180, isPlaying: true, volume: 80},
-			16,
-		);
-	}
-	const playing = source.generateSamples();
-
-	for (let i = 0; i < 20; i++) {
-		source.update(
-			{currentTime: i, duration: 180, isPlaying: false, volume: 80},
-			16,
-		);
-	}
-	const paused = source.generateSamples();
-
-	const playingEnergy = playing.reduce((sum, value) => sum + value, 0);
-	const pausedEnergy = paused.reduce((sum, value) => sum + value, 0);
-	t.true(playingEnergy >= pausedEnergy);
-});
-
-test('layout helpers compute regions and progress bars', async t => {
-	const {
-		buildModeStatusLine,
-		buildPlayerShortcutLine,
-		buildProgressBar,
-		buildVolumeBar,
-		computeLayout,
-	} = await import('../source/immersive/ui/layout.ts');
-
-	const layout = computeLayout(100, 30);
-	t.true(layout.vizH >= 6);
-	t.true(layout.vizW > 0);
-	t.true(layout.nowPlayingW > 0);
-	t.true(layout.nowPlayingH >= 8);
-	t.true(layout.footerStartY > 0);
-
-	const {bar} = buildProgressBar(0.5, 10);
-	t.is(bar.length, 10);
-	t.true(bar.includes('█'));
-	t.true(bar.includes('░'));
-
-	const vol = buildVolumeBar(50, 8);
-	t.is(vol.length, 8);
-
-	const modeLine = buildModeStatusLine({
-		shuffle: true,
-		repeat: 'all',
-		isDiscoMode: false,
-		autoplay: true,
-	});
-	t.true(modeLine.includes('Shuffle ON'));
-	t.true(modeLine.includes('Repeat ALL'));
-	t.true(modeLine.includes('Autoplay ON'));
-
-	const shortcuts = buildPlayerShortcutLine(160);
-	t.true(shortcuts.includes('[Shift+S] Shuffle'));
-	t.true(shortcuts.includes('[Shift+A] Autoplay'));
-	t.true(shortcuts.includes('[,] Settings'));
-});
-
-test('search overlay supports type, limit, filters, and download', async t => {
-	const {
-		beginFilterEdit,
-		buildSearchHeaderLine,
-		createSearchOverlayState,
-		decreaseSearchLimit,
-		handleFilterEditInput,
-		handleSearchQueryMetaKey,
-		handleSearchResultsInput,
-		openSearchOverlay,
-		setSearchResults,
-	} = await import('../source/immersive/ui/search-overlay.ts');
-
-	const overlay = createSearchOverlayState();
-	openSearchOverlay(overlay);
-	t.is(overlay.searchLimit, 25);
-
-	t.true(handleSearchQueryMetaKey(overlay, 'tab'));
-	t.is(overlay.searchType, 'songs');
-
-	t.true(handleSearchQueryMetaKey(overlay, '+'));
-	t.is(overlay.searchLimit, 30);
-	decreaseSearchLimit(overlay);
-	t.is(overlay.searchLimit, 25);
-
-	beginFilterEdit(overlay, 'artist');
-	handleFilterEditInput(overlay, 'm');
-	handleFilterEditInput(overlay, 'i');
-	handleFilterEditInput(overlay, 'c');
-	handleFilterEditInput(overlay, 'h');
-	handleFilterEditInput(overlay, 'a');
-	handleFilterEditInput(overlay, 'e');
-	handleFilterEditInput(overlay, 'l');
-	handleFilterEditInput(overlay, 'enter');
-	t.is(overlay.filters.artist, 'michael');
-
-	setSearchResults(overlay, [
-		{
-			type: 'song',
-			data: {
-				videoId: 'a',
-				title: 'Beat It',
-				artists: [{name: 'Michael Jackson'}],
-			},
-		},
-		{
-			type: 'song',
-			data: {
-				videoId: 'b',
-				title: 'Other',
-				artists: [{name: 'Someone Else'}],
-			},
-		},
-	]);
-	t.is(overlay.results.length, 1);
-	t.true(buildSearchHeaderLine(overlay).includes('SONGS'));
-
-	t.is(handleSearchResultsInput(overlay, 'Shift+D'), 'download');
-});
-
-test('search overlay handles query and results phases', async t => {
-	const {
-		closeSearchOverlay,
-		createSearchOverlayState,
-		handleSearchQueryInput,
-		handleSearchResultsInput,
-		openSearchOverlay,
-		setSearchResults,
-	} = await import('../source/immersive/ui/search-overlay.ts');
-
-	const overlay = createSearchOverlayState();
-	openSearchOverlay(overlay);
-	t.true(overlay.active);
-	t.is(overlay.phase, 'query');
-
-	t.is(handleSearchQueryInput(overlay, 't'), 'none');
-	t.is(handleSearchQueryInput(overlay, 'e'), 'none');
-	t.is(handleSearchQueryInput(overlay, 's'), 'none');
-	t.is(handleSearchQueryInput(overlay, 't'), 'none');
-	t.is(overlay.query, 'test');
-	t.is(handleSearchQueryInput(overlay, 'enter'), 'submit');
-
-	setSearchResults(overlay, [
-		{type: 'song', data: {videoId: 'a', title: 'Alpha', artists: []}},
-		{type: 'album', data: {albumId: 'b', name: 'Beta', artists: []}},
-	]);
-	t.is(overlay.phase, 'results');
-	t.is(overlay.selectedIndex, 0);
-
-	t.is(handleSearchResultsInput(overlay, 'down'), 'none');
-	t.is(overlay.selectedIndex, 1);
-	t.is(handleSearchResultsInput(overlay, 'enter'), 'play');
-	t.is(handleSearchResultsInput(overlay, 'm'), 'mix');
-	t.is(handleSearchResultsInput(overlay, 'f'), 'favorite');
-	t.is(handleSearchResultsInput(overlay, 'a'), 'add_to_playlist');
-
-	t.is(handleSearchResultsInput(overlay, 'escape'), 'back');
-	t.is(overlay.phase, 'query');
-
-	closeSearchOverlay(overlay);
-	t.false(overlay.active);
-	t.is(handleSearchQueryInput(overlay, 'escape'), 'cancel');
-});
-
-test('library overlay navigates menu, playlists, and favorites', async t => {
-	const {
-		closeLibraryOverlay,
-		createLibraryOverlayState,
-		formatFavoriteLine,
-		handleLibraryAddToPlaylistInput,
-		handleLibraryFavoritesInput,
-		handleLibraryMenuInput,
-		handleLibraryPlaylistEditInput,
-		handleLibraryPlaylistInput,
-		openAddToPlaylistPicker,
-		openFavoritesPicker,
-		openLibraryMenu,
-		openPlaylistEdit,
-		openPlaylistPicker,
-	} = await import('../source/immersive/ui/library-overlay.ts');
-
-	const overlay = createLibraryOverlayState();
-	openLibraryMenu(overlay);
-	t.true(overlay.active);
-	t.is(overlay.view, 'menu');
-
-	t.is(handleLibraryMenuInput(overlay, 'down'), 'none');
-	t.is(overlay.selectedIndex, 1);
-
-	openFavoritesPicker(overlay);
-	t.is(overlay.view, 'favorites');
-	t.is(handleLibraryFavoritesInput(overlay, 'down', 2), 'none');
-	t.is(overlay.selectedIndex, 1);
-	t.is(handleLibraryFavoritesInput(overlay, 'enter', 2), 'play_favorite');
-	t.is(handleLibraryFavoritesInput(overlay, 'f', 2), 'remove_favorite');
-	t.is(handleLibraryFavoritesInput(overlay, 'a', 2), 'pick_add_to_playlist');
-	t.is(handleLibraryFavoritesInput(overlay, 'escape', 2), 'back_to_menu');
-	t.is(overlay.view, 'menu');
-
-	openPlaylistPicker(overlay);
-	t.is(overlay.view, 'playlists');
-	t.is(handleLibraryPlaylistInput(overlay, 'down', 3), 'none');
-	t.is(overlay.selectedIndex, 1);
-	t.is(handleLibraryPlaylistInput(overlay, 'e', 3), 'edit_playlist');
-	t.is(handleLibraryPlaylistInput(overlay, 'escape', 3), 'back_to_menu');
-	t.is(overlay.view, 'menu');
-
-	openPlaylistEdit(overlay, 'playlist-1');
-	t.is(overlay.view, 'playlist_edit');
-	t.is(
-		handleLibraryPlaylistEditInput(overlay, 'd', 2),
-		'remove_playlist_track',
-	);
-	t.is(
-		handleLibraryPlaylistEditInput(overlay, 'a', 2),
-		'add_current_to_playlist',
-	);
-
-	openAddToPlaylistPicker(
-		overlay,
-		{videoId: 'x', title: 'Track', artists: []},
-		{returnToSearch: true},
-	);
-	t.is(overlay.view, 'add_to_playlist');
-	t.is(
-		handleLibraryAddToPlaylistInput(overlay, 'enter', 2),
-		'confirm_add_to_playlist',
-	);
-	t.is(
-		handleLibraryAddToPlaylistInput(overlay, 'escape', 2),
-		'cancel_add_to_playlist',
-	);
-
-	const line = formatFavoriteLine(
-		{videoId: 'a', title: 'Favorite Song', artists: [{name: 'Artist'}]},
-		40,
-	);
-	t.true(line.includes('Favorite Song'));
-
-	closeLibraryOverlay(overlay);
-	t.false(overlay.active);
-});
-
-test('playback-actions playlist mutations add and remove tracks', async t => {
-	const {getConfigService} =
-		await import('../source/services/config/config.service.ts');
-	const {
-		addTrackToSavedPlaylist,
-		loadPlaylists,
-		removeTrackFromSavedPlaylist,
-		trackFromSearchResult,
-	} = await import('../source/immersive/actions/playback-actions.ts');
-
-	const config = getConfigService();
-	const previousPlaylists = config.get('playlists');
-	config.set('playlists', [
-		{
-			playlistId: 'p1',
-			name: 'Test',
-			tracks: [{videoId: 'a', title: 'A', artists: []}],
-		},
-	]);
-
-	t.is(
-		addTrackToSavedPlaylist('p1', {
-			videoId: 'b',
-			title: 'B',
-			artists: [],
-		}),
-		'added',
-	);
-	t.is(loadPlaylists()[0].tracks.length, 2);
-	t.is(
-		addTrackToSavedPlaylist('p1', {
-			videoId: 'b',
-			title: 'B',
-			artists: [],
-		}),
-		'duplicate',
-	);
-	t.true(removeTrackFromSavedPlaylist('p1', 0));
-	t.is(loadPlaylists()[0].tracks[0].videoId, 'b');
-
-	const track = trackFromSearchResult({
-		type: 'song',
-		data: {videoId: 'c', title: 'C', artists: []},
-	});
-	t.is(track?.videoId, 'c');
-	t.is(
-		trackFromSearchResult({
-			type: 'album',
-			data: {albumId: 'x', name: 'Album', artists: []},
-		}),
-		null,
-	);
-
-	config.set('playlists', previousPlaylists);
-});
-
-test('playback-actions dedupe tracks and favorites manager toggles', async t => {
-	const {mkdtempSync, rmSync} = await import('node:fs');
-	const {tmpdir} = await import('node:os');
-	const {join} = await import('node:path');
-	const {dedupeTracks} =
-		await import('../source/immersive/actions/playback-actions.ts');
-	const {
-		FavoritesManager,
-		resetFavoritesManagerForTests,
-		setFavoritesFilePathForTests,
-	} = await import('../source/services/favorites/favorites.service.ts');
-
-	const deduped = dedupeTracks([
-		{videoId: 'a', title: 'A', artists: []},
-		{videoId: 'a', title: 'A duplicate', artists: []},
-		{videoId: 'b', title: 'B', artists: []},
-	]);
-	t.is(deduped.length, 2);
-
-	const tempDir = mkdtempSync(join(tmpdir(), 'ymc-favorites-test-'));
-	const favoritesFile = join(tempDir, 'favorites.json');
-	setFavoritesFilePathForTests(favoritesFile);
-	t.teardown(() => {
-		resetFavoritesManagerForTests();
-		setFavoritesFilePathForTests(null);
-		rmSync(tempDir, {force: true, recursive: true});
-	});
-
-	resetFavoritesManagerForTests();
-	const manager = new FavoritesManager();
-	manager['tracks'] = [];
-	manager['loaded'] = true;
-
-	const track = {videoId: 'x', title: 'Song', artists: []};
-	t.false(manager.isFavorite('x'));
-	const added = await manager.toggle(track);
-	t.true(added);
-	t.true(manager.isFavorite('x'));
-	t.deepEqual(
-		manager.getRecentTracks(8).map(entry => entry.videoId),
-		['x'],
-	);
-	const removed = await manager.toggle(track);
-	t.false(removed);
-	t.false(manager.isFavorite('x'));
-});
-
-test('getSearchResultLabel and prefix format results', async t => {
-	const {formatSearchResultLine, getSearchResultLabel, getSearchResultPrefix} =
-		await import('../source/immersive/actions/playback-actions.ts');
-
-	t.is(getSearchResultPrefix('song'), '♪');
-	t.is(getSearchResultPrefix('album'), '◎');
-	t.is(
-		getSearchResultLabel({
-			type: 'song',
-			data: {videoId: '1', title: 'Hello', artists: []},
-		}),
-		'Hello',
-	);
-
-	const line = formatSearchResultLine(
-		{
-			type: 'song',
-			data: {
-				videoId: '1',
-				title: 'Hello',
-				artists: [{name: 'Artist'}],
-				duration: 125,
-			},
-		},
-		60,
-	);
-	t.true(line.includes('Hello'));
-	t.true(line.includes('Artist'));
-});
-
-test('advanceQueue with autoplay on plays explicit queue once', async t => {
-	const {advanceQueue, createInitialImmersiveState, setQueue} =
-		await import('../source/immersive/state/queue-state.ts');
-
-	const state = createInitialImmersiveState({repeat: 'all', autoplay: true});
-	setQueue(state, [
-		{videoId: 'a', title: 'A', artists: []},
-		{videoId: 'b', title: 'B', artists: []},
-		{videoId: 'c', title: 'C', artists: []},
-	]);
-	t.is(state.explicitQueueLength, 3);
-
-	t.is(advanceQueue(state)?.videoId, 'b');
-	t.is(advanceQueue(state)?.videoId, 'c');
-	t.is(advanceQueue(state), null);
-});
-
-test('appendTracksForAutoplay appends without reshuffling playback order', async t => {
-	const {appendTracksForAutoplay, createInitialImmersiveState, setQueue} =
-		await import('../source/immersive/state/queue-state.ts');
-
-	const state = createInitialImmersiveState({shuffle: true});
-	setQueue(
-		state,
-		[
+test(
+	'parseKeyName maps arrow keys and control keys',
+	async () => {
+		const {parseKeyName} =
+			await import('../source/immersive/input/key-parser.ts');
+
+		expect(parseKeyName('\x1B[A')).toBe('up');
+		expect(parseKeyName('\x1B[B')).toBe('down');
+		expect(parseKeyName('\x1B[C')).toBe('right');
+		expect(parseKeyName('\x1B[D')).toBe('left');
+		expect(parseKeyName(' ')).toBe(' ');
+		expect(parseKeyName('\x03')).toBe('Ctrl+C');
+		expect(parseKeyName('/')).toBe('/');
+		expect(parseKeyName('\r')).toBe('enter');
+		expect(parseKeyName('S')).toBe('Shift+S');
+		expect(parseKeyName('D')).toBe('Shift+D');
+		expect(parseKeyName('s')).toBe('s');
+		expect(parseKeyName(',')).toBe(',');
+		expect(parseKeyName('\t')).toBe('tab');
+		expect(parseKeyName('\x01')).toBe('Ctrl+A');
+		expect(parseKeyName('\x0c')).toBe('Ctrl+L');
+		expect(parseKeyName('+')).toBe('+');
+		expect(parseKeyName('=')).toBe('+');
+		expect(parseKeyName('-')).toBe('-');
+		expect(parseKeyName('\x1b[44;5u')).toBe('Ctrl+,');
+		expect(parseKeyName('\x1b[44;5;1u')).toBe('Ctrl+,');
+		expect(parseKeyName('\x1c')).toBe(null);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'StdinKeyBuffer assembles chunked Ctrl+, sequences',
+	async () => {
+		const {StdinKeyBuffer} =
+			await import('../source/immersive/input/stdin-buffer.ts');
+
+		const keys = [];
+		const buffer = new StdinKeyBuffer(key => {
+			keys.push(key);
+		});
+
+		buffer.push('\x1b');
+		expect(keys.length).toBe(0);
+
+		buffer.push('[44;5;1u');
+		expect(keys).toEqual(['Ctrl+,']);
+
+		buffer.dispose();
+	},
+	{timeout: 60000},
+);
+
+test(
+	'AudioCollector processes frequency bands',
+	async () => {
+		const {AudioCollector} =
+			await import('../source/immersive/visualizer/audio-collector.ts');
+
+		const collector = new AudioCollector(256);
+		const samples = new Float32Array(256);
+		for (let i = 0; i < samples.length; i++) {
+			samples[i] = Math.sin(i / 10);
+		}
+
+		const processed = collector.processAudioData(samples);
+		const bands = collector.getFrequencyBands(processed);
+
+		expect(processed.length > 0).toBe(true);
+		expect(bands.bass >= 0).toBe(true);
+		expect(bands.treble >= 0).toBe(true);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'FrameBuffer setText and clear work',
+	async () => {
+		const {FrameBuffer} =
+			await import('../source/immersive/renderer/frame-buffer.ts');
+
+		const fb = new FrameBuffer(20, 5);
+		fb.setText(2, 1, 'Hello', null, null, {bold: true});
+		expect(fb.getCell(2, 1)?.char).toBe('H');
+		expect(fb.getCell(2, 1)?.bold).toBe(true);
+
+		fb.clear();
+		expect(fb.getCell(2, 1)?.char).toBe(' ');
+	},
+	{timeout: 60000},
+);
+
+test(
+	'BrailleCanvas accumulates dots in the same cell',
+	async () => {
+		const {FrameBuffer} =
+			await import('../source/immersive/renderer/frame-buffer.ts');
+		const {BrailleCanvas} =
+			await import('../source/immersive/renderer/braille-canvas.ts');
+
+		const fb = new FrameBuffer(10, 10);
+		const canvas = new BrailleCanvas(fb);
+
+		canvas.setPixel(0, 0, [255, 0, 0]);
+		canvas.setPixel(1, 0, [0, 255, 0]);
+
+		const cell = fb.getCell(0, 0);
+		expect(cell?.char).not.toBe(' ');
+		expect(cell?.char).not.toBe(String.fromCharCode(0x2800));
+	},
+	{timeout: 60000},
+);
+
+test(
+	'queue-state advances and rewinds queue',
+	async () => {
+		const {advanceQueue, createInitialImmersiveState, previousQueue, setQueue} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState();
+		setQueue(state, [
 			{videoId: 'a', title: 'A', artists: []},
 			{videoId: 'b', title: 'B', artists: []},
-		],
-		0,
-	);
-	const orderBefore = [...(state.playbackOrder ?? [])];
+			{videoId: 'c', title: 'C', artists: []},
+		]);
 
-	const added = appendTracksForAutoplay(state, [
-		{videoId: 'c', title: 'C', artists: []},
-		{videoId: 'a', title: 'A duplicate', artists: []},
-		{videoId: 'd', title: 'D', artists: []},
-	]);
+		expect(state.currentTrack?.videoId).toBe('a');
+		expect(advanceQueue(state)?.videoId).toBe('b');
+		expect(advanceQueue(state)?.videoId).toBe('c');
+		expect(advanceQueue(state)).toBe(null);
 
-	t.is(added, 2);
-	t.is(state.queue.length, 4);
-	t.deepEqual(state.playbackOrder?.slice(0, orderBefore.length), orderBefore);
-	t.deepEqual(state.playbackOrder?.slice(orderBefore.length), [2, 3]);
-});
+		state.currentTime = 1;
+		state.queueIndex = 2;
+		state.currentTrack = state.queue[2] ?? null;
+		expect(previousQueue(state)?.videoId).toBe('b');
+	},
+	{timeout: 60000},
+);
 
-test('appendTracksForAutoplay builds shuffle order from single-track queue', async t => {
-	const {appendTracksForAutoplay, createInitialImmersiveState, setQueue} =
-		await import('../source/immersive/state/queue-state.ts');
+test(
+	'queue-state supports shuffle and repeat-all',
+	async () => {
+		const {advanceQueue, createInitialImmersiveState, setQueue} =
+			await import('../source/immersive/state/queue-state.ts');
 
-	const state = createInitialImmersiveState({shuffle: true});
-	setQueue(state, [{videoId: 'a', title: 'A', artists: []}], 0);
-	t.is(state.playbackOrder, null);
+		const state = createInitialImmersiveState({shuffle: true});
+		setQueue(state, [
+			{videoId: 'a', title: 'A', artists: []},
+			{videoId: 'b', title: 'B', artists: []},
+			{videoId: 'c', title: 'C', artists: []},
+		]);
 
-	const added = appendTracksForAutoplay(state, [
-		{videoId: 'b', title: 'B', artists: []},
-		{videoId: 'c', title: 'C', artists: []},
-	]);
+		const first = advanceQueue(state)?.videoId;
+		expect(first).not.toBe('a');
+		expect(['b', 'c'].includes(first ?? '')).toBe(true);
 
-	t.is(added, 2);
-	t.is(state.playbackOrder?.length, 3);
-	t.is(state.playbackOrder?.[0], 0);
-});
+		state.shuffle = false;
+		state.repeat = 'all';
+		state.autoplay = false;
+		state.queueIndex = 2;
+		state.currentTrack = state.queue[2] ?? null;
+		expect(advanceQueue(state)?.videoId).toBe('a');
+	},
+	{timeout: 60000},
+);
 
-test('advanceQueue with shuffle on single track returns null', async t => {
-	const {advanceQueue, createInitialImmersiveState, setQueue} =
-		await import('../source/immersive/state/queue-state.ts');
+test(
+	'queue-state shuffle with repeat-all at end picks a different track',
+	async () => {
+		const {
+			advanceQueue,
+			createInitialImmersiveState,
+			setQueue,
+			shuffleQueueOrder,
+		} = await import('../source/immersive/state/queue-state.ts');
 
-	const state = createInitialImmersiveState({shuffle: true});
-	setQueue(state, [{videoId: 'a', title: 'A', artists: []}], 0);
-	t.is(advanceQueue(state), null);
-});
+		const state = createInitialImmersiveState({
+			shuffle: true,
+			repeat: 'all',
+			autoplay: false,
+		});
+		setQueue(state, [
+			{videoId: 'a', title: 'A', artists: []},
+			{videoId: 'b', title: 'B', artists: []},
+			{videoId: 'c', title: 'C', artists: []},
+		]);
+		state.queueIndex = 2;
+		state.currentTrack = state.queue[2] ?? null;
+		shuffleQueueOrder(state, 2);
 
-test('toggleAutoplay flips immersive autoplay flag', async t => {
-	const {createInitialImmersiveState, toggleAutoplay} =
-		await import('../source/immersive/state/queue-state.ts');
+		const next = advanceQueue(state);
+		expect(next).toBeTruthy();
+		expect(next?.videoId).not.toBe('c');
+		expect(['a', 'b'].includes(next?.videoId ?? '')).toBe(true);
+	},
+	{timeout: 60000},
+);
 
-	const state = createInitialImmersiveState();
-	t.true(state.autoplay);
-	t.false(toggleAutoplay(state));
-	t.false(state.autoplay);
-	t.true(toggleAutoplay(state));
-});
+test(
+	'getUpcomingTracks wraps with repeat-all at last shuffle index',
+	async () => {
+		const {
+			createInitialImmersiveState,
+			getUpcomingTracks,
+			setQueue,
+			shuffleQueueOrder,
+		} = await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState({
+			shuffle: true,
+			repeat: 'all',
+			autoplay: false,
+		});
+		setQueue(state, [
+			{videoId: 'a', title: 'A', artists: []},
+			{videoId: 'b', title: 'B', artists: []},
+			{videoId: 'c', title: 'C', artists: []},
+		]);
+		state.queueIndex = 2;
+		state.currentTrack = state.queue[2] ?? null;
+		shuffleQueueOrder(state, 2);
+
+		const upcoming = getUpcomingTracks(state, 5);
+		expect(upcoming.length >= 2).toBe(true);
+		expect(upcoming[0]?.videoId).not.toBe('c');
+	},
+	{timeout: 60000},
+);
+
+test(
+	'getUpcomingTracks wraps sequentially with repeat-all at queue end',
+	async () => {
+		const {createInitialImmersiveState, getUpcomingTracks, setQueue} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState({repeat: 'all', autoplay: false});
+		setQueue(state, [
+			{videoId: 'a', title: 'A', artists: []},
+			{videoId: 'b', title: 'B', artists: []},
+			{videoId: 'c', title: 'C', artists: []},
+		]);
+		state.queueIndex = 2;
+		state.currentTrack = state.queue[2] ?? null;
+
+		const upcoming = getUpcomingTracks(state, 3);
+		expect(upcoming.map(track => track.videoId)).toEqual(['a', 'b']);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'advanceQueue with playbackOrder does not repeat current track',
+	async () => {
+		const {advanceQueue, createInitialImmersiveState, setQueue} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState({
+			shuffle: true,
+			repeat: 'all',
+			autoplay: false,
+		});
+		setQueue(state, [
+			{videoId: 'a', title: 'A', artists: []},
+			{videoId: 'b', title: 'B', artists: []},
+			{videoId: 'c', title: 'C', artists: []},
+		]);
+
+		const firstId = state.currentTrack?.videoId;
+		const second = advanceQueue(state);
+		expect(second?.videoId).not.toBe(firstId);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'resolveRandomFavoriteStartIndex stays within queue bounds',
+	async () => {
+		const {resolveRandomFavoriteStartIndex} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		for (let i = 0; i < 20; i++) {
+			const index = resolveRandomFavoriteStartIndex(15);
+			expect(index >= 0).toBe(true);
+			expect(index < 15).toBe(true);
+		}
+		expect(resolveRandomFavoriteStartIndex(0)).toBe(0);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'toggleShuffle rebuilds and clears playback order',
+	async () => {
+		const {createInitialImmersiveState, setQueue, toggleShuffle} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState();
+		setQueue(state, [
+			{videoId: 'a', title: 'A', artists: []},
+			{videoId: 'b', title: 'B', artists: []},
+		]);
+		expect(state.playbackOrder).toBe(null);
+
+		expect(toggleShuffle(state)).toBe(true);
+		expect(state.playbackOrder).toBeTruthy();
+		expect(state.playbackOrder?.length).toBe(2);
+
+		expect(toggleShuffle(state)).toBe(false);
+		expect(state.playbackOrder).toBe(null);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'playback-sync re-exports mpv-event-policy helpers',
+	async () => {
+		const {ADVANCE_DEBOUNCE_MS, shouldDebounceAdvance, shouldSyncPauseFromMpv} =
+			await import('../source/immersive/state/playback-sync.ts');
+
+		const now = 10_000;
+		expect(
+			shouldSyncPauseFromMpv({
+				paused: true,
+				isAdvancing: true,
+				eofTimestamp: 0,
+				now,
+			}),
+		).toBe(false);
+		expect(
+			shouldSyncPauseFromMpv({
+				paused: true,
+				eofTimestamp: 0,
+				now,
+			}),
+		).toBe(true);
+
+		expect(shouldDebounceAdvance(0, ADVANCE_DEBOUNCE_MS - 1)).toBe(true);
+		expect(shouldDebounceAdvance(0, ADVANCE_DEBOUNCE_MS)).toBe(false);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'queue-state cycles repeat modes',
+	async () => {
+		const {createInitialImmersiveState, cycleRepeat} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState();
+		expect(cycleRepeat(state)).toBe('all');
+		expect(cycleRepeat(state)).toBe('one');
+		expect(cycleRepeat(state)).toBe('off');
+	},
+	{timeout: 60000},
+);
+
+test(
+	'settings overlay navigates and cycles rows',
+	async () => {
+		const {
+			closeSettingsOverlay,
+			createSettingsOverlayState,
+			handleSettingsInput,
+			openSettingsOverlay,
+			SETTINGS_ROW_COUNT,
+		} = await import('../source/immersive/ui/settings-overlay.ts');
+
+		const overlay = createSettingsOverlayState();
+		openSettingsOverlay(overlay);
+		expect(overlay.active).toBe(true);
+		expect(SETTINGS_ROW_COUNT).toBe(25);
+
+		expect(handleSettingsInput(overlay, 'down', SETTINGS_ROW_COUNT)).toBe(
+			'none',
+		);
+		expect(overlay.selectedIndex).toBe(1);
+		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
+			'cycle',
+		);
+		overlay.selectedIndex = 10;
+		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
+			'begin_text',
+		);
+		overlay.selectedIndex = 21;
+		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
+			'navigate',
+		);
+		expect(handleSettingsInput(overlay, 'escape', SETTINGS_ROW_COUNT)).toBe(
+			'close',
+		);
+		expect(overlay.active).toBe(false);
+
+		closeSettingsOverlay(overlay);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'immersive settings items match TUI row count and cycle values',
+	async () => {
+		const {
+			buildImmersiveSettingsRows,
+			cycleImmersiveSetting,
+			createSleepTimerState,
+		} = await import('../source/immersive/settings/settings-items.ts');
+		const {getConfigService} =
+			await import('../source/services/config/config.service.ts');
+
+		const config = getConfigService();
+		const sleepTimer = createSleepTimerState();
+		const rows = buildImmersiveSettingsRows(config);
+
+		expect(rows.length).toBe(25);
+		expect(rows[0]?.label.includes('Stream Quality')).toBe(true);
+		expect(rows[20]?.label.includes('Sleep Timer')).toBe(true);
+		expect(rows[24]?.label.includes('Manage Plugins')).toBe(true);
+
+		const message = cycleImmersiveSetting(config, 6, {
+			sleepTimer,
+			onSleepTimerExpire: () => {},
+		});
+		expect(message?.includes('Subtitles')).toBe(true);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'tray helpers parse actions and resolve icon path',
+	async () => {
+		const {parseTrayActionLine, resolveTrayIconPath, truncateTrayTooltip} =
+			await import('../source/immersive/native/tray.ts');
+
+		expect(parseTrayActionLine('ACTION:settings')).toBe('settings');
+		expect(parseTrayActionLine('ACTION:exit')).toBe('exit');
+		expect(parseTrayActionLine('TOOLTIP:foo')).toBe(null);
+
+		const iconPath = resolveTrayIconPath();
+		expect(iconPath === null || /\.(ico|png|jpe?g)$/i.test(iconPath)).toBe(
+			true,
+		);
+
+		const long = 'A'.repeat(80);
+		expect(truncateTrayTooltip(long).length).toBe(63);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'player shortcut line includes volume keys',
+	async () => {
+		const {buildPlayerShortcutLine} =
+			await import('../source/immersive/ui/layout.ts');
+
+		const line = buildPlayerShortcutLine(120);
+		expect(line.includes('[+/-]')).toBe(true);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'HybridAudioSource reacts to playback state',
+	async () => {
+		const {HybridAudioSource} =
+			await import('../source/immersive/visualizer/hybrid-audio.ts');
+
+		const source = new HybridAudioSource(64);
+
+		for (let i = 0; i < 20; i++) {
+			source.update(
+				{currentTime: i, duration: 180, isPlaying: true, volume: 80},
+				16,
+			);
+		}
+		const playing = source.generateSamples();
+
+		for (let i = 0; i < 20; i++) {
+			source.update(
+				{currentTime: i, duration: 180, isPlaying: false, volume: 80},
+				16,
+			);
+		}
+		const paused = source.generateSamples();
+
+		const playingEnergy = playing.reduce((sum, value) => sum + value, 0);
+		const pausedEnergy = paused.reduce((sum, value) => sum + value, 0);
+		expect(playingEnergy >= pausedEnergy).toBe(true);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'layout helpers compute regions and progress bars',
+	async () => {
+		const {
+			buildModeStatusLine,
+			buildPlayerShortcutLine,
+			buildProgressBar,
+			buildVolumeBar,
+			computeLayout,
+		} = await import('../source/immersive/ui/layout.ts');
+
+		const layout = computeLayout(100, 30);
+		expect(layout.vizH >= 6).toBe(true);
+		expect(layout.vizW > 0).toBe(true);
+		expect(layout.nowPlayingW > 0).toBe(true);
+		expect(layout.nowPlayingH >= 8).toBe(true);
+		expect(layout.footerStartY > 0).toBe(true);
+
+		const {bar} = buildProgressBar(0.5, 10);
+		expect(bar.length).toBe(10);
+		expect(bar.includes('█')).toBe(true);
+		expect(bar.includes('░')).toBe(true);
+
+		const vol = buildVolumeBar(50, 8);
+		expect(vol.length).toBe(8);
+
+		const modeLine = buildModeStatusLine({
+			shuffle: true,
+			repeat: 'all',
+			isDiscoMode: false,
+			autoplay: true,
+		});
+		expect(modeLine.includes('Shuffle ON')).toBe(true);
+		expect(modeLine.includes('Repeat ALL')).toBe(true);
+		expect(modeLine.includes('Autoplay ON')).toBe(true);
+
+		const shortcuts = buildPlayerShortcutLine(160);
+		expect(shortcuts.includes('[Shift+S] Shuffle')).toBe(true);
+		expect(shortcuts.includes('[Shift+A] Autoplay')).toBe(true);
+		expect(shortcuts.includes('[,] Settings')).toBe(true);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'search overlay supports type, limit, filters, and download',
+	async () => {
+		const {
+			beginFilterEdit,
+			buildSearchHeaderLine,
+			createSearchOverlayState,
+			decreaseSearchLimit,
+			handleFilterEditInput,
+			handleSearchQueryMetaKey,
+			handleSearchResultsInput,
+			openSearchOverlay,
+			setSearchResults,
+		} = await import('../source/immersive/ui/search-overlay.ts');
+
+		const overlay = createSearchOverlayState();
+		openSearchOverlay(overlay);
+		expect(overlay.searchLimit).toBe(25);
+
+		expect(handleSearchQueryMetaKey(overlay, 'tab')).toBe(true);
+		expect(overlay.searchType).toBe('songs');
+
+		expect(handleSearchQueryMetaKey(overlay, '+')).toBe(true);
+		expect(overlay.searchLimit).toBe(30);
+		decreaseSearchLimit(overlay);
+		expect(overlay.searchLimit).toBe(25);
+
+		beginFilterEdit(overlay, 'artist');
+		handleFilterEditInput(overlay, 'm');
+		handleFilterEditInput(overlay, 'i');
+		handleFilterEditInput(overlay, 'c');
+		handleFilterEditInput(overlay, 'h');
+		handleFilterEditInput(overlay, 'a');
+		handleFilterEditInput(overlay, 'e');
+		handleFilterEditInput(overlay, 'l');
+		handleFilterEditInput(overlay, 'enter');
+		expect(overlay.filters.artist).toBe('michael');
+
+		setSearchResults(overlay, [
+			{
+				type: 'song',
+				data: {
+					videoId: 'a',
+					title: 'Beat It',
+					artists: [{name: 'Michael Jackson'}],
+				},
+			},
+			{
+				type: 'song',
+				data: {
+					videoId: 'b',
+					title: 'Other',
+					artists: [{name: 'Someone Else'}],
+				},
+			},
+		]);
+		expect(overlay.results.length).toBe(1);
+		expect(buildSearchHeaderLine(overlay).includes('SONGS')).toBe(true);
+
+		expect(handleSearchResultsInput(overlay, 'Shift+D')).toBe('download');
+	},
+	{timeout: 60000},
+);
+
+test(
+	'search overlay handles query and results phases',
+	async () => {
+		const {
+			closeSearchOverlay,
+			createSearchOverlayState,
+			handleSearchQueryInput,
+			handleSearchResultsInput,
+			openSearchOverlay,
+			setSearchResults,
+		} = await import('../source/immersive/ui/search-overlay.ts');
+
+		const overlay = createSearchOverlayState();
+		openSearchOverlay(overlay);
+		expect(overlay.active).toBe(true);
+		expect(overlay.phase).toBe('query');
+
+		expect(handleSearchQueryInput(overlay, 't')).toBe('none');
+		expect(handleSearchQueryInput(overlay, 'e')).toBe('none');
+		expect(handleSearchQueryInput(overlay, 's')).toBe('none');
+		expect(handleSearchQueryInput(overlay, 't')).toBe('none');
+		expect(overlay.query).toBe('test');
+		expect(handleSearchQueryInput(overlay, 'enter')).toBe('submit');
+
+		setSearchResults(overlay, [
+			{type: 'song', data: {videoId: 'a', title: 'Alpha', artists: []}},
+			{type: 'album', data: {albumId: 'b', name: 'Beta', artists: []}},
+		]);
+		expect(overlay.phase).toBe('results');
+		expect(overlay.selectedIndex).toBe(0);
+
+		expect(handleSearchResultsInput(overlay, 'down')).toBe('none');
+		expect(overlay.selectedIndex).toBe(1);
+		expect(handleSearchResultsInput(overlay, 'enter')).toBe('play');
+		expect(handleSearchResultsInput(overlay, 'm')).toBe('mix');
+		expect(handleSearchResultsInput(overlay, 'f')).toBe('favorite');
+		expect(handleSearchResultsInput(overlay, 'a')).toBe('add_to_playlist');
+
+		expect(handleSearchResultsInput(overlay, 'escape')).toBe('back');
+		expect(overlay.phase).toBe('query');
+
+		closeSearchOverlay(overlay);
+		expect(overlay.active).toBe(false);
+		expect(handleSearchQueryInput(overlay, 'escape')).toBe('cancel');
+	},
+	{timeout: 60000},
+);
+
+test(
+	'library overlay navigates menu, playlists, and favorites',
+	async () => {
+		const {
+			closeLibraryOverlay,
+			createLibraryOverlayState,
+			formatFavoriteLine,
+			handleLibraryAddToPlaylistInput,
+			handleLibraryFavoritesInput,
+			handleLibraryMenuInput,
+			handleLibraryPlaylistEditInput,
+			handleLibraryPlaylistInput,
+			openAddToPlaylistPicker,
+			openFavoritesPicker,
+			openLibraryMenu,
+			openPlaylistEdit,
+			openPlaylistPicker,
+		} = await import('../source/immersive/ui/library-overlay.ts');
+
+		const overlay = createLibraryOverlayState();
+		openLibraryMenu(overlay);
+		expect(overlay.active).toBe(true);
+		expect(overlay.view).toBe('menu');
+
+		expect(handleLibraryMenuInput(overlay, 'down')).toBe('none');
+		expect(overlay.selectedIndex).toBe(1);
+
+		openFavoritesPicker(overlay);
+		expect(overlay.view).toBe('favorites');
+		expect(handleLibraryFavoritesInput(overlay, 'down', 2)).toBe('none');
+		expect(overlay.selectedIndex).toBe(1);
+		expect(handleLibraryFavoritesInput(overlay, 'enter', 2)).toBe(
+			'play_favorite',
+		);
+		expect(handleLibraryFavoritesInput(overlay, 'f', 2)).toBe(
+			'remove_favorite',
+		);
+		expect(handleLibraryFavoritesInput(overlay, 'a', 2)).toBe(
+			'pick_add_to_playlist',
+		);
+		expect(handleLibraryFavoritesInput(overlay, 'escape', 2)).toBe(
+			'back_to_menu',
+		);
+		expect(overlay.view).toBe('menu');
+
+		openPlaylistPicker(overlay);
+		expect(overlay.view).toBe('playlists');
+		expect(handleLibraryPlaylistInput(overlay, 'down', 3)).toBe('none');
+		expect(overlay.selectedIndex).toBe(1);
+		expect(handleLibraryPlaylistInput(overlay, 'e', 3)).toBe('edit_playlist');
+		expect(handleLibraryPlaylistInput(overlay, 'escape', 3)).toBe(
+			'back_to_menu',
+		);
+		expect(overlay.view).toBe('menu');
+
+		openPlaylistEdit(overlay, 'playlist-1');
+		expect(overlay.view).toBe('playlist_edit');
+		expect(handleLibraryPlaylistEditInput(overlay, 'd', 2)).toBe(
+			'remove_playlist_track',
+		);
+		expect(handleLibraryPlaylistEditInput(overlay, 'a', 2)).toBe(
+			'add_current_to_playlist',
+		);
+
+		openAddToPlaylistPicker(
+			overlay,
+			{videoId: 'x', title: 'Track', artists: []},
+			{returnToSearch: true},
+		);
+		expect(overlay.view).toBe('add_to_playlist');
+		expect(handleLibraryAddToPlaylistInput(overlay, 'enter', 2)).toBe(
+			'confirm_add_to_playlist',
+		);
+		expect(handleLibraryAddToPlaylistInput(overlay, 'escape', 2)).toBe(
+			'cancel_add_to_playlist',
+		);
+
+		const line = formatFavoriteLine(
+			{videoId: 'a', title: 'Favorite Song', artists: [{name: 'Artist'}]},
+			40,
+		);
+		expect(line.includes('Favorite Song')).toBe(true);
+
+		closeLibraryOverlay(overlay);
+		expect(overlay.active).toBe(false);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'playback-actions playlist mutations add and remove tracks',
+	async () => {
+		const {getConfigService} =
+			await import('../source/services/config/config.service.ts');
+		const {
+			addTrackToSavedPlaylist,
+			loadPlaylists,
+			removeTrackFromSavedPlaylist,
+			trackFromSearchResult,
+		} = await import('../source/immersive/actions/playback-actions.ts');
+
+		const config = getConfigService();
+		const previousPlaylists = config.get('playlists');
+		config.set('playlists', [
+			{
+				playlistId: 'p1',
+				name: 'Test',
+				tracks: [{videoId: 'a', title: 'A', artists: []}],
+			},
+		]);
+
+		expect(
+			addTrackToSavedPlaylist('p1', {
+				videoId: 'b',
+				title: 'B',
+				artists: [],
+			}),
+		).toBe('added');
+		expect(loadPlaylists()[0].tracks.length).toBe(2);
+		expect(
+			addTrackToSavedPlaylist('p1', {
+				videoId: 'b',
+				title: 'B',
+				artists: [],
+			}),
+		).toBe('duplicate');
+		expect(removeTrackFromSavedPlaylist('p1', 0)).toBe(true);
+		expect(loadPlaylists()[0].tracks[0].videoId).toBe('b');
+
+		const track = trackFromSearchResult({
+			type: 'song',
+			data: {videoId: 'c', title: 'C', artists: []},
+		});
+		expect(track?.videoId).toBe('c');
+		expect(
+			trackFromSearchResult({
+				type: 'album',
+				data: {albumId: 'x', name: 'Album', artists: []},
+			}),
+		).toBe(null);
+
+		config.set('playlists', previousPlaylists);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'playback-actions dedupe tracks and favorites manager toggles',
+	async () => {
+		const {mkdtempSync, rmSync} = await import('node:fs');
+		const {tmpdir} = await import('node:os');
+		const {join} = await import('node:path');
+		const {dedupeTracks} =
+			await import('../source/immersive/actions/playback-actions.ts');
+		const {
+			FavoritesManager,
+			resetFavoritesManagerForTests,
+			setFavoritesFilePathForTests,
+		} = await import('../source/services/favorites/favorites.service.ts');
+
+		const deduped = dedupeTracks([
+			{videoId: 'a', title: 'A', artists: []},
+			{videoId: 'a', title: 'A duplicate', artists: []},
+			{videoId: 'b', title: 'B', artists: []},
+		]);
+		expect(deduped.length).toBe(2);
+
+		const tempDir = mkdtempSync(join(tmpdir(), 'ymc-favorites-test-'));
+		const favoritesFile = join(tempDir, 'favorites.json');
+		setFavoritesFilePathForTests(favoritesFile);
+		__fileTeardowns.push(() => {
+			resetFavoritesManagerForTests();
+			setFavoritesFilePathForTests(null);
+			rmSync(tempDir, {force: true, recursive: true});
+		});
+
+		resetFavoritesManagerForTests();
+		const manager = new FavoritesManager();
+		manager['tracks'] = [];
+		manager['loaded'] = true;
+
+		const track = {videoId: 'x', title: 'Song', artists: []};
+		expect(manager.isFavorite('x')).toBe(false);
+		const added = await manager.toggle(track);
+		expect(added).toBe(true);
+		expect(manager.isFavorite('x')).toBe(true);
+		expect(manager.getRecentTracks(8).map(entry => entry.videoId)).toEqual([
+			'x',
+		]);
+		const removed = await manager.toggle(track);
+		expect(removed).toBe(false);
+		expect(manager.isFavorite('x')).toBe(false);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'getSearchResultLabel and prefix format results',
+	async () => {
+		const {
+			formatSearchResultLine,
+			getSearchResultLabel,
+			getSearchResultPrefix,
+		} = await import('../source/immersive/actions/playback-actions.ts');
+
+		expect(getSearchResultPrefix('song')).toBe('♪');
+		expect(getSearchResultPrefix('album')).toBe('◎');
+		expect(
+			getSearchResultLabel({
+				type: 'song',
+				data: {videoId: '1', title: 'Hello', artists: []},
+			}),
+		).toBe('Hello');
+
+		const line = formatSearchResultLine(
+			{
+				type: 'song',
+				data: {
+					videoId: '1',
+					title: 'Hello',
+					artists: [{name: 'Artist'}],
+					duration: 125,
+				},
+			},
+			60,
+		);
+		expect(line.includes('Hello')).toBe(true);
+		expect(line.includes('Artist')).toBe(true);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'advanceQueue with autoplay on plays explicit queue once',
+	async () => {
+		const {advanceQueue, createInitialImmersiveState, setQueue} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState({repeat: 'all', autoplay: true});
+		setQueue(state, [
+			{videoId: 'a', title: 'A', artists: []},
+			{videoId: 'b', title: 'B', artists: []},
+			{videoId: 'c', title: 'C', artists: []},
+		]);
+		expect(state.explicitQueueLength).toBe(3);
+
+		expect(advanceQueue(state)?.videoId).toBe('b');
+		expect(advanceQueue(state)?.videoId).toBe('c');
+		expect(advanceQueue(state)).toBe(null);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'appendTracksForAutoplay appends without reshuffling playback order',
+	async () => {
+		const {appendTracksForAutoplay, createInitialImmersiveState, setQueue} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState({shuffle: true});
+		setQueue(
+			state,
+			[
+				{videoId: 'a', title: 'A', artists: []},
+				{videoId: 'b', title: 'B', artists: []},
+			],
+			0,
+		);
+		const orderBefore = [...(state.playbackOrder ?? [])];
+
+		const added = appendTracksForAutoplay(state, [
+			{videoId: 'c', title: 'C', artists: []},
+			{videoId: 'a', title: 'A duplicate', artists: []},
+			{videoId: 'd', title: 'D', artists: []},
+		]);
+
+		expect(added).toBe(2);
+		expect(state.queue.length).toBe(4);
+		expect(state.playbackOrder?.slice(0, orderBefore.length)).toEqual(
+			orderBefore,
+		);
+		expect(state.playbackOrder?.slice(orderBefore.length)).toEqual([2, 3]);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'appendTracksForAutoplay builds shuffle order from single-track queue',
+	async () => {
+		const {appendTracksForAutoplay, createInitialImmersiveState, setQueue} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState({shuffle: true});
+		setQueue(state, [{videoId: 'a', title: 'A', artists: []}], 0);
+		expect(state.playbackOrder).toBe(null);
+
+		const added = appendTracksForAutoplay(state, [
+			{videoId: 'b', title: 'B', artists: []},
+			{videoId: 'c', title: 'C', artists: []},
+		]);
+
+		expect(added).toBe(2);
+		expect(state.playbackOrder?.length).toBe(3);
+		expect(state.playbackOrder?.[0]).toBe(0);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'advanceQueue with shuffle on single track returns null',
+	async () => {
+		const {advanceQueue, createInitialImmersiveState, setQueue} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState({shuffle: true});
+		setQueue(state, [{videoId: 'a', title: 'A', artists: []}], 0);
+		expect(advanceQueue(state)).toBe(null);
+	},
+	{timeout: 60000},
+);
+
+test(
+	'toggleAutoplay flips immersive autoplay flag',
+	async () => {
+		const {createInitialImmersiveState, toggleAutoplay} =
+			await import('../source/immersive/state/queue-state.ts');
+
+		const state = createInitialImmersiveState();
+		expect(state.autoplay).toBe(true);
+		expect(toggleAutoplay(state)).toBe(false);
+		expect(state.autoplay).toBe(false);
+		expect(toggleAutoplay(state)).toBe(true);
+	},
+	{timeout: 60000},
+);

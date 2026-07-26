@@ -1,4 +1,4 @@
-import test from 'ava';
+import {expect, test} from 'bun:test';
 import {computeStats} from '../source/services/stats/stats.service.ts';
 
 function makeEntry(videoId, title, artists, duration, daysAgo) {
@@ -15,56 +15,56 @@ function makeEntry(videoId, title, artists, duration, daysAgo) {
 	};
 }
 
-test('computeStats: returns empty stats for empty history', t => {
+test('computeStats: returns empty stats for empty history', () => {
 	const stats = computeStats([]);
-	t.is(stats.totalPlays, 0);
-	t.is(stats.totalListeningMinutes, 0);
-	t.is(stats.uniqueTracks, 0);
-	t.is(stats.uniqueArtists, 0);
-	t.is(stats.topTracks.length, 0);
-	t.is(stats.topArtists.length, 0);
-	t.is(stats.currentStreak, 0);
-	t.is(stats.longestStreak, 0);
-	t.is(stats.firstPlayDate, null);
+	expect(stats.totalPlays).toBe(0);
+	expect(stats.totalListeningMinutes).toBe(0);
+	expect(stats.uniqueTracks).toBe(0);
+	expect(stats.uniqueArtists).toBe(0);
+	expect(stats.topTracks.length).toBe(0);
+	expect(stats.topArtists.length).toBe(0);
+	expect(stats.currentStreak).toBe(0);
+	expect(stats.longestStreak).toBe(0);
+	expect(stats.firstPlayDate).toBe(null);
 });
 
-test('computeStats: counts total plays correctly', t => {
+test('computeStats: counts total plays correctly', () => {
 	const entries = [
 		makeEntry('v1', 'Song A', ['Artist X'], 180, 0),
 		makeEntry('v1', 'Song A', ['Artist X'], 180, 0),
 		makeEntry('v2', 'Song B', ['Artist Y'], 240, 1),
 	];
 	const stats = computeStats(entries);
-	t.is(stats.totalPlays, 3);
+	expect(stats.totalPlays).toBe(3);
 });
 
-test('computeStats: estimates listening time from track duration', t => {
+test('computeStats: estimates listening time from track duration', () => {
 	const entries = [
 		makeEntry('v1', 'Song A', ['Artist X'], 180, 0),
 		makeEntry('v2', 'Song B', ['Artist Y'], 240, 1),
 	];
 	const stats = computeStats(entries);
-	t.is(stats.totalListeningMinutes, 7);
+	expect(stats.totalListeningMinutes).toBe(7);
 });
 
-test('computeStats: uses default 240s when track duration is undefined', t => {
+test('computeStats: uses default 240s when track duration is undefined', () => {
 	const entries = [makeEntry('v1', 'Song A', ['Artist X'], undefined, 0)];
 	const stats = computeStats(entries);
-	t.is(stats.totalListeningMinutes, 4);
+	expect(stats.totalListeningMinutes).toBe(4);
 });
 
-test('computeStats: counts unique tracks and artists', t => {
+test('computeStats: counts unique tracks and artists', () => {
 	const entries = [
 		makeEntry('v1', 'Song A', ['Artist X'], 200, 0),
 		makeEntry('v2', 'Song B', ['Artist Y'], 200, 0),
 		makeEntry('v1', 'Song A', ['Artist X'], 200, 0),
 	];
 	const stats = computeStats(entries);
-	t.is(stats.uniqueTracks, 2);
-	t.is(stats.uniqueArtists, 2);
+	expect(stats.uniqueTracks).toBe(2);
+	expect(stats.uniqueArtists).toBe(2);
 });
 
-test('computeStats: computes top tracks sorted by play count', t => {
+test('computeStats: computes top tracks sorted by play count', () => {
 	const entries = [
 		makeEntry('v1', 'Song A', ['Artist X'], 200, 0),
 		makeEntry('v2', 'Song B', ['Artist Y'], 200, 0),
@@ -72,25 +72,25 @@ test('computeStats: computes top tracks sorted by play count', t => {
 		makeEntry('v1', 'Song A', ['Artist X'], 200, 0),
 	];
 	const stats = computeStats(entries);
-	t.is(stats.topTracks[0].track.videoId, 'v1');
-	t.is(stats.topTracks[0].playCount, 3);
-	t.is(stats.topTracks[1].track.videoId, 'v2');
-	t.is(stats.topTracks[1].playCount, 1);
+	expect(stats.topTracks[0].track.videoId).toBe('v1');
+	expect(stats.topTracks[0].playCount).toBe(3);
+	expect(stats.topTracks[1].track.videoId).toBe('v2');
+	expect(stats.topTracks[1].playCount).toBe(1);
 });
 
-test('computeStats: computes top artists with play counts', t => {
+test('computeStats: computes top artists with play counts', () => {
 	const entries = [
 		makeEntry('v1', 'Song A', ['Artist X'], 200, 0),
 		makeEntry('v2', 'Song B', ['Artist X'], 200, 0),
 		makeEntry('v3', 'Song C', ['Artist Y'], 200, 0),
 	];
 	const stats = computeStats(entries);
-	t.is(stats.topArtists[0].name, 'Artist X');
-	t.is(stats.topArtists[0].playCount, 2);
-	t.is(stats.topArtists[0].uniqueTracks, 2);
+	expect(stats.topArtists[0].name).toBe('Artist X');
+	expect(stats.topArtists[0].playCount).toBe(2);
+	expect(stats.topArtists[0].uniqueTracks).toBe(2);
 });
 
-test('computeStats: handles tracks with no artists', t => {
+test('computeStats: handles tracks with no artists', () => {
 	const entry = {
 		track: {
 			videoId: 'v1',
@@ -101,32 +101,32 @@ test('computeStats: handles tracks with no artists', t => {
 		playedAt: new Date().toISOString(),
 	};
 	const stats = computeStats([entry]);
-	t.is(stats.uniqueArtists, 1);
-	t.is(stats.topArtists[0].name, 'Unknown');
+	expect(stats.uniqueArtists).toBe(1);
+	expect(stats.topArtists[0].name).toBe('Unknown');
 });
 
-test('computeStats: computes listening by day for last 14 days', t => {
+test('computeStats: computes listening by day for last 14 days', () => {
 	const entries = [
 		makeEntry('v1', 'Song A', ['Artist X'], 200, 0),
 		makeEntry('v2', 'Song B', ['Artist Y'], 200, 0),
 	];
 	const stats = computeStats(entries);
-	t.is(stats.listeningByDay.length, 14);
+	expect(stats.listeningByDay.length).toBe(14);
 	const today = stats.listeningByDay[stats.listeningByDay.length - 1];
-	t.is(today.playCount, 2);
+	expect(today.playCount).toBe(2);
 });
 
-test('computeStats: computes current streak', t => {
+test('computeStats: computes current streak', () => {
 	const entries = [
 		makeEntry('v1', 'Song A', ['Artist X'], 200, 0),
 		makeEntry('v2', 'Song B', ['Artist Y'], 200, 1),
 		makeEntry('v3', 'Song C', ['Artist Z'], 200, 2),
 	];
 	const stats = computeStats(entries);
-	t.is(stats.currentStreak, 3);
+	expect(stats.currentStreak).toBe(3);
 });
 
-test('computeStats: computes longest streak', t => {
+test('computeStats: computes longest streak', () => {
 	const entries = [
 		makeEntry('v1', 'Song A', ['Artist X'], 200, 0),
 		makeEntry('v2', 'Song B', ['Artist Y'], 200, 1),
@@ -135,25 +135,25 @@ test('computeStats: computes longest streak', t => {
 		makeEntry('v5', 'Song E', ['Artist V'], 200, 11),
 	];
 	const stats = computeStats(entries);
-	t.is(stats.longestStreak, 3);
+	expect(stats.longestStreak).toBe(3);
 });
 
-test('computeStats: sets firstPlayDate to earliest entry', t => {
+test('computeStats: sets firstPlayDate to earliest entry', () => {
 	const entries = [
 		makeEntry('v2', 'Song B', ['Artist Y'], 200, 5),
 		makeEntry('v1', 'Song A', ['Artist X'], 200, 10),
 	];
 	const stats = computeStats(entries);
-	t.truthy(stats.firstPlayDate);
+	expect(stats.firstPlayDate).toBeTruthy();
 });
 
-test('computeStats: limits top tracks and artists to 10', t => {
+test('computeStats: limits top tracks and artists to 10', () => {
 	const entries = [];
 	for (let i = 0; i < 15; i++) {
 		entries.push(makeEntry(`v${i}`, `Song ${i}`, [`Artist ${i}`], 200, 0));
 	}
 
 	const stats = computeStats(entries);
-	t.is(stats.topTracks.length, 10);
-	t.is(stats.topArtists.length, 10);
+	expect(stats.topTracks.length).toBe(10);
+	expect(stats.topArtists.length).toBe(10);
 });

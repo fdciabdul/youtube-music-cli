@@ -1,4 +1,4 @@
-import test from 'ava';
+import {afterEach, expect, test} from 'bun:test';
 import {mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -36,30 +36,32 @@ import {
 } from '../source/immersive/ui/radio-overlay.ts';
 import {buildModeStatusLine} from '../source/immersive/ui/layout.ts';
 
-test.afterEach(() => {
+afterEach(() => {
 	setRadioBrowserCachePathForTests(null);
 	setRadioFavoritesPathForTests(null);
 	resetRadioFavoritesForTests();
 });
 
-test('builtin radio stations have unique ids and http stream URLs', t => {
+test('builtin radio stations have unique ids and http stream URLs', () => {
 	const stations = getBuiltinStations();
 	const ids = new Set();
 
 	for (const station of stations) {
-		t.false(ids.has(station.id), `duplicate id: ${station.id}`);
+		expect(ids.has(station.id), `duplicate id: ${station.id}`).toBe(false);
 		ids.add(station.id);
-		t.true(station.streamUrl.startsWith('http'));
-		t.true(station.name.length > 0);
-		t.is(station.source, 'builtin');
+		expect(station.streamUrl.startsWith('http')).toBe(true);
+		expect(station.name.length > 0).toBe(true);
+		expect(station.source).toBe('builtin');
 	}
 
-	t.is(stations.length, BUILTIN_RADIO_STATIONS.length);
-	t.is(getStationById('rockland-kl')?.name, 'Rockland Radio — Kaiserslautern');
-	t.truthy(getStationById('swr3'));
+	expect(stations.length).toBe(BUILTIN_RADIO_STATIONS.length);
+	expect(getStationById('rockland-kl')?.name).toBe(
+		'Rockland Radio — Kaiserslautern',
+	);
+	expect(getStationById('swr3')).toBeTruthy();
 });
 
-test('mapApiStationToRadioStation maps radio-browser rows', t => {
+test('mapApiStationToRadioStation maps radio-browser rows', () => {
 	const mapped = mapApiStationToRadioStation({
 		stationuuid: '05eb782e-e789-4573-9771-27bfa417655c',
 		name: 'psyradio * fm - progressive',
@@ -71,66 +73,64 @@ test('mapApiStationToRadioStation maps radio-browser rows', t => {
 		lastcheckok: 1,
 	});
 
-	t.truthy(mapped);
-	t.is(mapped?.id, 'rb-05eb782e-e789-4573-9771-27bfa417655c');
-	t.is(mapped?.source, 'radio-browser');
-	t.is(mapped?.stationuuid, '05eb782e-e789-4573-9771-27bfa417655c');
-	t.is(mapped?.region, 'Germany');
-	t.is(mapped?.genre, 'progressive');
-	t.true(mapped?.streamUrl.startsWith('http'));
+	expect(mapped).toBeTruthy();
+	expect(mapped?.id).toBe('rb-05eb782e-e789-4573-9771-27bfa417655c');
+	expect(mapped?.source).toBe('radio-browser');
+	expect(mapped?.stationuuid).toBe('05eb782e-e789-4573-9771-27bfa417655c');
+	expect(mapped?.region).toBe('Germany');
+	expect(mapped?.genre).toBe('progressive');
+	expect(mapped?.streamUrl.startsWith('http')).toBe(true);
 });
 
-test('mapApiStationToRadioStation rejects broken or incomplete rows', t => {
-	t.is(
+test('mapApiStationToRadioStation rejects broken or incomplete rows', () => {
+	expect(
 		mapApiStationToRadioStation({
 			stationuuid: 'x',
 			name: 'Broken',
 			url: 'http://example.com/stream',
 			lastcheckok: 0,
 		}),
-		null,
-	);
-	t.is(
+	).toBe(null);
+	expect(
 		mapApiStationToRadioStation({
 			stationuuid: 'x',
 			name: 'No url',
 			lastcheckok: 1,
 		}),
-		null,
-	);
+	).toBe(null);
 });
 
-test('parseStreamMetadata splits artist and title from icy-title', t => {
+test('parseStreamMetadata splits artist and title from icy-title', () => {
 	const parsed = parseStreamMetadata({
 		'icy-title': 'Crunch - Sponge',
 		'icy-name': 'Limbik Frequencies',
 	});
 
-	t.deepEqual(parsed, {
+	expect(parsed).toEqual({
 		artist: 'Crunch',
 		title: 'Sponge',
 		raw: 'Crunch - Sponge',
 	});
 });
 
-test('parseStreamMetadata falls back to raw title without separator', t => {
+test('parseStreamMetadata falls back to raw title without separator', () => {
 	const parsed = parseStreamMetadata({
 		StreamTitle: 'Just A Track Name',
 	});
 
-	t.deepEqual(parsed, {
+	expect(parsed).toEqual({
 		artist: null,
 		title: 'Just A Track Name',
 		raw: 'Just A Track Name',
 	});
 });
 
-test('parseStreamMetadata returns null when no title tags', t => {
-	t.is(parseStreamMetadata({'icy-name': 'Station Only'}), null);
-	t.is(parseStreamMetadata(null), null);
+test('parseStreamMetadata returns null when no title tags', () => {
+	expect(parseStreamMetadata({'icy-name': 'Station Only'})).toBe(null);
+	expect(parseStreamMetadata(null)).toBe(null);
 });
 
-test('radio browser cache stores and returns browse results', t => {
+test('radio browser cache stores and returns browse results', () => {
 	const dir = mkdtempSync(join(tmpdir(), 'ymc-radio-cache-'));
 	setRadioBrowserCachePathForTests(join(dir, 'cache.json'));
 
@@ -146,36 +146,36 @@ test('radio browser cache stores and returns browse results', t => {
 
 	setCachedStations(key, stations);
 	const hit = getCachedStations(key);
-	t.truthy(hit);
-	t.false(hit?.stale);
-	t.is(hit?.stations[0]?.name, 'Cached FM');
+	expect(hit).toBeTruthy();
+	expect(hit?.stale).toBe(false);
+	expect(hit?.stations[0]?.name).toBe('Cached FM');
 
 	rmSync(dir, {recursive: true, force: true});
 });
 
-test('radio favorites toggle persists stations', t => {
+test('radio favorites toggle persists stations', () => {
 	const dir = mkdtempSync(join(tmpdir(), 'ymc-radio-fav-'));
 	setRadioFavoritesPathForTests(join(dir, 'fav.json'));
 	resetRadioFavoritesForTests();
 
 	const station = getStationById('swr3');
-	t.truthy(station);
+	expect(station).toBeTruthy();
 
-	t.true(toggleRadioFavorite(station));
-	t.true(isRadioFavorite('swr3'));
-	t.is(getRadioFavorites().length, 1);
+	expect(toggleRadioFavorite(station)).toBe(true);
+	expect(isRadioFavorite('swr3')).toBe(true);
+	expect(getRadioFavorites().length).toBe(1);
 
-	t.false(toggleRadioFavorite(station));
-	t.false(isRadioFavorite('swr3'));
-	t.is(getRadioFavorites().length, 0);
+	expect(toggleRadioFavorite(station)).toBe(false);
+	expect(isRadioFavorite('swr3')).toBe(false);
+	expect(getRadioFavorites().length).toBe(0);
 
 	rmSync(dir, {recursive: true, force: true});
 });
 
-test('PLAY_STREAM reducer enters stream playback mode and clears metadata', async t => {
+test('PLAY_STREAM reducer enters stream playback mode and clears metadata', async () => {
 	const {playerReducer} = await import('../source/stores/player.store.tsx');
 	const station = getStationById('rockland-kl');
-	t.truthy(station);
+	expect(station).toBeTruthy();
 
 	const state = {
 		currentTrack: {videoId: 'abc', title: 'Song', artists: []},
@@ -208,33 +208,33 @@ test('PLAY_STREAM reducer enters stream playback mode and clears metadata', asyn
 
 	const next = playerReducer(state, {category: 'PLAY_STREAM', station});
 
-	t.is(next.playbackMode, 'stream');
-	t.is(next.currentStation, station);
-	t.is(next.currentTrack, null);
-	t.deepEqual(next.queue, []);
-	t.false(next.autoplay);
-	t.false(next.radioIsActive);
-	t.is(next.radioSeed, null);
-	t.true(next.isPlaying);
-	t.is(next.streamNowPlaying, null);
+	expect(next.playbackMode).toBe('stream');
+	expect(next.currentStation).toBe(station);
+	expect(next.currentTrack).toBe(null);
+	expect(next.queue).toEqual([]);
+	expect(next.autoplay).toBe(false);
+	expect(next.radioIsActive).toBe(false);
+	expect(next.radioSeed).toBe(null);
+	expect(next.isPlaying).toBe(true);
+	expect(next.streamNowPlaying).toBe(null);
 
 	const withMeta = playerReducer(next, {
 		category: 'SET_STREAM_NOW_PLAYING',
 		streamNowPlaying: {artist: 'A', title: 'B', raw: 'A - B'},
 	});
-	t.deepEqual(withMeta.streamNowPlaying, {
+	expect(withMeta.streamNowPlaying).toEqual({
 		artist: 'A',
 		title: 'B',
 		raw: 'A - B',
 	});
 });
 
-test('playStationStream passes direct stream URL and station id to mpv', async t => {
+test('playStationStream passes direct stream URL and station id to mpv', async () => {
 	const {getPlayerService} =
 		await import('../source/services/player/player.service.ts');
 	const player = getPlayerService();
 	const station = getStationById('rockland-kl');
-	t.truthy(station);
+	expect(station).toBeTruthy();
 
 	const originalPlay = player.play.bind(player);
 	let capturedUrl = '';
@@ -247,14 +247,14 @@ test('playStationStream passes direct stream URL and station id to mpv', async t
 
 	try {
 		await playStationStream(station);
-		t.is(capturedUrl, station.streamUrl);
-		t.is(capturedTrackId, station.id);
+		expect(capturedUrl).toBe(station.streamUrl);
+		expect(capturedTrackId).toBe(station.id);
 	} finally {
 		player.play = originalPlay;
 	}
 });
 
-test('flattenRadioStations keeps favorites then builtins before remote', t => {
+test('flattenRadioStations keeps favorites then builtins before remote', () => {
 	const builtins = getBuiltinStations();
 	const remote = [
 		mapApiStationToRadioStation({
@@ -270,11 +270,11 @@ test('flattenRadioStations keeps favorites then builtins before remote', t => {
 		builtins,
 		remote,
 	});
-	t.is(flat[0]?.id, 'swr3');
-	t.is(flat.at(-1)?.source, 'radio-browser');
+	expect(flat[0]?.id).toBe('swr3');
+	expect(flat.at(-1)?.source).toBe('radio-browser');
 });
 
-test('radio overlay selects and plays a station', t => {
+test('radio overlay selects and plays a station', () => {
 	const overlay = createRadioOverlayState();
 	openRadioOverlay(overlay);
 	applyRadioStationList(
@@ -286,7 +286,7 @@ test('radio overlay selects and plays a station', t => {
 		},
 		'8 local stations',
 	);
-	t.true(overlay.active);
+	expect(overlay.active).toBe(true);
 
 	const stations = getRadioOverlayStations(overlay);
 	for (let i = 0; i < stations.length - 1; i++) {
@@ -294,11 +294,11 @@ test('radio overlay selects and plays a station', t => {
 	}
 
 	const action = handleRadioOverlayInput(overlay, 'enter', stations.length);
-	t.is(action, 'play');
-	t.is(getSelectedStation(overlay)?.id, stations.at(-1)?.id);
+	expect(action).toBe('play');
+	expect(getSelectedStation(overlay)?.id).toBe(stations.at(-1)?.id);
 });
 
-test('radio overlay search, random, and country actions', t => {
+test('radio overlay search, random, and country actions', () => {
 	const overlay = createRadioOverlayState();
 	openRadioOverlay(overlay);
 	applyRadioStationList(
@@ -307,22 +307,22 @@ test('radio overlay search, random, and country actions', t => {
 		'ready',
 	);
 
-	t.is(handleRadioOverlayInput(overlay, 'r', 1), 'random');
-	t.is(handleRadioOverlayInput(overlay, 'c', 1), 'cycle-country');
-	t.is(overlay.countryIndex, 1);
+	expect(handleRadioOverlayInput(overlay, 'r', 1)).toBe('random');
+	expect(handleRadioOverlayInput(overlay, 'c', 1)).toBe('cycle-country');
+	expect(overlay.countryIndex).toBe(1);
 
 	beginRadioSearch(overlay);
-	t.is(overlay.phase, 'search');
+	expect(overlay.phase).toBe('search');
 	handleRadioOverlayInput(overlay, 's', 0);
 	handleRadioOverlayInput(overlay, 'w', 0);
 	handleRadioOverlayInput(overlay, 'r', 0);
-	t.is(overlay.searchQuery, 'swr');
-	t.is(handleRadioOverlayInput(overlay, 'enter', 0), 'search');
+	expect(overlay.searchQuery).toBe('swr');
+	expect(handleRadioOverlayInput(overlay, 'enter', 0)).toBe('search');
 
 	cycleRadioCountry(overlay);
 });
 
-test('buildModeStatusLine shows LIVE for stream playback', t => {
+test('buildModeStatusLine shows LIVE for stream playback', () => {
 	const line = buildModeStatusLine({
 		shuffle: false,
 		repeat: 'off',
@@ -332,11 +332,11 @@ test('buildModeStatusLine shows LIVE for stream playback', t => {
 		currentStation: {name: 'Rockland Radio — Kaiserslautern'},
 	});
 
-	t.true(line.includes('LIVE'));
-	t.true(line.includes('Rockland'));
+	expect(line.includes('LIVE')).toBe(true);
+	expect(line.includes('Rockland')).toBe(true);
 });
 
-test('shouldPrefetchAutoplay is false at stream mode queue end', async t => {
+test('shouldPrefetchAutoplay is false at stream mode queue end', async () => {
 	const {shouldPrefetchAutoplay} =
 		await import('../source/services/player/autoplay-coordinator.ts');
 
@@ -359,5 +359,5 @@ test('shouldPrefetchAutoplay is false at stream mode queue end', async t => {
 		},
 	);
 
-	t.false(shouldFetch);
+	expect(shouldFetch).toBe(false);
 });

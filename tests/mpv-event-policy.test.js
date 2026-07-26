@@ -1,57 +1,61 @@
-import test from 'ava';
+import {expect, test} from 'bun:test';
 
-test('mpv-event-policy: suppresses pause only when advancing or after EOF', async t => {
+test('mpv-event-policy: suppresses pause only when advancing or after EOF', async () => {
 	const {EOF_PAUSE_SUPPRESSION_MS, shouldApplyMpvPauseSync} =
 		await import('../source/services/player/mpv-event-policy.ts');
 
 	const now = 10_000;
 
-	t.false(
+	expect(
 		shouldApplyMpvPauseSync({
 			paused: true,
 			isAdvancing: true,
 			eofTimestamp: 0,
 			now,
 		}),
-	);
-	t.false(
+	).toBe(false);
+	expect(
 		shouldApplyMpvPauseSync({
 			paused: true,
 			eofTimestamp: now - (EOF_PAUSE_SUPPRESSION_MS - 1),
 			now,
 		}),
-	);
-	t.false(
+	).toBe(false);
+	expect(
 		shouldApplyMpvPauseSync({
 			paused: true,
 			eofTimestamp: 0,
 			advanceGraceUntil: now + 5000,
 			now,
 		}),
-	);
-	t.true(
+	).toBe(false);
+	expect(
 		shouldApplyMpvPauseSync({
 			paused: true,
 			eofTimestamp: now - EOF_PAUSE_SUPPRESSION_MS,
 			advanceGraceUntil: now - 1,
 			now,
 		}),
-	);
-	t.true(
+	).toBe(true);
+	expect(
 		shouldApplyMpvPauseSync({
 			paused: true,
 			eofTimestamp: 0,
 			now,
 		}),
+	).toBe(true);
+	expect(shouldApplyMpvPauseSync({paused: false, eofTimestamp: 0, now})).toBe(
+		true,
 	);
-	t.true(shouldApplyMpvPauseSync({paused: false, eofTimestamp: 0, now}));
 });
 
-test('mpv-event-policy: debounces EOF advance', async t => {
+test('mpv-event-policy: debounces EOF advance', async () => {
 	const {ADVANCE_DEBOUNCE_MS, shouldDebounceAdvance} =
 		await import('../source/services/player/mpv-event-policy.ts');
 
-	t.true(shouldDebounceAdvance(0, ADVANCE_DEBOUNCE_MS - 1));
-	t.false(shouldDebounceAdvance(0, ADVANCE_DEBOUNCE_MS));
-	t.false(shouldDebounceAdvance(-ADVANCE_DEBOUNCE_MS, ADVANCE_DEBOUNCE_MS - 1));
+	expect(shouldDebounceAdvance(0, ADVANCE_DEBOUNCE_MS - 1)).toBe(true);
+	expect(shouldDebounceAdvance(0, ADVANCE_DEBOUNCE_MS)).toBe(false);
+	expect(
+		shouldDebounceAdvance(-ADVANCE_DEBOUNCE_MS, ADVANCE_DEBOUNCE_MS - 1),
+	).toBe(false);
 });

@@ -8,6 +8,7 @@ export type RepeatMode = 'off' | 'all' | 'one';
 export type DownloadFormat = 'mp3' | 'm4a';
 export type EqualizerPreset =
 	'flat' | 'bass_boost' | 'vocal' | 'bright' | 'warm';
+export type CookiesFromBrowser = 'chrome' | 'firefox' | 'edge' | 'brave';
 
 export interface KeybindingConfig {
 	keys: string[];
@@ -51,6 +52,12 @@ export interface Config {
 	};
 	discordRichPresence?: boolean;
 	proxy?: string;
+	/** Netscape cookies.txt for yt-dlp (preferred over cookiesFromBrowser). */
+	cookiesFile?: string;
+	/** Browser profile for yt-dlp --cookies-from-browser (Edge recommended on Windows). */
+	cookiesFromBrowser?: CookiesFromBrowser;
+	/** Cap for persisted listening history entries (default 2000). */
+	maxHistoryEntries?: number;
 	downloadsEnabled?: boolean;
 	downloadDirectory?: string;
 	downloadFormat?: DownloadFormat;

@@ -1,21 +1,21 @@
-import test from 'ava';
+import {expect, test} from 'bun:test';
 
-test('download config defaults are present', async t => {
+test('download config defaults are present', async () => {
 	const {getConfigService} =
 		await import('../source/services/config/config.service.ts');
 	const config = getConfigService();
 
-	t.is(typeof (config.get('downloadsEnabled') ?? false), 'boolean');
-	t.truthy(config.get('downloadDirectory'));
-	t.is(config.get('downloadFormat'), 'mp3');
+	expect(typeof (config.get('downloadsEnabled') ?? false)).toBe('boolean');
+	expect(config.get('downloadDirectory')).toBeTruthy();
+	expect(config.get('downloadFormat')).toBe('mp3');
 });
 
-test('download keybinding is registered as shift+d', async t => {
+test('download keybinding is registered as shift+d', async () => {
 	const {KEYBINDINGS} = await import('../source/utils/constants.ts');
-	t.deepEqual(KEYBINDINGS.DOWNLOAD, ['shift+d']);
+	expect(KEYBINDINGS.DOWNLOAD).toEqual(['shift+d']);
 });
 
-test('download service resolves song selection to one track', async t => {
+test('download service resolves song selection to one track', async () => {
 	const {getDownloadService} =
 		await import('../source/services/download/download.service.ts');
 
@@ -29,6 +29,6 @@ test('download service resolves song selection to one track', async t => {
 		},
 	});
 
-	t.is(result.tracks.length, 1);
-	t.is(result.tracks[0].videoId, 'abc123');
+	expect(result.tracks.length).toBe(1);
+	expect(result.tracks[0].videoId).toBe('abc123');
 });

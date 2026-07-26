@@ -12,7 +12,9 @@ import {getPlayerService} from '../services/player/player.service.ts';
 import {getDownloadService} from '../services/download/download.service.ts';
 import {formatDownloadProgress} from '../utils/download-progress.ts';
 import {getFavoritesManager} from '../services/favorites/favorites.service.ts';
+import {recordListeningHistoryPlay} from '../services/history/history.service.ts';
 import {ensurePlaybackDependencies} from '../services/player/dependency-check.service.ts';
+import {formatPlaybackErrorMessage} from '../services/player/ytdl-cookies.ts';
 import {
 	loadPlayerState,
 	savePlayerState,
@@ -95,6 +97,9 @@ function getPlaybackOptions(volume: number) {
 		gaplessPlayback: config.get('gaplessPlayback'),
 		crossfadeDuration: config.get('crossfadeDuration'),
 		equalizerPreset: config.get('equalizerPreset'),
+		proxy: config.get('proxy'),
+		cookiesFile: config.get('cookiesFile'),
+		cookiesFromBrowser: config.get('cookiesFromBrowser'),
 	};
 }
 
@@ -411,6 +416,7 @@ export async function startImmersiveApp(
 
 			playerService.resume();
 			state.isPlaying = true;
+			void recordListeningHistoryPlay(track);
 
 			if (track.duration) {
 				state.duration = track.duration;
@@ -426,8 +432,7 @@ export async function startImmersiveApp(
 			state.isPlaying = false;
 			clearAdvanceGrace();
 			playerService.stop();
-			const message =
-				error instanceof Error ? error.message : 'Playback failed';
+			const message = formatPlaybackErrorMessage(error);
 			showTrackChangeToast('Playback error', message);
 		} finally {
 			isAdvancing = false;

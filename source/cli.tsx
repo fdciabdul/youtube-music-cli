@@ -87,6 +87,11 @@ const cli = meow(
 	  $ youtube-music-cli logs --get-path         Print log file path
 	  $ youtube-music-cli logs --set-path <path>  Set custom log file path
 
+	📊 Stats Commands
+	  $ youtube-music-cli stats                   Print listening statistics
+	  $ youtube-music-cli stats --share           Print + copy share card
+	  $ youtube-music-cli stats --export [path]   Write share card to file
+
 	🔧 Config Commands
 	  $ youtube-music-cli config doctor           Check config for issues
 	  $ youtube-music-cli config doctor --fix     Auto-fix config issues
@@ -206,6 +211,14 @@ const cli = meow(
 				shortFlag: 'V',
 				default: false,
 			},
+			// Stats command flags
+			share: {
+				type: 'boolean',
+				default: false,
+			},
+			export: {
+				type: 'string',
+			},
 		},
 		autoVersion: true,
 		autoHelp: false,
@@ -236,6 +249,46 @@ if (command === 'logs') {
 	} else {
 		showLogs();
 	}
+}
+
+// Handle stats command
+if (command === 'stats') {
+	const {loadHistory} = await import('./services/history/history.service.ts');
+	const {computeStats} = await import('./services/stats/stats.service.ts');
+	const {
+		STATS_SHARE_DEFAULT_PATH,
+		copyTextToClipboard,
+		formatStatsShareCard,
+		writeStatsShareFile,
+	} = await import('./services/stats/stats-share.ts');
+
+	const entries = await loadHistory();
+	const stats = computeStats(entries);
+	const card = formatStatsShareCard(stats);
+	console.log(card);
+
+	if (cli.flags.share) {
+		const copied = await copyTextToClipboard(card);
+		console.log(
+			copied
+				? '\n(Copied share card to clipboard)'
+				: '\n(Clipboard unavailable — use --export to write a file)',
+		);
+	}
+
+	const exportFlag = cli.flags.export as string | undefined;
+	const wantsExport =
+		exportFlag !== undefined || process.argv.includes('--export');
+	if (wantsExport) {
+		const outPath =
+			typeof exportFlag === 'string' && exportFlag.length > 0
+				? exportFlag
+				: STATS_SHARE_DEFAULT_PATH;
+		const written = await writeStatsShareFile(card, outPath);
+		console.log(`\nExported share card to ${written}`);
+	}
+
+	process.exit(0);
 }
 
 // Handle config doctor command
@@ -278,6 +331,9 @@ async function runDirectPlaybackCommand(flags: Flags): Promise<void> {
 		volume: flags.volume ?? config.get('volume'),
 		audioNormalization: config.get('audioNormalization'),
 		volumeFadeDuration: config.get('volumeFadeDuration'),
+		proxy: config.get('proxy'),
+		cookiesFile: config.get('cookiesFile'),
+		cookiesFromBrowser: config.get('cookiesFromBrowser'),
 	};
 
 	const isDirectAudioUrl = (url: string): boolean => {

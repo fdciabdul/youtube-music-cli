@@ -1,9 +1,15 @@
-import {Box, Text} from 'ink';
+import {Box, Text, useInput} from 'ink';
+import {useState} from 'react';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useStats} from '../../stores/stats.store.tsx';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
 import {KEYBINDINGS} from '../../utils/constants.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
+import {
+	copyTextToClipboard,
+	formatStatsShareCard,
+	writeStatsShareFile,
+} from '../../services/stats/stats-share.ts';
 import StatsOverview from './StatsOverview.tsx';
 import TopTracksList from './TopTracksList.tsx';
 import TopArtistsList from './TopArtistsList.tsx';
@@ -13,9 +19,38 @@ export default function StatsDashboard() {
 	const {theme} = useTheme();
 	const {stats} = useStats();
 	const {dispatch} = useNavigation();
+	const [status, setStatus] = useState<string | null>(null);
 
 	useKeyBinding(KEYBINDINGS.BACK, () => {
 		dispatch({category: 'GO_BACK'});
+	});
+
+	useInput((input, key) => {
+		if (key.ctrl || key.meta) {
+			return;
+		}
+
+		const lower = input.toLowerCase();
+		if (lower === 's') {
+			void (async () => {
+				const card = formatStatsShareCard(stats);
+				const copied = await copyTextToClipboard(card);
+				setStatus(
+					copied
+						? 'Share card copied to clipboard'
+						: 'Clipboard unavailable — press E to export to a file',
+				);
+			})();
+			return;
+		}
+
+		if (lower === 'e') {
+			void (async () => {
+				const card = formatStatsShareCard(stats);
+				const filePath = await writeStatsShareFile(card);
+				setStatus(`Exported share card to ${filePath}`);
+			})();
+		}
 	});
 
 	return (
@@ -62,8 +97,16 @@ export default function StatsDashboard() {
 			<TopArtistsList artists={stats.topArtists} />
 			<ListeningTimeline buckets={stats.listeningByDay} />
 
+			{status ? (
+				<Box marginTop={1}>
+					<Text color={theme.colors.accent}>{status}</Text>
+				</Box>
+			) : null}
+
 			<Box marginTop={1}>
-				<Text color={theme.colors.dim}>Esc to go back • O to reopen stats</Text>
+				<Text color={theme.colors.dim}>
+					Esc back • O reopen • S share (clipboard) • E export file
+				</Text>
 			</Box>
 		</Box>
 	);

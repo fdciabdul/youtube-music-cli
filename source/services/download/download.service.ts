@@ -4,6 +4,7 @@ import {spawn} from 'node:child_process';
 import {getConfigService} from '../config/config.service.ts';
 import {logger} from '../logger/logger.service.ts';
 import {getMusicService} from '../youtube-music/api.ts';
+import {appendYtDlpCookieArgs} from '../player/ytdl-cookies.ts';
 import {ensureDownloadDirectory} from '../../utils/download-path.ts';
 import type {DownloadFormat} from '../../types/config.types.ts';
 import type {
@@ -428,23 +429,26 @@ class DownloadService {
 		outputPath: string,
 	): Promise<void> {
 		const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+		const config = getConfigService();
+		const ytdlpArgs = [
+			'--no-playlist',
+			'--quiet',
+			'--no-warnings',
+			'--js-runtimes',
+			'node',
+			'-f',
+			'bestaudio',
+			'--output',
+			outputPath,
+		];
+		appendYtDlpCookieArgs(ytdlpArgs, {
+			cookiesFile: config.get('cookiesFile'),
+			cookiesFromBrowser: config.get('cookiesFromBrowser'),
+		});
+		ytdlpArgs.push(watchUrl);
+
 		await new Promise<void>((resolve, reject) => {
-			const process = spawn(
-				'yt-dlp',
-				[
-					'--no-playlist',
-					'--quiet',
-					'--no-warnings',
-					'--js-runtimes',
-					'node',
-					'-f',
-					'bestaudio',
-					'--output',
-					outputPath,
-					watchUrl,
-				],
-				{windowsHide: true},
-			);
+			const process = spawn('yt-dlp', ytdlpArgs, {windowsHide: true});
 			let stderr = '';
 			let stdout = '';
 			process.stderr.on('data', chunk => {

@@ -32,6 +32,7 @@ A powerful Terminal User Interface (TUI) music player for YouTube Music
 - 🖥️ **Immersive Mode** - Fullscreen Windows TUI with audio visualizer and disco effects
 - 🌐 **Web Companion** - Browser UI with synced playback controls (`--web`); included in every production build
 - 💾 **Downloads** - Save tracks/playlists/artists with `Shift+D`
+- 📊 **Listening Stats** - Press `o` for totals, top tracks/artists, streaks; share with `S` / `E` or `ymc stats --share`
 - 🏷️ **Metadata Tagging** - Auto-tag title/artist/album with optional cover art
 - ⚡️ **Shell Completions** - `ymc completions <bash|zsh|powershell|fish>` emits scripts you can source or save so the CLI (also available as `ymc`) tab-completes subcommands and flags
 
@@ -331,6 +332,7 @@ youtube-music-cli play dQw4w9WgXcQ --shuffle
 | `/`       | Search          |
 | `p`       | Plugins manager |
 | `Shift+F` | Favorites view  |
+| `o`       | Listening stats |
 | `g`       | Suggestions     |
 | `,`       | Settings        |
 | `Esc`     | Go back         |

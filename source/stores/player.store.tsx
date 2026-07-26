@@ -10,6 +10,10 @@ import {
 import type {PlayerState, PlayerAction} from '../types/player.types.ts';
 import {getPlayerService} from '../services/player/player.service.ts';
 import {
+	formatPlaybackErrorMessage,
+	isYouTubeBotCheckError,
+} from '../services/player/ytdl-cookies.ts';
+import {
 	loadPlayerState,
 	savePlayerState,
 } from '../services/player-state/player-state.service.ts';
@@ -831,6 +835,8 @@ function PlayerManager() {
 						volume: state.volume,
 						audioNormalization: config.get('audioNormalization') ?? false,
 						proxy: config.get('proxy'),
+						cookiesFile: config.get('cookiesFile'),
+						cookiesFromBrowser: config.get('cookiesFromBrowser'),
 						gaplessPlayback: config.get('gaplessPlayback') ?? true,
 						crossfadeDuration: config.get('crossfadeDuration') ?? 0,
 						equalizerPreset: config.get('equalizerPreset') ?? 'flat',
@@ -850,6 +856,53 @@ function PlayerManager() {
 						attempt,
 					});
 
+					const errorMessage =
+						error instanceof Error ? error.message : String(error);
+
+					if (attempt === MAX_RETRIES && isYouTubeBotCheckError(errorMessage)) {
+						try {
+							logger.info(
+								'PlayerManager',
+								'Bot check detected; retrying with extracted stream URL',
+								{videoId: track.videoId},
+							);
+							const fallbackConfig = getConfigService();
+							const streamUrl = await musicService.getStreamUrl(track.videoId);
+							await playerService.play(streamUrl, {
+								volume: state.volume,
+								audioNormalization:
+									fallbackConfig.get('audioNormalization') ?? false,
+								proxy: fallbackConfig.get('proxy'),
+								gaplessPlayback: fallbackConfig.get('gaplessPlayback') ?? true,
+								crossfadeDuration: fallbackConfig.get('crossfadeDuration') ?? 0,
+								equalizerPreset:
+									fallbackConfig.get('equalizerPreset') ?? 'flat',
+								volumeFadeDuration:
+									fallbackConfig.get('volumeFadeDuration') ?? 0,
+								duration: track.duration,
+								trackId: track.videoId,
+							});
+							dispatch({category: 'SET_LOADING', loading: false});
+							return;
+						} catch (streamError) {
+							logger.error(
+								'PlayerManager',
+								'Stream URL fallback after bot check failed',
+								{
+									error:
+										streamError instanceof Error
+											? streamError.message
+											: String(streamError),
+								},
+							);
+							dispatch({
+								category: 'SET_ERROR',
+								error: formatPlaybackErrorMessage(error),
+							});
+							return;
+						}
+					}
+
 					if (attempt < MAX_RETRIES) {
 						logger.info('PlayerManager', 'Retrying playback', {
 							attempt,
@@ -860,10 +913,7 @@ function PlayerManager() {
 					} else {
 						dispatch({
 							category: 'SET_ERROR',
-							error:
-								error instanceof Error
-									? `${error.message} (after ${MAX_RETRIES} attempts)`
-									: 'Failed to load track',
+							error: `${formatPlaybackErrorMessage(error)} (after ${MAX_RETRIES} attempts)`,
 						});
 					}
 				}

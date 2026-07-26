@@ -1,30 +1,69 @@
-// Debug logging service
+// Debug logging service with daily rotation
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
+import {
+	getDefaultLogsDirectory,
+	MAX_LOG_FILE_SIZE,
+	pruneOldLogFiles,
+	resolveDailyLogPath,
+	rotateLogIfTooLarge,
+} from './log-rotation.ts';
 
-const DEBUG_DIR = path.join(os.homedir(), '.youtube-music-cli');
-const DEBUG_FILE = path.join(DEBUG_DIR, 'debug.log');
-const MAX_LOG_SIZE = 5 * 1024 * 1024; // 5MB
+const CONFIG_DIR = path.join(os.homedir(), '.youtube-music-cli');
+const LOGS_DIR = getDefaultLogsDirectory();
 
-// Ensure debug directory exists
-if (!fs.existsSync(DEBUG_DIR)) {
-	fs.mkdirSync(DEBUG_DIR, {recursive: true});
-}
-
-// Rotate log if too large
-if (fs.existsSync(DEBUG_FILE)) {
-	const stats = fs.statSync(DEBUG_FILE);
-	if (stats.size > MAX_LOG_SIZE) {
-		const backupFile = path.join(DEBUG_DIR, 'debug.log.old');
-		if (fs.existsSync(backupFile)) {
-			fs.unlinkSync(backupFile);
-		}
-		fs.renameSync(DEBUG_FILE, backupFile);
+function ensureDir(dir: string): void {
+	if (!fs.existsSync(dir)) {
+		fs.mkdirSync(dir, {recursive: true});
 	}
 }
 
+ensureDir(CONFIG_DIR);
+ensureDir(LOGS_DIR);
+pruneOldLogFiles(LOGS_DIR);
+
 let verboseMode = false;
+let customLogPath: string | null = null;
+let activeLogPath = resolveDailyLogPath(LOGS_DIR);
+let activeLogDay = activeLogPath;
+rotateLogIfTooLarge(activeLogPath);
+
+function resolveConfiguredLogPath(): string | null {
+	try {
+		const configPath = path.join(CONFIG_DIR, 'config.json');
+		if (!fs.existsSync(configPath)) {
+			return null;
+		}
+		const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8')) as {
+			logFilePath?: string;
+		};
+		return parsed.logFilePath?.trim() || null;
+	} catch {
+		return null;
+	}
+}
+
+customLogPath = resolveConfiguredLogPath();
+
+function getActiveLogPath(): string {
+	if (customLogPath) {
+		const dir = path.dirname(customLogPath);
+		ensureDir(dir);
+		return rotateLogIfTooLarge(customLogPath);
+	}
+
+	const todayPath = resolveDailyLogPath(LOGS_DIR);
+	if (todayPath !== activeLogDay) {
+		activeLogDay = todayPath;
+		activeLogPath = todayPath;
+		pruneOldLogFiles(LOGS_DIR);
+	}
+
+	ensureDir(LOGS_DIR);
+	activeLogPath = rotateLogIfTooLarge(todayPath);
+	return activeLogPath;
+}
 
 class Logger {
 	setVerbose(enabled: boolean): void {
@@ -33,6 +72,10 @@ class Logger {
 
 	isVerbose(): boolean {
 		return verboseMode;
+	}
+
+	setLogFilePath(filePath: string | null | undefined): void {
+		customLogPath = filePath?.trim() || null;
 	}
 
 	private writeToFile(
@@ -51,8 +94,17 @@ class Logger {
 		}
 
 		const logLine = `[${timestamp}] [${level}] [${category}] ${message}${dataStr}\n`;
+		const logPath = getActiveLogPath();
 
-		fs.appendFileSync(DEBUG_FILE, logLine);
+		try {
+			const stats = fs.existsSync(logPath) ? fs.statSync(logPath) : null;
+			if (stats && stats.size > MAX_LOG_FILE_SIZE) {
+				rotateLogIfTooLarge(logPath);
+			}
+			fs.appendFileSync(getActiveLogPath(), logLine);
+		} catch {
+			// ignore disk write failures
+		}
 	}
 
 	debug(category: string, message: string, data?: unknown) {
@@ -96,7 +148,11 @@ class Logger {
 	}
 
 	getLogPath(): string {
-		return DEBUG_FILE;
+		return getActiveLogPath();
+	}
+
+	getLogsDirectory(): string {
+		return customLogPath ? path.dirname(customLogPath) : LOGS_DIR;
 	}
 }
 

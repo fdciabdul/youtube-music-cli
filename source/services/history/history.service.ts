@@ -1,16 +1,19 @@
-import {mkdir, readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, writeFile, unlink, rename} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 import {CONFIG_DIR} from '../../utils/constants.ts';
 import {formatError} from '../../utils/error.ts';
+import {getConfigService} from '../config/config.service.ts';
 import {logger} from '../logger/logger.service.ts';
 import type {
 	HistoryEntry,
 	PersistedHistory,
 } from '../../types/history.types.ts';
+import type {Track} from '../../types/youtube-music.types.ts';
 
 const HISTORY_FILE = join(CONFIG_DIR, 'history.json');
 const SCHEMA_VERSION = 1;
+export const DEFAULT_MAX_HISTORY_ENTRIES = 2000;
 
 const defaultHistory: PersistedHistory = {
 	schemaVersion: SCHEMA_VERSION,
@@ -20,7 +23,32 @@ const defaultHistory: PersistedHistory = {
 
 let saveLock = Promise.resolve();
 
-export async function saveHistory(entries: HistoryEntry[]): Promise<void> {
+export function getMaxHistoryEntries(): number {
+	const configured = getConfigService().get('maxHistoryEntries');
+	if (
+		typeof configured === 'number' &&
+		Number.isFinite(configured) &&
+		configured > 0
+	) {
+		return Math.floor(configured);
+	}
+	return DEFAULT_MAX_HISTORY_ENTRIES;
+}
+
+export function trimHistoryEntries(
+	entries: HistoryEntry[],
+	maxEntries: number = getMaxHistoryEntries(),
+): HistoryEntry[] {
+	if (entries.length <= maxEntries) {
+		return entries;
+	}
+	return entries.slice(0, maxEntries);
+}
+
+export async function saveHistory(
+	entries: HistoryEntry[],
+	options?: {allowEmptyOverwrite?: boolean},
+): Promise<void> {
 	const currentLock = saveLock;
 	let releaseLock: () => void = () => {};
 	const newLock = new Promise<void>(resolve => {
@@ -31,13 +59,26 @@ export async function saveHistory(entries: HistoryEntry[]): Promise<void> {
 	await currentLock.catch(() => {});
 
 	try {
+		const trimmed = trimHistoryEntries(entries);
+		if (
+			trimmed.length === 0 &&
+			!options?.allowEmptyOverwrite &&
+			existsSync(HISTORY_FILE)
+		) {
+			logger.debug(
+				'HistoryService',
+				'Refusing empty history overwrite before hydration',
+			);
+			return;
+		}
+
 		if (!existsSync(CONFIG_DIR)) {
 			await mkdir(CONFIG_DIR, {recursive: true});
 		}
 
 		const stateToSave: PersistedHistory = {
 			...defaultHistory,
-			entries,
+			entries: trimmed,
 			lastUpdated: new Date().toISOString(),
 		};
 
@@ -45,15 +86,13 @@ export async function saveHistory(entries: HistoryEntry[]): Promise<void> {
 		await writeFile(tempFile, JSON.stringify(stateToSave, null, 2), 'utf8');
 
 		if (process.platform === 'win32' && existsSync(HISTORY_FILE)) {
-			await import('node:fs/promises').then(fs => fs.unlink(HISTORY_FILE));
+			await unlink(HISTORY_FILE);
 		}
 
-		await import('node:fs/promises').then(fs =>
-			fs.rename(tempFile, HISTORY_FILE),
-		);
+		await rename(tempFile, HISTORY_FILE);
 
 		logger.debug('HistoryService', 'Saved listening history', {
-			count: entries.length,
+			count: trimmed.length,
 		});
 	} catch (error) {
 		logger.error('HistoryService', 'Failed to save listening history', {
@@ -87,12 +126,17 @@ export async function loadHistory(): Promise<HistoryEntry[]> {
 			return [];
 		}
 
+		const trimmed = trimHistoryEntries(persisted.entries);
+		if (trimmed.length !== persisted.entries.length) {
+			await saveHistory(trimmed, {allowEmptyOverwrite: true});
+		}
+
 		logger.info('HistoryService', 'Loaded listening history', {
-			count: persisted.entries.length,
+			count: trimmed.length,
 			lastUpdated: persisted.lastUpdated,
 		});
 
-		return persisted.entries;
+		return trimmed;
 	} catch (error) {
 		logger.error('HistoryService', 'Failed to load listening history', {
 			error: formatError(error),
@@ -101,10 +145,20 @@ export async function loadHistory(): Promise<HistoryEntry[]> {
 	}
 }
 
+/** Append a play for immersive (and other non-React) callers. */
+export async function recordListeningHistoryPlay(track: Track): Promise<void> {
+	const entry: HistoryEntry = {
+		track,
+		playedAt: new Date().toISOString(),
+	};
+	const existing = await loadHistory();
+	await saveHistory([entry, ...existing], {allowEmptyOverwrite: true});
+}
+
 export async function clearHistory(): Promise<void> {
 	try {
 		if (existsSync(HISTORY_FILE)) {
-			await import('node:fs/promises').then(fs => fs.unlink(HISTORY_FILE));
+			await unlink(HISTORY_FILE);
 			logger.info('HistoryService', 'Cleared listening history');
 		}
 	} catch (error) {

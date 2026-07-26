@@ -3,15 +3,21 @@ import {spawn, type ChildProcess} from 'node:child_process';
 import {connect, type Socket} from 'node:net';
 import {logger} from '../logger/logger.service.ts';
 import {formatError, formatErrorData} from '../../utils/error.ts';
-import type {EqualizerPreset} from '../../types/config.types.ts';
+import type {
+	CookiesFromBrowser,
+	EqualizerPreset,
+} from '../../types/config.types.ts';
 import {getConfigService} from '../config/config.service.ts';
 import {parseStreamMetadata} from '../radio-stations/stream-metadata.ts';
 import type {StreamNowPlaying} from '../../types/radio-station.types.ts';
+import {appendMpvYtdlCookieArgs} from './ytdl-cookies.ts';
 
 export type PlayOptions = {
 	volume?: number;
 	audioNormalization?: boolean;
 	proxy?: string;
+	cookiesFile?: string;
+	cookiesFromBrowser?: CookiesFromBrowser;
 	gaplessPlayback?: boolean;
 	crossfadeDuration?: number;
 	equalizerPreset?: EqualizerPreset;
@@ -82,6 +88,11 @@ export function buildMpvArgs(
 	if (options.proxy) {
 		mpvArgs.push(`--http-proxy=${options.proxy}`);
 	}
+
+	appendMpvYtdlCookieArgs(mpvArgs, {
+		cookiesFile: options.cookiesFile,
+		cookiesFromBrowser: options.cookiesFromBrowser,
+	});
 
 	if (options.subtitlesEnabled) {
 		mpvArgs.push('--slang=en', '--sub-scale=1.3');
@@ -664,14 +675,18 @@ class PlayerService {
 					ipcPath: this.ipcPath,
 				});
 
+				const config = getConfigService();
 				const mpvArgs = buildMpvArgs(this.ipcPath!, {
 					volume: this.currentVolume,
 					audioNormalization: options?.audioNormalization,
-					proxy: options?.proxy,
+					proxy: options?.proxy ?? config.get('proxy'),
+					cookiesFile: options?.cookiesFile ?? config.get('cookiesFile'),
+					cookiesFromBrowser:
+						options?.cookiesFromBrowser ?? config.get('cookiesFromBrowser'),
 					gaplessPlayback: options?.gaplessPlayback,
 					crossfadeDuration: options?.crossfadeDuration,
 					equalizerPreset: options?.equalizerPreset,
-					subtitlesEnabled: getConfigService().get('subtitlesEnabled'),
+					subtitlesEnabled: config.get('subtitlesEnabled'),
 				});
 
 				// Capture process in local var so stale exit handlers from a killed

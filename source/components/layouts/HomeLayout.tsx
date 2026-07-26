@@ -340,7 +340,7 @@ export default function HomeLayout() {
 				</Box>
 				<Box>
 					<Text color={theme.colors.dim}>
-						f: Favorites • Shift+H: History • ,: Settings
+						f: Favorites • Shift+H: History • o: Stats • ,: Settings
 					</Text>
 				</Box>
 			</Box>

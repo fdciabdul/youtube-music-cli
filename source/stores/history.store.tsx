@@ -9,7 +9,12 @@ import {
 } from 'react';
 import {usePlayer} from '../hooks/usePlayer.ts';
 import type {HistoryEntry} from '../types/history.types.ts';
-import {loadHistory, saveHistory} from '../services/history/history.service.ts';
+import {
+	getMaxHistoryEntries,
+	loadHistory,
+	saveHistory,
+	trimHistoryEntries,
+} from '../services/history/history.service.ts';
 
 type HistoryAction =
 	| {category: 'SET_HISTORY'; entries: HistoryEntry[]}
@@ -17,17 +22,18 @@ type HistoryAction =
 
 type HistoryState = HistoryEntry[];
 
-const MAX_HISTORY_ENTRIES = 500;
-
 function historyReducer(
 	state: HistoryState,
 	action: HistoryAction,
 ): HistoryState {
 	switch (action.category) {
 		case 'SET_HISTORY':
-			return action.entries;
+			return trimHistoryEntries(action.entries, getMaxHistoryEntries());
 		case 'ADD_ENTRY':
-			return [action.entry, ...state].slice(0, MAX_HISTORY_ENTRIES);
+			return trimHistoryEntries(
+				[action.entry, ...state],
+				getMaxHistoryEntries(),
+			);
 		default:
 			return state;
 	}
@@ -43,11 +49,13 @@ export function HistoryProvider({children}: {children: ReactNode}) {
 	const [state, dispatch] = useReducer(historyReducer, []);
 	const {state: playerState} = usePlayer();
 	const lastLoggedId = useRef<string | null>(null);
+	const hydrated = useRef(false);
 
 	useEffect(() => {
 		let cancelled = false;
 		void loadHistory().then(entries => {
 			if (!cancelled) {
+				hydrated.current = true;
 				dispatch({category: 'SET_HISTORY', entries});
 			}
 		});
@@ -81,7 +89,10 @@ export function HistoryProvider({children}: {children: ReactNode}) {
 	}, [playerState.currentTrack, playerState.isPlaying]);
 
 	useEffect(() => {
-		void saveHistory(state);
+		if (!hydrated.current) {
+			return;
+		}
+		void saveHistory(state, {allowEmptyOverwrite: true});
 	}, [state]);
 
 	const value = useMemo(() => ({history: state}), [state]);

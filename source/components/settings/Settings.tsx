@@ -11,9 +11,14 @@ import {useSleepTimer} from '../../hooks/useSleepTimer.ts';
 import {formatTime} from '../../utils/format.ts';
 import {ensureDownloadDirectory} from '../../utils/download-path.ts';
 import type {
+	CookiesFromBrowser,
 	DownloadFormat,
 	EqualizerPreset,
 } from '../../types/config.types.ts';
+import {
+	formatCookiesFromBrowserLabel,
+	nextCookiesFromBrowser,
+} from '../../services/player/ytdl-cookies.ts';
 
 const QUALITIES: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high'];
 const DOWNLOAD_FORMATS: DownloadFormat[] = ['mp3', 'm4a'];
@@ -46,6 +51,8 @@ const SETTINGS_ITEMS = [
 	'Downloads Enabled',
 	'Download Folder',
 	'Download Format',
+	'Cookies From Browser',
+	'Cookies File',
 	'Sleep Timer',
 	'Import Playlists',
 	'Export Playlists',
@@ -92,6 +99,13 @@ export default function Settings() {
 	const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>(
 		config.get('downloadFormat') ?? 'mp3',
 	);
+	const [cookiesFromBrowser, setCookiesFromBrowser] = useState<
+		CookiesFromBrowser | undefined
+	>(config.get('cookiesFromBrowser'));
+	const [cookiesFile, setCookiesFile] = useState(
+		config.get('cookiesFile') ?? '',
+	);
+	const [isEditingCookiesFile, setIsEditingCookiesFile] = useState(false);
 	const [llmEnabled, setLLMEnabled] = useState(config.getLLMEnabled());
 	const [llmApiKey, setLLMApiKey] = useState(config.getLLMApiKey() ?? '');
 	const [llmModel, setLLMModel] = useState(
@@ -123,14 +137,24 @@ export default function Settings() {
 	} = useSleepTimer();
 
 	const navigateUp = () => {
-		if (isEditingApiKey || isEditingDownloadDirectory || isEditingBaseUrl) {
+		if (
+			isEditingApiKey ||
+			isEditingDownloadDirectory ||
+			isEditingBaseUrl ||
+			isEditingCookiesFile
+		) {
 			return;
 		}
 		setSelectedIndex(prev => Math.max(0, prev - 1));
 	};
 
 	const navigateDown = (): void => {
-		if (isEditingApiKey || isEditingDownloadDirectory || isEditingBaseUrl) {
+		if (
+			isEditingApiKey ||
+			isEditingDownloadDirectory ||
+			isEditingBaseUrl ||
+			isEditingCookiesFile
+		) {
 			return;
 		}
 		setSelectedIndex(prev => Math.min(SETTINGS_ITEMS.length - 1, prev + 1));
@@ -217,6 +241,12 @@ export default function Settings() {
 			DOWNLOAD_FORMATS[(currentIndex + 1) % DOWNLOAD_FORMATS.length]!;
 		setDownloadFormat(nextFormat);
 		config.set('downloadFormat', nextFormat);
+	};
+
+	const cycleCookiesFromBrowser = () => {
+		const next = nextCookiesFromBrowser(cookiesFromBrowser);
+		setCookiesFromBrowser(next);
+		config.set('cookiesFromBrowser', next);
 	};
 
 	const toggleLLMEnabled = () => {
@@ -310,14 +340,18 @@ export default function Settings() {
 		} else if (selectedIndex === 17) {
 			cycleDownloadFormat();
 		} else if (selectedIndex === 18) {
-			cycleSleepTimer();
+			cycleCookiesFromBrowser();
 		} else if (selectedIndex === 19) {
-			dispatch({category: 'NAVIGATE', view: VIEW.IMPORT});
+			setIsEditingCookiesFile(true);
 		} else if (selectedIndex === 20) {
-			dispatch({category: 'NAVIGATE', view: VIEW.EXPORT_PLAYLISTS});
+			cycleSleepTimer();
 		} else if (selectedIndex === 21) {
-			dispatch({category: 'NAVIGATE', view: VIEW.KEYBINDINGS});
+			dispatch({category: 'NAVIGATE', view: VIEW.IMPORT});
 		} else if (selectedIndex === 22) {
+			dispatch({category: 'NAVIGATE', view: VIEW.EXPORT_PLAYLISTS});
+		} else if (selectedIndex === 23) {
+			dispatch({category: 'NAVIGATE', view: VIEW.KEYBINDINGS});
+		} else if (selectedIndex === 24) {
 			dispatch({category: 'NAVIGATE', view: VIEW.PLUGINS});
 		}
 	};
@@ -689,56 +723,72 @@ export default function Settings() {
 				</Text>
 			</Box>
 
-			{/* Sleep Timer */}
+			{/* Cookies From Browser */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
 						selectedIndex === 18 ? theme.colors.primary : undefined
 					}
 					color={
-						selectedIndex === 18
-							? theme.colors.background
-							: isActive
-								? theme.colors.accent
-								: theme.colors.text
+						selectedIndex === 18 ? theme.colors.background : theme.colors.text
 					}
 					bold={selectedIndex === 18}
 				>
-					{sleepTimerLabel}
+					Cookies From Browser:{' '}
+					{formatCookiesFromBrowserLabel(cookiesFromBrowser)}
 				</Text>
 			</Box>
 
-			{/* Import Playlists */}
+			{/* Cookies File */}
 			<Box paddingX={1}>
-				<Text
-					backgroundColor={
-						selectedIndex === 19 ? theme.colors.primary : undefined
-					}
-					color={
-						selectedIndex === 19 ? theme.colors.background : theme.colors.text
-					}
-					bold={selectedIndex === 19}
-				>
-					Import Playlists →
-				</Text>
+				{isEditingCookiesFile && selectedIndex === 19 ? (
+					<TextInput
+						value={cookiesFile}
+						onChange={setCookiesFile}
+						onSubmit={value => {
+							const trimmed = value.trim();
+							setCookiesFile(trimmed);
+							config.set('cookiesFile', trimmed || undefined);
+							setIsEditingCookiesFile(false);
+						}}
+						placeholder="Path to Netscape cookies.txt (optional)"
+						focus
+					/>
+				) : (
+					<Text
+						backgroundColor={
+							selectedIndex === 19 ? theme.colors.primary : undefined
+						}
+						color={
+							selectedIndex === 19 ? theme.colors.background : theme.colors.text
+						}
+						bold={selectedIndex === 19}
+					>
+						Cookies File: {cookiesFile.trim() || '(not set)'}
+					</Text>
+				)}
 			</Box>
 
-			{/* Export Playlists */}
+			{/* Sleep Timer */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
 						selectedIndex === 20 ? theme.colors.primary : undefined
 					}
 					color={
-						selectedIndex === 20 ? theme.colors.background : theme.colors.text
+						selectedIndex === 20
+							? theme.colors.background
+							: isActive
+								? theme.colors.accent
+								: theme.colors.text
 					}
 					bold={selectedIndex === 20}
 				>
-					Export Playlists →
+					{sleepTimerLabel}
 				</Text>
 			</Box>
 
-			{/* Custom Keybindings */}
+			{/* Import Playlists */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -749,11 +799,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 21}
 				>
-					Custom Keybindings →
+					Import Playlists →
 				</Text>
 			</Box>
 
-			{/* Manage Plugins */}
+			{/* Export Playlists */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -764,7 +814,37 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 22}
 				>
-					Manage Plugins
+					Export Playlists →
+				</Text>
+			</Box>
+
+			{/* Custom Keybindings */}
+			<Box paddingX={1}>
+				<Text
+					backgroundColor={
+						selectedIndex === 23 ? theme.colors.primary : undefined
+					}
+					color={
+						selectedIndex === 23 ? theme.colors.background : theme.colors.text
+					}
+					bold={selectedIndex === 23}
+				>
+					Custom Keybindings →
+				</Text>
+			</Box>
+
+			{/* Manage Plugins */}
+			<Box paddingX={1}>
+				<Text
+					backgroundColor={
+						selectedIndex === 24 ? theme.colors.primary : undefined
+					}
+					color={
+						selectedIndex === 24 ? theme.colors.background : theme.colors.text
+					}
+					bold={selectedIndex === 24}
+				>
+					Manage Plugins →
 				</Text>
 			</Box>
 

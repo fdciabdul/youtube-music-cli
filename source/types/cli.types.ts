@@ -36,4 +36,7 @@ export interface Flags {
 	fix?: boolean;
 	// Verbose logging flag
 	verbose?: boolean;
+	// Stats command flags
+	share?: boolean;
+	export?: string | boolean;
 }

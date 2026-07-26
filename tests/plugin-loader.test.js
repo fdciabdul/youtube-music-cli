@@ -1,9 +1,9 @@
 import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import test from 'ava';
+import {expect, test} from 'bun:test';
 
-test('loads and initializes a plugin from disk', async t => {
+test('loads and initializes a plugin from disk', async () => {
 	const testRoot = join(
 		tmpdir(),
 		'youtube-music-cli.tmp-test',
@@ -38,8 +38,8 @@ test('loads and initializes a plugin from disk', async t => {
 	const loader = getPluginLoaderService();
 
 	const instance = await loader.loadPlugin(dir);
-	t.is(instance.manifest.id, 'test-plugin');
-	t.is(instance.plugin.manifest.name, 'Test Plugin');
+	expect(instance.manifest.id).toBe('test-plugin');
+	expect(instance.plugin.manifest.name).toBe('Test Plugin');
 
 	// Provide minimal context for hook call
 	const context = {
@@ -49,5 +49,5 @@ test('loads and initializes a plugin from disk', async t => {
 
 	await loader.callHook(instance.plugin, 'init', context);
 
-	t.pass();
+	expect(true).toBe(true);
 });

@@ -1,6 +1,6 @@
-import test from 'ava';
+import {expect, test} from 'bun:test';
 
-test('getStreamUrl prefers youtubei.js then Invidious (no ytdl/youtube-ext)', async t => {
+test('getStreamUrl prefers youtubei.js then Invidious (no ytdl/youtube-ext)', async () => {
 	const attempts = [];
 
 	const fakeYt = {
@@ -46,13 +46,13 @@ test('getStreamUrl prefers youtubei.js then Invidious (no ytdl/youtube-ext)', as
 		return 'https://invidious.example/audio';
 	});
 
-	t.is(url, 'https://example.com/audio.m4a');
-	t.true(attempts.includes('try-youtubei'));
-	t.false(attempts.includes('try-invidious'));
-	t.false(attempts.includes('invidious-called'));
+	expect(url).toBe('https://example.com/audio.m4a');
+	expect(attempts.includes('try-youtubei')).toBe(true);
+	expect(attempts.includes('try-invidious')).toBe(false);
+	expect(attempts.includes('invidious-called')).toBe(false);
 });
 
-test('getStreamUrl falls through to Invidious when youtubei fails', async t => {
+test('getStreamUrl falls through to Invidious when youtubei fails', async () => {
 	const attempts = [];
 
 	const failingYt = {
@@ -86,11 +86,11 @@ test('getStreamUrl falls through to Invidious when youtubei fails', async t => {
 		return 'https://invidious.example/stream';
 	});
 
-	t.is(url, 'https://invidious.example/stream');
-	t.deepEqual(attempts, ['youtubei', 'youtubei-failed', 'invidious:xyz']);
+	expect(url).toBe('https://invidious.example/stream');
+	expect(attempts).toEqual(['youtubei', 'youtubei-failed', 'invidious:xyz']);
 });
 
-test('download acquire order prefers yt-dlp then stream then mpv', async t => {
+test('download acquire order prefers yt-dlp then stream then mpv', async () => {
 	const order = [];
 
 	async function acquireAudioSource(methods) {
@@ -126,11 +126,11 @@ test('download acquire order prefers yt-dlp then stream then mpv', async t => {
 		mpv: async () => {},
 	});
 
-	t.is(used, 'mpv');
-	t.deepEqual(order, ['yt-dlp', 'stream', 'mpv']);
+	expect(used).toBe('mpv');
+	expect(order).toEqual(['yt-dlp', 'stream', 'mpv']);
 });
 
-test('download progress callback reports start and done phases', async t => {
+test('download progress callback reports start and done phases', async () => {
 	const phases = [];
 	const tracks = [
 		{videoId: 'a', title: 'A', artists: [], duration: 1},
@@ -164,7 +164,7 @@ test('download progress callback reports start and done phases', async t => {
 		},
 	});
 
-	t.deepEqual(phases, [
+	expect(phases).toEqual([
 		'start:1/2:A',
 		'done:1/2:A',
 		'start:2/2:B',

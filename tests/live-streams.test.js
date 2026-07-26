@@ -1,4 +1,4 @@
-import test from 'ava';
+import {expect, test} from 'bun:test';
 import {BUILTIN_LIVE_STREAMS} from '../source/data/builtin-live-streams.ts';
 import {
 	getLiveStreamById,
@@ -13,75 +13,75 @@ import {
 	openLiveStreamsOverlay,
 } from '../source/immersive/ui/live-streams-overlay.ts';
 
-test('builtin live streams have unique ids and http(s) URLs', t => {
+test('builtin live streams have unique ids and http(s) URLs', () => {
 	const streams = getLiveStreams();
 	const ids = new Set();
 
-	t.true(streams.length > 0);
-	t.is(streams.length, BUILTIN_LIVE_STREAMS.length);
+	expect(streams.length > 0).toBe(true);
+	expect(streams.length).toBe(BUILTIN_LIVE_STREAMS.length);
 
 	for (const entry of streams) {
-		t.false(ids.has(entry.id), `duplicate id: ${entry.id}`);
+		expect(ids.has(entry.id), `duplicate id: ${entry.id}`).toBe(false);
 		ids.add(entry.id);
-		t.true(
+		expect(
 			entry.url.startsWith('http://') || entry.url.startsWith('https://'),
 			`bad url for ${entry.id}`,
-		);
-		t.true(entry.name.length > 0);
-		t.true(entry.tags.length > 0);
+		).toBe(true);
+		expect(entry.name.length > 0).toBe(true);
+		expect(entry.tags.length > 0).toBe(true);
 	}
 
 	const names = streams.map(entry => entry.name);
 	const sorted = [...names].toSorted((a, b) => a.localeCompare(b));
-	t.deepEqual(names, sorted);
+	expect(names).toEqual(sorted);
 });
 
-test('getLiveStreamById returns known entries', t => {
-	t.is(getLiveStreamById('claude-live')?.name, 'Claude — Live');
-	t.is(getLiveStreamById('anomaly-fm')?.url, 'https://anomaly.fm/radio');
-	t.is(getLiveStreamById('missing'), undefined);
+test('getLiveStreamById returns known entries', () => {
+	expect(getLiveStreamById('claude-live')?.name).toBe('Claude — Live');
+	expect(getLiveStreamById('anomaly-fm')?.url).toBe('https://anomaly.fm/radio');
+	expect(getLiveStreamById('missing')).toBe(undefined);
 });
 
-test('toRadioStation maps live catalog entry for PLAY_STREAM', t => {
+test('toRadioStation maps live catalog entry for PLAY_STREAM', () => {
 	const entry = getLiveStreamById('coding-synth');
-	t.truthy(entry);
+	expect(entry).toBeTruthy();
 	if (!entry) {
 		return;
 	}
 
 	const station = toRadioStation(entry);
 
-	t.is(station.id, entry.id);
-	t.is(station.name, entry.name);
-	t.is(station.streamUrl, entry.url);
-	t.is(station.genre, entry.tags[0]);
-	t.is(station.source, 'live-catalog');
+	expect(station.id).toBe(entry.id);
+	expect(station.name).toBe(entry.name);
+	expect(station.streamUrl).toBe(entry.url);
+	expect(station.genre).toBe(entry.tags[0]);
+	expect(station.source).toBe('live-catalog');
 });
 
-test('live streams overlay open/close and selection', t => {
+test('live streams overlay open/close and selection', () => {
 	const state = createLiveStreamsOverlayState();
-	t.false(state.active);
+	expect(state.active).toBe(false);
 
 	openLiveStreamsOverlay(state);
-	t.true(state.active);
-	t.is(state.selectedIndex, 0);
-	t.truthy(getSelectedLiveStream(state));
+	expect(state.active).toBe(true);
+	expect(state.selectedIndex).toBe(0);
+	expect(getSelectedLiveStream(state)).toBeTruthy();
 
 	const down = handleLiveStreamsOverlayInput(state, 'down');
-	t.is(down, 'none');
-	t.is(state.selectedIndex, 1);
+	expect(down).toBe('none');
+	expect(state.selectedIndex).toBe(1);
 
 	const play = handleLiveStreamsOverlayInput(state, 'enter');
-	t.is(play, 'play');
+	expect(play).toBe('play');
 
 	closeLiveStreamsOverlay(state);
-	t.false(state.active);
-	t.is(state.selectedIndex, 0);
+	expect(state.active).toBe(false);
+	expect(state.selectedIndex).toBe(0);
 });
 
-test('live streams overlay escape closes', t => {
+test('live streams overlay escape closes', () => {
 	const state = createLiveStreamsOverlayState();
 	openLiveStreamsOverlay(state);
-	t.is(handleLiveStreamsOverlayInput(state, 'escape'), 'close');
-	t.false(state.active);
+	expect(handleLiveStreamsOverlayInput(state, 'escape')).toBe('close');
+	expect(state.active).toBe(false);
 });

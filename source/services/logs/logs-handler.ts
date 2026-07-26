@@ -3,17 +3,22 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {execSync} from 'node:child_process';
 import {getConfigService} from '../config/config.service.ts';
-import {CONFIG_DIR} from '../../utils/constants.ts';
+import {logger} from '../logger/logger.service.ts';
+import {
+	getDefaultLogsDirectory,
+	resolveDailyLogPath,
+} from '../logger/log-rotation.ts';
 
 const DEFAULT_LOG_LINES = 100;
 
 export function getLogFilePath(): string {
 	const config = getConfigService();
-	const customPath = config.get('logFilePath') as string | undefined;
-	if (customPath) {
-		return customPath;
+	const customPath = config.get('logFilePath');
+	if (customPath?.trim()) {
+		return path.resolve(customPath.trim());
 	}
-	return path.join(CONFIG_DIR, 'debug.log');
+
+	return logger.getLogPath() || resolveDailyLogPath(getDefaultLogsDirectory());
 }
 
 export function showLogs(): void {
@@ -75,6 +80,7 @@ export function setLogPath(newPath: string): void {
 	const resolvedPath = path.resolve(newPath);
 	const config = getConfigService();
 	config.set('logFilePath', resolvedPath);
+	logger.setLogFilePath(resolvedPath);
 	console.log(`Log file path set to: ${resolvedPath}`);
 	process.exit(0);
 }

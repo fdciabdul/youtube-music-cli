@@ -57,6 +57,7 @@ class ConfigService {
 			crossfadeDuration: 0,
 			volumeFadeDuration: 0,
 			equalizerPreset: 'flat',
+			maxHistoryEntries: 2000,
 		};
 	}
 

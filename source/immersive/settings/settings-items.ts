@@ -8,13 +8,17 @@ import type {
 	DownloadFormat,
 	EqualizerPreset,
 } from '../../types/config.types.ts';
+import {
+	formatCookiesFromBrowserLabel,
+	nextCookiesFromBrowser,
+} from '../../services/player/ytdl-cookies.ts';
 import {ensureDownloadDirectory} from '../../utils/download-path.ts';
 import {formatTime} from '../../utils/format.ts';
 import type {SettingsRow} from '../ui/settings-overlay.ts';
 
 type ConfigService = ReturnType<typeof getConfigService>;
 
-export const IMMERSIVE_SETTINGS_COUNT = 23;
+export const IMMERSIVE_SETTINGS_COUNT = 25;
 
 const QUALITIES: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high'];
 const DOWNLOAD_FORMATS: DownloadFormat[] = ['mp3', 'm4a'];
@@ -42,7 +46,7 @@ const LLM_ENDPOINTS = [
 ];
 
 export type SettingsTextField =
-	'llmApiKey' | 'llmBaseUrl' | 'downloadDirectory';
+	'llmApiKey' | 'llmBaseUrl' | 'downloadDirectory' | 'cookiesFile';
 
 export type SettingsRowKind = 'cycle' | 'text' | 'navigate';
 
@@ -55,10 +59,10 @@ export function createSleepTimerState(): SleepTimerState {
 }
 
 export function getSettingsRowKind(index: number): SettingsRowKind {
-	if (index === 10 || index === 14 || index === 16) {
+	if (index === 10 || index === 14 || index === 16 || index === 19) {
 		return 'text';
 	}
-	if (index >= 19) {
+	if (index >= 21) {
 		return 'navigate';
 	}
 	return 'cycle';
@@ -72,6 +76,8 @@ export function getSettingsTextField(index: number): SettingsTextField | null {
 			return 'llmBaseUrl';
 		case 16:
 			return 'downloadDirectory';
+		case 19:
+			return 'cookiesFile';
 		default:
 			return null;
 	}
@@ -120,6 +126,8 @@ export function getSettingsTextDraft(
 			return config.getLLMConfig()?.baseUrl ?? '';
 		case 'downloadDirectory':
 			return config.get('downloadDirectory') ?? '';
+		case 'cookiesFile':
+			return config.get('cookiesFile') ?? '';
 	}
 }
 
@@ -191,6 +199,14 @@ export function buildImmersiveSettingsRows(
 		},
 		{label: 'Download Folder', value: downloadDirectory || '(not set)'},
 		{label: 'Download Format', value: downloadFormat.toUpperCase()},
+		{
+			label: 'Cookies From Browser',
+			value: formatCookiesFromBrowserLabel(config.get('cookiesFromBrowser')),
+		},
+		{
+			label: 'Cookies File',
+			value: config.get('cookiesFile')?.trim() || '(not set)',
+		},
 		{label: 'Sleep Timer', value: sleepTimerValue},
 		{label: 'Import Playlists', value: '→'},
 		{label: 'Export Playlists', value: '→'},
@@ -231,6 +247,12 @@ export function saveSettingsTextField(
 					? error.message
 					: 'Failed to save download folder';
 			}
+		}
+		case 'cookiesFile': {
+			config.set('cookiesFile', trimmed || undefined);
+			return trimmed
+				? 'Saved cookies file (preferred over browser cookies)'
+				: 'Cleared cookies file';
 		}
 	}
 }
@@ -358,6 +380,11 @@ export function cycleImmersiveSetting(
 			return `Download format: ${nextFormat.toUpperCase()}`;
 		}
 		case 18: {
+			const next = nextCookiesFromBrowser(config.get('cookiesFromBrowser'));
+			config.set('cookiesFromBrowser', next);
+			return `Cookies from browser: ${formatCookiesFromBrowserLabel(next)}`;
+		}
+		case 20: {
 			const timerService = getSleepTimerService();
 			if (timerService.isActive()) {
 				timerService.cancel();
@@ -376,13 +403,13 @@ export function cycleImmersiveSetting(
 			timerService.start(nextPreset, options.onSleepTimerExpire);
 			return `Sleep timer: ${nextPreset} min`;
 		}
-		case 19:
-			return 'Import Playlists: run youtube-music-cli (standard TUI) for this feature';
-		case 20:
-			return 'Export Playlists: run youtube-music-cli (standard TUI) for this feature';
 		case 21:
-			return 'Custom Keybindings: run youtube-music-cli (standard TUI) for this feature';
+			return 'Import Playlists: run youtube-music-cli (standard TUI) for this feature';
 		case 22:
+			return 'Export Playlists: run youtube-music-cli (standard TUI) for this feature';
+		case 23:
+			return 'Custom Keybindings: run youtube-music-cli (standard TUI) for this feature';
+		case 24:
 			return 'Manage Plugins: run youtube-music-cli (standard TUI) for this feature';
 		default:
 			return null;

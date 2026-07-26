@@ -1,6 +1,6 @@
-import test from 'ava';
+import {expect, test} from 'bun:test';
 
-test('shouldPrefetchAutoplay allows repeat-all and shuffle when autoplay on', async t => {
+test('shouldPrefetchAutoplay allows repeat-all and shuffle when autoplay on', async () => {
 	const {shouldPrefetchAutoplay} =
 		await import('../source/services/player/autoplay-coordinator.ts');
 
@@ -16,42 +16,42 @@ test('shouldPrefetchAutoplay allows repeat-all and shuffle when autoplay on', as
 		explicitQueueLength: 3,
 	};
 
-	t.true(
+	expect(
 		shouldPrefetchAutoplay(base, {
 			fetchedForVideoId: null,
 			isFetching: false,
 		}),
-	);
+	).toBe(true);
 
-	t.true(
+	expect(
 		shouldPrefetchAutoplay(
 			{...base, repeat: 'all'},
 			{fetchedForVideoId: null, isFetching: false},
 		),
-	);
+	).toBe(true);
 
-	t.true(
+	expect(
 		shouldPrefetchAutoplay(
 			{...base, shuffle: true, queueLength: 4, explicitQueueLength: 4},
 			{fetchedForVideoId: null, isFetching: false},
 		),
-	);
+	).toBe(true);
 
-	t.false(
+	expect(
 		shouldPrefetchAutoplay(
 			{...base, autoplay: false},
 			{fetchedForVideoId: null, isFetching: false},
 		),
-	);
+	).toBe(false);
 
-	t.false(
+	expect(
 		shouldPrefetchAutoplay(
 			{...base, repeat: 'one'},
 			{fetchedForVideoId: null, isFetching: false},
 		),
-	);
+	).toBe(false);
 
-	t.false(
+	expect(
 		shouldPrefetchAutoplay(
 			{...base, queuePosition: 0},
 			{
@@ -59,16 +59,16 @@ test('shouldPrefetchAutoplay allows repeat-all and shuffle when autoplay on', as
 				isFetching: false,
 			},
 		),
-	);
+	).toBe(false);
 
-	t.true(
+	expect(
 		shouldPrefetchAutoplay(base, {
 			fetchedForVideoId: 'seed',
 			isFetching: false,
 		}),
-	);
+	).toBe(true);
 
-	t.true(
+	expect(
 		shouldPrefetchAutoplay(
 			{...base, isPlaying: false},
 			{
@@ -77,31 +77,31 @@ test('shouldPrefetchAutoplay allows repeat-all and shuffle when autoplay on', as
 				waitingAtQueueEnd: true,
 			},
 		),
-	);
+	).toBe(true);
 });
 
-test('shouldLoopExplicitQueue defers repeat-all when autoplay on', async t => {
+test('shouldLoopExplicitQueue defers repeat-all when autoplay on', async () => {
 	const {shouldLoopExplicitQueue} =
 		await import('../source/services/player/autoplay-coordinator.ts');
 
-	t.false(shouldLoopExplicitQueue({autoplay: true, repeat: 'all'}));
-	t.true(shouldLoopExplicitQueue({autoplay: false, repeat: 'all'}));
-	t.false(shouldLoopExplicitQueue({autoplay: false, repeat: 'off'}));
+	expect(shouldLoopExplicitQueue({autoplay: true, repeat: 'all'})).toBe(false);
+	expect(shouldLoopExplicitQueue({autoplay: false, repeat: 'all'})).toBe(true);
+	expect(shouldLoopExplicitQueue({autoplay: false, repeat: 'off'})).toBe(false);
 });
 
-test('buildAutoplaySeedPlan rotates through session history', async t => {
+test('buildAutoplaySeedPlan rotates through session history', async () => {
 	const {buildAutoplaySeedPlan} =
 		await import('../source/services/player/autoplay-coordinator.ts');
 
 	const {seeds, nextCursor} = buildAutoplaySeedPlan('current', ['a', 'b'], 0);
-	t.deepEqual(seeds, ['current', 'a', 'b']);
-	t.is(nextCursor, 0);
+	expect(seeds).toEqual(['current', 'a', 'b']);
+	expect(nextCursor).toBe(0);
 
 	const second = buildAutoplaySeedPlan('current', ['a', 'b'], nextCursor);
-	t.true(second.seeds.includes('current'));
+	expect(second.seeds.includes('current')).toBe(true);
 });
 
-test('mergeSuggestionTracksForAutoplay dedupes recent plays and queue', async t => {
+test('mergeSuggestionTracksForAutoplay dedupes recent plays and queue', async () => {
 	const {mergeSuggestionTracksForAutoplay} =
 		await import('../source/services/player/autoplay-coordinator.ts');
 
@@ -113,21 +113,21 @@ test('mergeSuggestionTracksForAutoplay dedupes recent plays and queue', async t 
 		{videoId: 'c', title: 'C', artists: []},
 	]);
 
-	t.is(merged.length, 1);
-	t.is(merged[0]?.videoId, 'c');
+	expect(merged.length).toBe(1);
+	expect(merged[0]?.videoId).toBe('c');
 });
 
-test('shouldResumeAfterPrefetch triggers near end without isPlaying check', async t => {
+test('shouldResumeAfterPrefetch triggers near end without isPlaying check', async () => {
 	const {shouldResumeAfterPrefetch} =
 		await import('../source/services/player/autoplay-coordinator.ts');
 
-	t.false(shouldResumeAfterPrefetch(false, 98, 100));
-	t.true(shouldResumeAfterPrefetch(true, 96, 100));
-	t.true(shouldResumeAfterPrefetch(true, 0, 0));
-	t.false(shouldResumeAfterPrefetch(true, 10, 100));
+	expect(shouldResumeAfterPrefetch(false, 98, 100)).toBe(false);
+	expect(shouldResumeAfterPrefetch(true, 96, 100)).toBe(true);
+	expect(shouldResumeAfterPrefetch(true, 0, 0)).toBe(true);
+	expect(shouldResumeAfterPrefetch(true, 10, 100)).toBe(false);
 });
 
-test('mergeSuggestionTracks dedupes against existing queue ids', async t => {
+test('mergeSuggestionTracks dedupes against existing queue ids', async () => {
 	const {mergeSuggestionTracks} =
 		await import('../source/services/player/autoplay-coordinator.ts');
 
@@ -138,11 +138,11 @@ test('mergeSuggestionTracks dedupes against existing queue ids', async t => {
 		{videoId: 'c', title: 'C duplicate', artists: []},
 	]);
 
-	t.is(merged.length, 1);
-	t.is(merged[0]?.videoId, 'c');
+	expect(merged.length).toBe(1);
+	expect(merged[0]?.videoId).toBe('c');
 });
 
-test('recordSessionTrack keeps recent unique ids', async t => {
+test('recordSessionTrack keeps recent unique ids', async () => {
 	const {recordSessionTrack, SESSION_HISTORY_MAX} =
 		await import('../source/services/player/autoplay-coordinator.ts');
 
@@ -151,15 +151,15 @@ test('recordSessionTrack keeps recent unique ids', async t => {
 	history = recordSessionTrack(history, 'b');
 	history = recordSessionTrack(history, 'a');
 
-	t.deepEqual(history, ['b', 'a']);
+	expect(history).toEqual(['b', 'a']);
 
 	for (let i = 0; i < SESSION_HISTORY_MAX + 5; i++) {
 		history = recordSessionTrack(history, `track-${i}`);
 	}
-	t.is(history.length, SESSION_HISTORY_MAX);
+	expect(history.length).toBe(SESSION_HISTORY_MAX);
 });
 
-test('pickHistoryFallbackSeed rotates through session history', async t => {
+test('pickHistoryFallbackSeed rotates through session history', async () => {
 	const {pickHistoryFallbackSeed} =
 		await import('../source/services/player/autoplay-coordinator.ts');
 
@@ -167,17 +167,17 @@ test('pickHistoryFallbackSeed rotates through session history', async t => {
 	const exclude = new Set(['a']);
 
 	const first = pickHistoryFallbackSeed(history, 0, exclude);
-	t.is(first.seed, 'b');
+	expect(first.seed).toBe('b');
 
 	const second = pickHistoryFallbackSeed(history, first.nextCursor, exclude);
-	t.is(second.seed, 'c');
+	expect(second.seed).toBe('c');
 });
 
-test('shouldDeferPauseAtQueueEnd waits while autoplay is enabled or fetching', async t => {
+test('shouldDeferPauseAtQueueEnd waits while autoplay is enabled or fetching', async () => {
 	const {shouldDeferPauseAtQueueEnd} =
 		await import('../source/services/player/autoplay-coordinator.ts');
 
-	t.true(shouldDeferPauseAtQueueEnd(true, false));
-	t.true(shouldDeferPauseAtQueueEnd(false, true));
-	t.false(shouldDeferPauseAtQueueEnd(false, false));
+	expect(shouldDeferPauseAtQueueEnd(true, false)).toBe(true);
+	expect(shouldDeferPauseAtQueueEnd(false, true)).toBe(true);
+	expect(shouldDeferPauseAtQueueEnd(false, false)).toBe(false);
 });

@@ -32,16 +32,16 @@ This file provides guidance for AI agents operating in this repository.
 
 ### Testing
 
-| Command                                             | Description                             |
-| --------------------------------------------------- | --------------------------------------- |
-| `bun run test`                                      | Run full test suite (build + AVA tests) |
-| `bunx ava tests/<file>.test.js`                     | Run specific test file                  |
-| `bunx ava tests/<file>.test.js --match "test name"` | Run single test by name                 |
+| Command                                        | Description                      |
+| ---------------------------------------------- | -------------------------------- |
+| `bun run test`                                 | Run full test suite (`bun test`) |
+| `bun test tests/<file>.test.js`                | Run specific test file           |
+| `bun test tests/<file>.test.js -t "test name"` | Run single test by name          |
 
 Example - run single test:
 
 ```bash
-bunx ava tests/player-service-mpv-args.test.js --match "gapless playback"
+bun test tests/player-service-mpv-args.test.js -t "gapless playback"
 ```
 
 ## Code Style Guidelines
@@ -162,7 +162,7 @@ Services provide abstraction over external dependencies:
 
 ## ! Testing
 
-- **Framework**: AVA
+- **Framework**: bun:test
 - **Location**: `tests/*.test.js`
 - **TUI Testing**: Use `ink-testing-library` for terminal output assertions
 - **Import**: Use `ts-node/esm` registration for TypeScript imports
@@ -217,7 +217,7 @@ bun run typecheck    # Check types
 bun run test         # Run tests
 
 # Single test
-bunx ava tests/player-service-mpv-args.test.js --match "test name"
+bun test tests/player-service-mpv-args.test.js -t "test name"
 ```
 
 ## CLI Subcommands
@@ -247,14 +247,17 @@ youtube-music-cli --win32            # Windows immersive mode (Bun native)
 - Immersive library and search overlays share helpers in `source/immersive/actions/playback-actions.ts`; shortcuts include `=`/`+`/`-` (player volume), L/P/E (library), Shift+S (shuffle), R (repeat), `,` / Ctrl+, (settings), Tab/Ctrl+A/Ctrl+L/+/- (search filters and limit), Shift+D (download), M (mix), and F (favorite); tray right-click offers Settings and Exit
 - Live Streams (`VIEW.LIVE_STREAMS`, Ink `Shift+V`, immersive `v`) is a curated yt-dlp/mpv catalog in `source/data/builtin-live-streams.ts`; plays via `PLAY_STREAM` / `toRadioStation` (`source: 'live-catalog'`); Radio Streams (`Shift+I` / `i`) remains Radio Browser + regional builtins
 - Queue & History (`Shift+H` / `VIEW.HISTORY`) merges playback queue + recently played in a compact scrollable list; queue persists via `player-state.json`; Search/Favorites use `W` (add to queue) and `Y` (play next / `PLAY_NEXT`); search result limit uses `]` / `[` (re-fetches)
-- Immersive settings overlay mirrors Ink TUI with 23 rows (`IMMERSIVE_SETTINGS_COUNT` in `source/immersive/settings/settings-items.ts`)
-- `playback-actions.ts` types music calls via `ImmersiveMusicService` instead of importing `getMusicService()`, so immersive AVA tests avoid loading the heavy YouTube API module
+- Immersive settings overlay mirrors Ink TUI with 25 rows (`IMMERSIVE_SETTINGS_COUNT` in `source/immersive/settings/settings-items.ts`); includes Cookies From Browser / Cookies File for yt-dlp bot checks
+- `playback-actions.ts` types music calls via `ImmersiveMusicService` instead of importing `getMusicService()`, so immersive bun:test tests avoid loading the heavy YouTube API module
 - Immersive stdin uses raw `process.stdin.on('data')` without escape buffering; `Ctrl+,` on Windows Terminal may need `\x0c` plus CSI u sequences in `key-parser.ts`
 - Windows FFI uses only `@bun-win32/user32` and `@bun-win32/kernel32` (not `@bun-win32/terminal`, combase, or shell32), dynamically imported via `source/immersive/native/win32-ffi.ts`; major `@bun-win32/*` upgrades must bump user32 and kernel32 together (shared `@bun-win32/core` 2.x)
 - Shared mpv IPC sync lives in `source/services/player/mpv-event-policy.ts` (Ink `player.store.tsx` and immersive `immersive-app.ts`): EOF pause suppression, 15s advance grace during track transitions, 3s playback stall watchdog, advance debounce
 - Immersive shuffle uses `playbackOrder` in `source/immersive/state/queue-state.ts` for advance, previous track, and UP NEXT preview; Random Favorite queues all favorites starting at a random index (not a single track)
-- Run immersive AVA tests with `--timeout=60s` — default 30s can timeout when heavy modules load; coverage in `tests/immersive.test.js` and `tests/favorites.test.js`
+- Run immersive bun:test tests with `--timeout=60s` / per-test `{timeout: 60_000}` — default can timeout when heavy modules load; coverage in `tests/immersive.test.js` and `tests/favorites.test.js`
 - Ink TUI and immersive share favorites via `getFavoritesManager()` in `source/services/favorites/favorites.service.ts`, persisting to `~/.youtube-music-cli/favorites.json` (`schemaVersion` + `tracks` + `lastUpdated`); do not write favorites before hydration completes; `saveFavorites()` refuses empty overwrite unless `allowEmptyOverwrite`; tests must use `resetFavoritesManagerForTests()` / `setFavoritesFilePathForTests()`
+- Listening history persists to `history.json` with configurable `maxHistoryEntries` (default 2000); Ink records via `HistoryProvider`, immersive via `recordListeningHistoryPlay()`; refuse empty overwrite until hydrated
+- Debug logs write to `~/.youtube-music-cli/logs/debug-YYYY-MM-DD.log` (14-day prune, 5MB mid-session rotate); honor `logFilePath` via logger + `logs-handler`
+- YouTube bot checks: set Settings → Cookies From Browser (Edge on Windows) or Cookies File; mpv gets `--ytdl-raw-options-append=cookies…`; Stats (`o`) share with `S`/`E` or `ymc stats --share`
 - mpv 0.41+ subtitle language uses `--slang=en` in `buildMpvArgs`, not `--sub-lang=en` — the old flag makes mpv exit immediately when subtitles are enabled; `PlayerService` uses `playGeneration` to invalidate stale `play()` promises after `stop()`, `isValidIpcPipePath()` for Windows pipe paths, and aborts stale IPC connect retries on stop
 - `SET_ERROR` in `player.store.tsx` sets `isLoading: false` and, only when `error` is non-null, `isPlaying: false` (clearing with `null` must not force paused UI while mpv still plays)
 - When Windows named-pipe IPC drops, `PlayerService.pause()`/`resume()` reconnect via `tryReconnectIpc()` before commanding mpv; orphan mpv that cannot be reached is stopped so UI and audio stay aligned

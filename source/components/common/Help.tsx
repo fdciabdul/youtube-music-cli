@@ -57,6 +57,9 @@ export default function Help() {
 						<Text color={theme.colors.text}>Shift+I</Text> - Radio Streams
 						<Text> | </Text>
 						<Text color={theme.colors.text}>Shift+V</Text> - Live Streams
+						<Text> | </Text>
+						<Text color={theme.colors.text}>o</Text> - Listening statistics (top
+						tracks/artists, totals)
 					</Text>
 				</Box>
 

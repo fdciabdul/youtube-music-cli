@@ -1,8 +1,8 @@
-import test from 'ava';
+import {expect, test} from 'bun:test';
 
 const IPC_PATH = '/tmp/mpv-test';
 
-test('player-service-mpv-args: buildMpvArgs respects the gapless playback toggle', async t => {
+test('player-service-mpv-args: buildMpvArgs respects the gapless playback toggle', async () => {
 	const {buildMpvArgs} =
 		await import('../source/services/player/player.service.ts');
 	const args = buildMpvArgs(IPC_PATH, {
@@ -10,11 +10,11 @@ test('player-service-mpv-args: buildMpvArgs respects the gapless playback toggle
 		gaplessPlayback: false,
 	});
 
-	t.true(args.includes('--gapless-audio=no'));
-	t.false(args.includes('--gapless-audio=yes'));
+	expect(args.includes('--gapless-audio=no')).toBe(true);
+	expect(args.includes('--gapless-audio=yes')).toBe(false);
 });
 
-test('player-service-mpv-args: buildMpvArgs adds acrossfade and normalization filters when configured', async t => {
+test('player-service-mpv-args: buildMpvArgs adds acrossfade and normalization filters when configured', async () => {
 	const {buildMpvArgs} =
 		await import('../source/services/player/player.service.ts');
 	const args = buildMpvArgs(IPC_PATH, {
@@ -26,39 +26,38 @@ test('player-service-mpv-args: buildMpvArgs adds acrossfade and normalization fi
 	});
 
 	const filterArg = args.find(arg => arg.startsWith('--af='));
-	t.truthy(filterArg);
-	t.true(filterArg?.includes('acrossfade=d=4'));
-	t.true(filterArg?.includes('dynaudnorm'));
-	t.true(filterArg?.includes('afade=t=in'));
-	t.true(filterArg?.includes('afade=t=out'));
+	expect(filterArg).toBeTruthy();
+	expect(filterArg?.includes('acrossfade=d=4')).toBe(true);
+	expect(filterArg?.includes('dynaudnorm')).toBe(true);
+	expect(filterArg?.includes('afade=t=in')).toBe(true);
+	expect(filterArg?.includes('afade=t=out')).toBe(true);
 });
 
-test('player-service-mpv-args: isValidIpcPipePath rejects null and empty paths', async t => {
+test('player-service-mpv-args: isValidIpcPipePath rejects null and empty paths', async () => {
 	const {isValidIpcPipePath} =
 		await import('../source/services/player/player.service.ts');
 
-	t.false(isValidIpcPipePath(null));
-	t.false(isValidIpcPipePath(undefined));
-	t.false(isValidIpcPipePath(''));
-	t.false(isValidIpcPipePath('   '));
+	expect(isValidIpcPipePath(null)).toBe(false);
+	expect(isValidIpcPipePath(undefined)).toBe(false);
+	expect(isValidIpcPipePath('')).toBe(false);
+	expect(isValidIpcPipePath('   ')).toBe(false);
 });
 
-test('player-service-mpv-args: normalizeIpcPipePath normalizes Windows pipe paths', async t => {
+test('player-service-mpv-args: normalizeIpcPipePath normalizes Windows pipe paths', async () => {
 	const {normalizeIpcPipePath} =
 		await import('../source/services/player/player.service.ts');
 
 	if (process.platform === 'win32') {
-		t.is(
-			normalizeIpcPipePath('//./pipe/mpvsocket-123'),
+		expect(normalizeIpcPipePath('//./pipe/mpvsocket-123')).toBe(
 			'\\\\.\\pipe\\mpvsocket-123',
 		);
-		t.throws(() => normalizeIpcPipePath('not-a-pipe'));
+		expect(() => normalizeIpcPipePath('not-a-pipe')).toThrow();
 	} else {
-		t.is(normalizeIpcPipePath('/tmp/mpvsocket-1'), '/tmp/mpvsocket-1');
+		expect(normalizeIpcPipePath('/tmp/mpvsocket-1')).toBe('/tmp/mpvsocket-1');
 	}
 });
 
-test('player-service-mpv-args: buildMpvArgs uses mpv slang option when subtitles are enabled', async t => {
+test('player-service-mpv-args: buildMpvArgs uses mpv slang option when subtitles are enabled', async () => {
 	const {buildMpvArgs} =
 		await import('../source/services/player/player.service.ts');
 	const args = buildMpvArgs(IPC_PATH, {
@@ -66,16 +65,56 @@ test('player-service-mpv-args: buildMpvArgs uses mpv slang option when subtitles
 		subtitlesEnabled: true,
 	});
 
-	t.true(args.includes('--slang=en'));
-	t.true(args.includes('--sub-scale=1.3'));
-	t.false(args.includes('--sub-lang=en'));
+	expect(args.includes('--slang=en')).toBe(true);
+	expect(args.includes('--sub-scale=1.3')).toBe(true);
+	expect(args.includes('--sub-lang=en')).toBe(false);
 });
 
-test('player-service-mpv-args: connectToMpvIpc throws on invalid path instead of passing null', async t => {
+test('player-service-mpv-args: buildMpvArgs adds cookies-from-browser for yt-dlp', async () => {
+	const {buildMpvArgs} =
+		await import('../source/services/player/player.service.ts');
+	const args = buildMpvArgs(IPC_PATH, {
+		volume: 55,
+		cookiesFromBrowser: 'edge',
+	});
+
+	expect(
+		args.includes('--ytdl-raw-options-append=cookies-from-browser=edge'),
+	).toBe(true);
+});
+
+test('player-service-mpv-args: buildMpvArgs prefers cookiesFile over browser', async () => {
+	const {buildMpvArgs} =
+		await import('../source/services/player/player.service.ts');
+	const args = buildMpvArgs(IPC_PATH, {
+		volume: 55,
+		cookiesFile: 'C:/cookies.txt',
+		cookiesFromBrowser: 'chrome',
+	});
+
+	expect(
+		args.includes('--ytdl-raw-options-append=cookies=C:/cookies.txt'),
+	).toBe(true);
+	expect(args.some(arg => arg.includes('cookies-from-browser'))).toBe(false);
+});
+
+test('ytdl-cookies: formatPlaybackErrorMessage maps bot check to settings hint', async () => {
+	const {formatPlaybackErrorMessage, isYouTubeBotCheckError} =
+		await import('../source/services/player/ytdl-cookies.ts');
+
+	expect(
+		isYouTubeBotCheckError("ERROR: Sign in to confirm you're not a bot"),
+	).toBe(true);
+	expect(
+		formatPlaybackErrorMessage(
+			new Error('Sign in to confirm you are not a bot'),
+		).includes('Cookies From Browser'),
+	).toBe(true);
+});
+
+test('player-service-mpv-args: connectToMpvIpc throws on invalid path instead of passing null', async () => {
 	const {connectToMpvIpc} =
 		await import('../source/services/player/player.service.ts');
 
-	t.throws(() => connectToMpvIpc(''), {
-		message: /IPC pipe path is empty/,
-	});
+	expect(() => connectToMpvIpc('')).toThrow(/IPC pipe path is empty/);
 });

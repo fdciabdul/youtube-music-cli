@@ -1,4 +1,13 @@
-import test from 'ava';
+import {afterEach, expect, test} from 'bun:test';
+
+const __fileTeardowns = [];
+afterEach(() => {
+	while (__fileTeardowns.length) {
+		const fn = __fileTeardowns.pop();
+		fn();
+	}
+});
+
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -9,9 +18,9 @@ function makeTempRoot() {
 	return mkdtempSync(join(tmpdir(), 'ymc-web-static-'));
 }
 
-test('resolveWebDistDir prefers bundled CLI sibling dist/web', t => {
+test('resolveWebDistDir prefers bundled CLI sibling dist/web', () => {
 	const root = makeTempRoot();
-	t.teardown(() => rmSync(root, {recursive: true, force: true}));
+	__fileTeardowns.push(() => rmSync(root, {recursive: true, force: true}));
 
 	const sourceDir = join(root, 'dist', 'source');
 	const webDir = join(root, 'dist', 'web');
@@ -22,12 +31,12 @@ test('resolveWebDistDir prefers bundled CLI sibling dist/web', t => {
 	const moduleUrl = pathToFileURL(join(sourceDir, 'cli.js')).href;
 	const resolved = resolveWebDistDir(moduleUrl, root, join(root, 'fake-exe'));
 
-	t.is(resolved, webDir);
+	expect(resolved).toBe(webDir);
 });
 
-test('resolveWebDistDir finds projectRoot/dist/web from source/services/web', t => {
+test('resolveWebDistDir finds projectRoot/dist/web from source/services/web', () => {
 	const root = makeTempRoot();
-	t.teardown(() => rmSync(root, {recursive: true, force: true}));
+	__fileTeardowns.push(() => rmSync(root, {recursive: true, force: true}));
 
 	const serviceDir = join(root, 'source', 'services', 'web');
 	const webDir = join(root, 'dist', 'web');
@@ -44,12 +53,12 @@ test('resolveWebDistDir finds projectRoot/dist/web from source/services/web', t 
 		join(root, 'fake-exe'),
 	);
 
-	t.is(resolved, webDir);
+	expect(resolved).toBe(webDir);
 });
 
-test('resolveWebDistDir falls back to cwd dist/web', t => {
+test('resolveWebDistDir falls back to cwd dist/web', () => {
 	const root = makeTempRoot();
-	t.teardown(() => rmSync(root, {recursive: true, force: true}));
+	__fileTeardowns.push(() => rmSync(root, {recursive: true, force: true}));
 
 	const moduleDir = join(root, 'somewhere', 'else');
 	const webDir = join(root, 'dist', 'web');
@@ -64,12 +73,12 @@ test('resolveWebDistDir falls back to cwd dist/web', t => {
 		join(root, 'no-web', 'exe'),
 	);
 
-	t.is(resolved, webDir);
+	expect(resolved).toBe(webDir);
 });
 
-test('resolveWebDistDir uses exe sibling web when present', t => {
+test('resolveWebDistDir uses exe sibling web when present', () => {
 	const root = makeTempRoot();
-	t.teardown(() => rmSync(root, {recursive: true, force: true}));
+	__fileTeardowns.push(() => rmSync(root, {recursive: true, force: true}));
 
 	const moduleDir = join(root, 'somewhere');
 	const exeDir = join(root, 'bin');
@@ -85,12 +94,12 @@ test('resolveWebDistDir uses exe sibling web when present', t => {
 		join(exeDir, 'ymc.exe'),
 	);
 
-	t.is(resolved, webDir);
+	expect(resolved).toBe(webDir);
 });
 
-test('resolveWebDistDir returns first candidate when nothing is built', t => {
+test('resolveWebDistDir returns first candidate when nothing is built', () => {
 	const root = makeTempRoot();
-	t.teardown(() => rmSync(root, {recursive: true, force: true}));
+	__fileTeardowns.push(() => rmSync(root, {recursive: true, force: true}));
 
 	const sourceDir = join(root, 'dist', 'source');
 	mkdirSync(sourceDir, {recursive: true});
@@ -98,5 +107,5 @@ test('resolveWebDistDir returns first candidate when nothing is built', t => {
 	const moduleUrl = pathToFileURL(join(sourceDir, 'cli.js')).href;
 	const resolved = resolveWebDistDir(moduleUrl, root, join(root, 'fake-exe'));
 
-	t.is(resolved, join(root, 'dist', 'web'));
+	expect(resolved).toBe(join(root, 'dist', 'web'));
 });
