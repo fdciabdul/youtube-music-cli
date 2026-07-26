@@ -6,6 +6,10 @@ import {logger} from '../logger/logger.service.ts';
 import {getMusicService} from '../youtube-music/api.ts';
 import {appendYtDlpCookieArgs} from '../player/ytdl-cookies.ts';
 import {ensureDownloadDirectory} from '../../utils/download-path.ts';
+import {
+	getTrackDestinationPath,
+	upsertDownloadsIndexEntry,
+} from '../../utils/local-track.ts';
 import type {DownloadFormat} from '../../types/config.types.ts';
 import type {
 	Playlist,
@@ -137,7 +141,7 @@ class DownloadService {
 			for (let index = 0; index < tracks.length; index++) {
 				const track = tracks[index]!;
 				const current = index + 1;
-				const destination = this.getDestinationPath(track, directory, format);
+				const destination = getTrackDestinationPath(track, directory, format);
 				const tempSource = `${destination}.source`;
 				const tempCover = `${destination}.cover.jpg`;
 				try {
@@ -148,6 +152,7 @@ class DownloadService {
 					onProgress?.({current, total, track, phase: 'start'});
 					mkdirSync(path.dirname(destination), {recursive: true});
 					if (existsSync(destination)) {
+						upsertDownloadsIndexEntry(track.videoId, destination, format);
 						result.skipped++;
 						onProgress?.({current, total, track, phase: 'skip'});
 						logger.debug('DownloadService', 'Skipping existing file', {
@@ -169,6 +174,7 @@ class DownloadService {
 						track,
 						hasCover ? tempCover : undefined,
 					);
+					upsertDownloadsIndexEntry(track.videoId, destination, format);
 					result.downloaded++;
 					onProgress?.({current, total, track, phase: 'done'});
 					logger.info('DownloadService', 'Track download complete', {
@@ -218,23 +224,6 @@ class DownloadService {
 		}
 
 		return unique;
-	}
-
-	private getDestinationPath(
-		track: Track,
-		directory: string,
-		format: DownloadFormat,
-	): string {
-		const artist = track.artists[0]?.name ?? 'Unknown Artist';
-		const album = track.album?.name ?? 'Singles';
-		const artistDir = this.sanitizeFilename(artist) || 'Unknown Artist';
-		const albumDir = this.sanitizeFilename(album) || 'Singles';
-		const fileName = this.sanitizeFilename(track.title) || track.videoId;
-		return path.join(directory, artistDir, albumDir, `${fileName}.${format}`);
-	}
-
-	private sanitizeFilename(value: string): string {
-		return value.replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_').trim();
 	}
 
 	/**

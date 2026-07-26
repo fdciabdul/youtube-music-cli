@@ -1,4 +1,6 @@
 import {shouldLoopExplicitQueue} from '../../services/player/autoplay-coordinator.ts';
+import {getConfigService} from '../../services/config/config.service.ts';
+import {resolveTrackPlayUrl} from '../../utils/local-track.ts';
 import type {RadioSeed} from '../../types/radio.types.ts';
 import type {
 	PlaybackMode,
@@ -360,6 +362,18 @@ export function trackArtists(track: Track): string {
 
 export function trackYouTubeUrl(track: Track): string {
 	return `https://www.youtube.com/watch?v=${track.videoId}`;
+}
+
+export function resolveImmersiveTrackPlayUrl(track: Track): {
+	url: string;
+	source: 'local' | 'youtube';
+} {
+	const config = getConfigService();
+	return resolveTrackPlayUrl(track, {
+		preferLocal: config.get('preferLocalPlayback') ?? true,
+		downloadDirectory: config.get('downloadDirectory'),
+		downloadFormat: config.get('downloadFormat') ?? 'mp3',
+	});
 }
 
 export function formatRepeatLabel(repeat: RepeatMode): string {

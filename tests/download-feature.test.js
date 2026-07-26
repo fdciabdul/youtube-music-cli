@@ -8,6 +8,7 @@ test('download config defaults are present', async () => {
 	expect(typeof (config.get('downloadsEnabled') ?? false)).toBe('boolean');
 	expect(config.get('downloadDirectory')).toBeTruthy();
 	expect(config.get('downloadFormat')).toBe('mp3');
+	expect(config.get('preferLocalPlayback') ?? true).toBe(true);
 });
 
 test('download keybinding is registered as shift+d', async () => {

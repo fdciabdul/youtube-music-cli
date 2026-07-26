@@ -8,6 +8,8 @@ import {getImportService} from '../import/import.service.ts';
 import {getPlayerService} from '../player/player.service.ts';
 import {getSearchService} from '../youtube-music/search.service.ts';
 import {logger} from '../logger/logger.service.ts';
+import {resolveTrackPlayUrl} from '../../utils/local-track.ts';
+import type {Track} from '../../types/youtube-music.types.ts';
 
 class WebServerManager {
 	private config: WebServerConfig;
@@ -177,11 +179,24 @@ class WebServerManager {
 	/**
 	 * Handle command from web client
 	 */
+	private playTrackMedia(track: Track): void {
+		const config = getConfigService();
+		const resolved = resolveTrackPlayUrl(track, {
+			preferLocal: config.get('preferLocalPlayback') ?? true,
+			downloadDirectory: config.get('downloadDirectory'),
+			downloadFormat: config.get('downloadFormat') ?? 'mp3',
+		});
+		void getPlayerService().play(resolved.url, {
+			volume: this.internalState.volume,
+			volumeFadeDuration: config.get('volumeFadeDuration'),
+			trackId: track.videoId,
+		});
+	}
+
 	private handleCommand(action: PlayerAction): void {
 		logger.debug('WebServerManager', 'Executing command from client', {action});
 
 		const playerService = getPlayerService();
-		const config = getConfigService();
 
 		// Execute command and update internal state
 		switch (action.category) {
@@ -192,11 +207,7 @@ class WebServerManager {
 					this.internalState.progress = 0;
 					this.internalState.error = null;
 
-					const youtubeUrl = `https://www.youtube.com/watch?v=${action.track.videoId}`;
-					void playerService.play(youtubeUrl, {
-						volume: this.internalState.volume,
-						volumeFadeDuration: config.get('volumeFadeDuration'),
-					});
+					this.playTrackMedia(action.track);
 				}
 				break;
 			}
@@ -245,11 +256,7 @@ class WebServerManager {
 				this.internalState.progress = 0;
 
 				if (this.internalState.currentTrack) {
-					const youtubeUrl = `https://www.youtube.com/watch?v=${this.internalState.currentTrack.videoId}`;
-					void playerService.play(youtubeUrl, {
-						volume: this.internalState.volume,
-						volumeFadeDuration: config.get('volumeFadeDuration'),
-					});
+					this.playTrackMedia(this.internalState.currentTrack);
 				}
 				break;
 			}

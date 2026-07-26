@@ -62,7 +62,7 @@ import {
 	toggleAutoplay,
 	toggleShuffle,
 	trackArtists,
-	trackYouTubeUrl,
+	resolveImmersiveTrackPlayUrl,
 	type ImmersivePlayerState,
 } from './state/queue-state.ts';
 import {
@@ -386,7 +386,8 @@ export async function startImmersiveApp(
 		fetchedForVideoId = null;
 		sessionHistory = recordSessionTrack(sessionHistory, track.videoId);
 
-		const trackUrl = trackYouTubeUrl(track);
+		const resolved = resolveImmersiveTrackPlayUrl(track);
+		const trackUrl = resolved.url;
 		const notificationsEnabled = config.get('notifications') ?? false;
 
 		isAdvancing = true;
@@ -426,7 +427,10 @@ export async function startImmersiveApp(
 			const artist = trackArtists(track);
 			updateTrayIcon(`${title} - ${artist}`);
 			if (notificationsEnabled) {
-				showTrackChangeToast(title, artist);
+				showTrackChangeToast(
+					title,
+					resolved.source === 'local' ? `${artist} · Local` : artist,
+				);
 			}
 		} catch (error) {
 			state.isPlaying = false;

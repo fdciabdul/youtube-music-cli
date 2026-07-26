@@ -1,6 +1,12 @@
 // Configuration management service
 import {CONFIG_DIR, CONFIG_FILE} from '../../utils/constants.ts';
-import {readFileSync, existsSync, writeFileSync, unlinkSync, renameSync} from 'node:fs';
+import {
+	readFileSync,
+	existsSync,
+	writeFileSync,
+	unlinkSync,
+	renameSync,
+} from 'node:fs';
 import {writeFile, unlink, rename, mkdir} from 'node:fs/promises';
 import type {Config} from '../../types/config.types.ts';
 import {BUILTIN_THEMES, DEFAULT_THEME} from '../../config/themes.config.ts';
@@ -42,6 +48,7 @@ class ConfigService {
 			downloadsEnabled: false,
 			downloadDirectory: path.join(CONFIG_DIR, 'downloads'),
 			downloadFormat: 'mp3',
+			preferLocalPlayback: true,
 			subtitlesEnabled: false,
 			webServer: {
 				enabled: false,

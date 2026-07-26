@@ -11,6 +11,7 @@ import {getConfigService} from '../config/config.service.ts';
 import {parseStreamMetadata} from '../radio-stations/stream-metadata.ts';
 import type {StreamNowPlaying} from '../../types/radio-station.types.ts';
 import {appendMpvYtdlCookieArgs} from './ytdl-cookies.ts';
+import {classifyPlayMedia} from '../../utils/local-track.ts';
 
 export type PlayOptions = {
 	volume?: number;
@@ -654,11 +655,8 @@ class PlayerService {
 			this.currentVolume = options.volume;
 		}
 
-		// Build YouTube URL from videoId if needed
-		let playUrl = url;
-		if (!url.startsWith('http')) {
-			playUrl = `https://www.youtube.com/watch?v=${url}`;
-		}
+		// Pass absolute/file paths through; build YouTube URL from videoId otherwise
+		const playUrl = classifyPlayMedia(url);
 
 		// Increment session ID for a unique IPC socket path per play call
 		this.playSessionId++;

@@ -6,8 +6,13 @@ nul
 .env.local
 .mcp
 firebase-debug.log
-source/services/config/config.service.ts
-.kilo/plans
 *.log
 .claude/settings.local.json
 .mira
+.kilo/
+.kilocode/
+.gemini/
+.opencode/node_modules/
+.opencode/plans/
+.agents/**/node_modules/
+.cursor/hooks/state/

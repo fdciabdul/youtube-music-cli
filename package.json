@@ -66,7 +66,8 @@
 		"build:web": "cd web && bun run build",
 		"dev:web": "cd web && bun run dev",
 		"build:all": "bun run build && bun run build:win32 && bun run build:web",
-		"msix": "bun run compile && msix-packager-cli package --config ./msix-config.json --skip-build"
+		"msix": "bun run compile && msix-packager-cli package --config ./msix-config.json --skip-build",
+		"sync:skills": "bun run scripts/sync-agent-skills.ts"
 	},
 	"prettier": "@vdemedes/prettier-config",
 	"dependencies": {

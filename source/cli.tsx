@@ -28,6 +28,7 @@ import {ensurePlaybackDependencies} from './services/player/dependency-check.ser
 import {getMusicService} from './services/youtube-music/api.ts';
 import type {Track} from './types/youtube-music.types.ts';
 import {logger} from './services/logger/logger.service.ts';
+import {resolveTrackPlayUrl} from './utils/local-track.ts';
 
 // Global error handlers to prevent crashes from unhandled rejections/exceptions
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -385,8 +386,15 @@ async function runDirectPlaybackCommand(flags: Flags): Promise<void> {
 				? track.artists.map(artist => artist.name).join(', ')
 				: 'Unknown Artist';
 		console.log(`Playing: ${track.title} — ${artists}`);
-		const youtubeUrl = `https://www.youtube.com/watch?v=${track.videoId}`;
-		await playerService.play(youtubeUrl, playbackOptions);
+		const resolved = resolveTrackPlayUrl(track, {
+			preferLocal: getConfigService().get('preferLocalPlayback') ?? true,
+			downloadDirectory: getConfigService().get('downloadDirectory'),
+			downloadFormat: getConfigService().get('downloadFormat') ?? 'mp3',
+		});
+		if (resolved.source === 'local') {
+			console.log(`Source: local file (${resolved.url})`);
+		}
+		await playerService.play(resolved.url, playbackOptions);
 	}
 }
 

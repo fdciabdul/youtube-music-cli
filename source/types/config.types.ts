@@ -61,6 +61,8 @@ export interface Config {
 	downloadsEnabled?: boolean;
 	downloadDirectory?: string;
 	downloadFormat?: DownloadFormat;
+	/** Prefer on-disk downloads over YouTube when a local file exists (default true). */
+	preferLocalPlayback?: boolean;
 	subtitlesEnabled?: boolean;
 	webServer?: WebServerConfig;
 	backgroundPlayback?: {

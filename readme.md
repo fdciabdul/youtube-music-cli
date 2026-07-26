@@ -106,18 +106,28 @@ sudo dnf install mpv yt-dlp
 
 ## Installation
 
-### Node.js (Recommended)
+### Install Script (standalone binary — no Node/Bun required)
 
-Requires [Node.js](https://nodejs.org) 18+ installed.
+Downloads the latest GitHub Release binary into `~/.local/bin` (Windows: `%USERPROFILE%\.local\bin`). Falls back to bun/npm if the download fails. Use `--from-npm` to skip the binary and install from the registry.
 
 ```bash
-npm install -g @involvex/youtube-music-cli
+curl -fsSL https://raw.githubusercontent.com/involvex/youtube-music-cli/main/scripts/install.sh | bash
 ```
 
-### Bun
+```powershell
+iwr https://raw.githubusercontent.com/involvex/youtube-music-cli/main/scripts/install.ps1 | iex
+```
+
+### GitHub Releases
+
+Manual download: https://github.com/involvex/youtube-music-cli/releases
+
+### Package managers (bun / npm)
 
 ```bash
 bun install -g @involvex/youtube-music-cli
+# or
+npm install -g @involvex/youtube-music-cli
 ```
 
 ### Homebrew
@@ -125,24 +135,6 @@ bun install -g @involvex/youtube-music-cli
 ```bash
 brew tap involvex/youtube-music-cli https://github.com/involvex/youtube-music-cli.git
 brew install youtube-music-cli
-```
-
-### GitHub Releases
-
-```bash
-https://github.com/involvex/youtube-music-cli/releases
-```
-
-### Install Script (bash)
-
-```bash
-curl -fssl https://raw.githubusercontent.com/involvex/youtube-music-cli/main/scripts/install.sh | bash
-```
-
-### Install Script (PowerShell)
-
-```powershell
-iwr https://raw.githubusercontent.com/involvex/youtube-music-cli/main/scripts/install.ps1 | iex
 ```
 
 ### From Source
@@ -456,6 +448,7 @@ Config is stored in `~/.youtube-music-cli/config.json`:
 - Downloads are saved as:
   - `<downloadDirectory>/<artist>/<album>/<title>.mp3` (or `.m4a`)
 - MP3/M4A files are tagged with metadata (`title`, `artist`, `album`) and include cover art when available.
+- When a track is available on disk, playback prefers the local file (`preferLocalPlayback`, default `true`). An index is kept at `~/.youtube-music-cli/downloads-index.json`.
 
 ## Troubleshooting
 

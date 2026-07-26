@@ -457,6 +457,7 @@ type PlayerContextValue = {
 
 import {getConfigService} from '../services/config/config.service.ts';
 import {getMusicService} from '../services/youtube-music/api.ts';
+import {resolveTrackPlayUrl} from '../utils/local-track.ts';
 import {useMemo} from 'react';
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -748,7 +749,12 @@ function PlayerManager() {
 			// to the still-running mpv process instead of spawning a new one.
 			const config = getConfigService();
 			const bgState = config.getBackgroundPlaybackState();
-			const trackUrl = `https://www.youtube.com/watch?v=${track.videoId}`;
+			const resolved = resolveTrackPlayUrl(track, {
+				preferLocal: config.get('preferLocalPlayback') ?? true,
+				downloadDirectory: config.get('downloadDirectory'),
+				downloadFormat: config.get('downloadFormat') ?? 'mp3',
+			});
+			const trackUrl = resolved.url;
 			if (
 				bgState.enabled &&
 				bgState.ipcPath &&
@@ -787,10 +793,9 @@ function PlayerManager() {
 						videoId: track.videoId,
 						volume: state.volume,
 						attempt,
+						source: resolved.source,
 					});
 
-					// Pass YouTube URL directly to mpv (it handles stream extraction via yt-dlp)
-					const youtubeUrl = `https://www.youtube.com/watch?v=${track.videoId}`;
 					const config = getConfigService();
 					const artists =
 						track.artists?.map(a => a.name).join(', ') ?? 'Unknown';
@@ -831,7 +836,7 @@ function PlayerManager() {
 						true,
 					);
 
-					await playerService.play(youtubeUrl, {
+					await playerService.play(trackUrl, {
 						volume: state.volume,
 						audioNormalization: config.get('audioNormalization') ?? false,
 						proxy: config.get('proxy'),
@@ -842,10 +847,12 @@ function PlayerManager() {
 						equalizerPreset: config.get('equalizerPreset') ?? 'flat',
 						volumeFadeDuration: config.get('volumeFadeDuration') ?? 0,
 						duration: track.duration,
+						trackId: track.videoId,
 					});
 
 					logger.info('PlayerManager', 'Playback started successfully', {
 						attempt,
+						source: resolved.source,
 					});
 					dispatch({category: 'SET_LOADING', loading: false});
 					return; // Success
@@ -859,7 +866,11 @@ function PlayerManager() {
 					const errorMessage =
 						error instanceof Error ? error.message : String(error);
 
-					if (attempt === MAX_RETRIES && isYouTubeBotCheckError(errorMessage)) {
+					if (
+						resolved.source === 'youtube' &&
+						attempt === MAX_RETRIES &&
+						isYouTubeBotCheckError(errorMessage)
+					) {
 						try {
 							logger.info(
 								'PlayerManager',
