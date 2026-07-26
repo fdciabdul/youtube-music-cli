@@ -122,6 +122,17 @@ iwr https://raw.githubusercontent.com/involvex/youtube-music-cli/main/scripts/in
 
 Manual download: https://github.com/involvex/youtube-music-cli/releases
 
+Release assets (prefer the platform-specific name; install scripts fall back to legacy names):
+
+| Platform            | Asset                                                                 |
+| ------------------- | --------------------------------------------------------------------- |
+| Windows x64         | `youtube-music-cli-windows-x64.exe` (legacy: `youtube-music-cli.exe`) |
+| Linux x64           | `youtube-music-cli-linux-x64` (legacy: `youtube-music-cli`)           |
+| macOS Apple Silicon | `youtube-music-cli-darwin-arm64`                                      |
+| macOS Intel         | `youtube-music-cli-darwin-x64`                                        |
+
+Immersive Win32 build (`ymc-win32.exe`) is separate (`bun run build:win32`) and is not the default install-script binary.
+
 ### Package managers (bun / npm)
 
 ```bash

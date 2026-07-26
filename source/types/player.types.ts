@@ -63,6 +63,8 @@ export interface PlayerState {
 	playbackMode: PlaybackMode;
 	currentStation: RadioStation | null;
 	streamNowPlaying: StreamNowPlaying | null;
+	/** Whether the current track is served from a local download or YouTube. */
+	mediaSource: 'local' | 'youtube' | null;
 }
 
 export type PlayerAction =
@@ -92,6 +94,7 @@ export type PlayerAction =
 	| TickAction
 	| SetLoadingAction
 	| SetErrorAction
+	| import('./actions.ts').SetMediaSourceAction
 	| RestoreStateAction
 	| SetSpeedAction
 	| SetSpeedAction

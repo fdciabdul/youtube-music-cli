@@ -119,6 +119,11 @@ export interface SetErrorAction {
 	error: string | null;
 }
 
+export interface SetMediaSourceAction {
+	readonly category: 'SET_MEDIA_SOURCE';
+	mediaSource: 'local' | 'youtube' | null;
+}
+
 export interface RestoreStateAction {
 	readonly category: 'RESTORE_STATE';
 	currentTrack: Track | null;

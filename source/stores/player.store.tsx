@@ -62,6 +62,7 @@ const initialState: PlayerState = {
 	playbackMode: 'youtube',
 	currentStation: null,
 	streamNowPlaying: null,
+	mediaSource: null,
 };
 
 let inkSessionHistory: string[] = [];
@@ -81,6 +82,7 @@ export function playerReducer(
 				playbackMode: 'youtube',
 				currentStation: null,
 				streamNowPlaying: null,
+				mediaSource: null,
 				currentTrack: action.track,
 				isPlaying: true,
 				progress: 0,
@@ -118,6 +120,7 @@ export function playerReducer(
 				playbackMode: 'youtube',
 				currentStation: null,
 				streamNowPlaying: null,
+				mediaSource: null,
 			};
 
 		case 'NEXT': {
@@ -330,6 +333,9 @@ export function playerReducer(
 		case 'SET_LOADING':
 			return {...state, isLoading: action.loading};
 
+		case 'SET_MEDIA_SOURCE':
+			return {...state, mediaSource: action.mediaSource};
+
 		case 'SET_ERROR':
 			// Only force paused on a real error — clearing (`null`) must not flip
 			// isPlaying or the UI can show paused while orphan mpv keeps playing.
@@ -375,6 +381,7 @@ export function playerReducer(
 				playbackMode: 'stream',
 				currentStation: action.station,
 				streamNowPlaying: null,
+				mediaSource: null,
 				currentTrack: null,
 				queue: [],
 				queuePosition: 0,
@@ -755,6 +762,10 @@ function PlayerManager() {
 				downloadFormat: config.get('downloadFormat') ?? 'mp3',
 			});
 			const trackUrl = resolved.url;
+			dispatch({
+				category: 'SET_MEDIA_SOURCE',
+				mediaSource: resolved.source,
+			});
 			if (
 				bgState.enabled &&
 				bgState.ipcPath &&

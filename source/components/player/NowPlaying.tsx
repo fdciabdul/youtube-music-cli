@@ -119,6 +119,12 @@ export default function NowPlaying() {
 				</Text>
 				<Text color={theme.colors.dim}> • </Text>
 				<Text color={theme.colors.secondary}>{artists}</Text>
+				{playerState.mediaSource === 'local' ? (
+					<>
+						<Text color={theme.colors.dim}> • </Text>
+						<Text color={theme.colors.accent}>Local</Text>
+					</>
+				) : null}
 			</Box>
 
 			{/* Album */}

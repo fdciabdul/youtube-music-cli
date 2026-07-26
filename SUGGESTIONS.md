@@ -23,6 +23,7 @@ This document tracks potential features, enhancements, and improvements for yout
 - Planned **Configurable Audio Output Device** - Select audio output device (useful for DACs, multi-monitor setups)
 - Planned **Track Seek Bar** - Interactive seek via progress bar (not just +/-10s keystrokes)
 - Planned **Offline Mode** - Cache downloaded tracks for playback without network access
+  - Partial: downloads + `preferLocalPlayback` / local index already prefer on-disk files when available
 - Planned **YouTube Video Support** - Play regular YouTube videos (not just music content)
 
 ### Low Priority

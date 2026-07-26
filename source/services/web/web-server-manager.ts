@@ -40,6 +40,7 @@ class WebServerManager {
 		playbackMode: 'youtube',
 		currentStation: null,
 		streamNowPlaying: null,
+		mediaSource: null,
 	};
 
 	constructor() {
@@ -186,6 +187,7 @@ class WebServerManager {
 			downloadDirectory: config.get('downloadDirectory'),
 			downloadFormat: config.get('downloadFormat') ?? 'mp3',
 		});
+		this.internalState.mediaSource = resolved.source;
 		void getPlayerService().play(resolved.url, {
 			volume: this.internalState.volume,
 			volumeFadeDuration: config.get('volumeFadeDuration'),
