@@ -446,9 +446,9 @@ Config is stored in `~/.youtube-music-cli/config.json`:
 - Set your download directory in **Settings → Download Folder**.
 - Choose format in **Settings → Download Format** (`mp3` or `m4a`).
 - Downloads are saved as:
-  - `<downloadDirectory>/<artist>/<album>/<title>.mp3` (or `.m4a`)
+  - `<downloadDirectory>/<artist>/<album>/<title> [<videoId>].mp3` (or `.m4a`)
 - MP3/M4A files are tagged with metadata (`title`, `artist`, `album`) and include cover art when available.
-- When a track is available on disk, playback prefers the local file (`preferLocalPlayback`, default `true`). An index is kept at `~/.youtube-music-cli/downloads-index.json`.
+- When a track is available on disk, playback prefers the local file (`preferLocalPlayback`, default `true`; Settings toggle). An index is kept at `~/.youtube-music-cli/downloads-index.json`. Legacy title-only filenames are still detected.
 
 ## Troubleshooting
 

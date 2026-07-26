@@ -33,12 +33,20 @@ if [[ "$FROM_NPM" -eq 1 ]]; then
 fi
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-case "$OS" in
-  linux|darwin)
-    ASSET_NAME="youtube-music-cli"
+ARCH="$(uname -m)"
+
+case "$OS-$ARCH" in
+  linux-x86_64|linux-amd64)
+    ASSET_CANDIDATES=("youtube-music-cli-linux-x64" "youtube-music-cli")
+    ;;
+  darwin-arm64)
+    ASSET_CANDIDATES=("youtube-music-cli-darwin-arm64" "youtube-music-cli")
+    ;;
+  darwin-x86_64)
+    ASSET_CANDIDATES=("youtube-music-cli-darwin-x64" "youtube-music-cli")
     ;;
   *)
-    echo "Unsupported OS for binary install: $OS" >&2
+    echo "Unsupported platform for binary install: ${OS}-${ARCH}" >&2
     echo "Falling back to bun/npm..."
     install_from_package_manager
     ;;
@@ -58,39 +66,51 @@ if ! RELEASE_JSON="$(curl -fsSL \
   install_from_package_manager
 fi
 
+pick_asset_url() {
+  local name="$1"
+  if command -v python3 >/dev/null 2>&1; then
+    printf '%s' "$RELEASE_JSON" | python3 -c "
+import json,sys
+name=sys.argv[1]
+data=json.load(sys.stdin)
+for a in data.get('assets', []):
+    if a.get('name') == name:
+        print(a.get('browser_download_url', ''))
+        break
+" "$name"
+  elif command -v python >/dev/null 2>&1; then
+    printf '%s' "$RELEASE_JSON" | python -c "
+import json,sys
+name=sys.argv[1]
+data=json.load(sys.stdin)
+for a in data.get('assets', []):
+    if a.get('name') == name:
+        print(a.get('browser_download_url', ''))
+        break
+" "$name"
+  else
+    printf '%s' "$RELEASE_JSON" | grep -oE "https://[^\"]+/${name}\"" | head -n 1 | tr -d '"'
+  fi
+}
+
 DOWNLOAD_URL=""
-if command -v python3 >/dev/null 2>&1; then
-  DOWNLOAD_URL="$(printf '%s' "$RELEASE_JSON" | python3 -c "
-import json,sys
-name=sys.argv[1]
-data=json.load(sys.stdin)
-for a in data.get('assets', []):
-    if a.get('name') == name:
-        print(a.get('browser_download_url', ''))
-        break
-" "$ASSET_NAME")"
-elif command -v python >/dev/null 2>&1; then
-  DOWNLOAD_URL="$(printf '%s' "$RELEASE_JSON" | python -c "
-import json,sys
-name=sys.argv[1]
-data=json.load(sys.stdin)
-for a in data.get('assets', []):
-    if a.get('name') == name:
-        print(a.get('browser_download_url', ''))
-        break
-" "$ASSET_NAME")"
-else
-  DOWNLOAD_URL="$(printf '%s' "$RELEASE_JSON" | grep -oE "https://[^\"]+/${ASSET_NAME}\"" | head -n 1 | tr -d '"')"
-fi
+CHOSEN_ASSET=""
+for name in "${ASSET_CANDIDATES[@]}"; do
+  DOWNLOAD_URL="$(pick_asset_url "$name" || true)"
+  if [[ -n "$DOWNLOAD_URL" ]]; then
+    CHOSEN_ASSET="$name"
+    break
+  fi
+done
 
 if [[ -z "$DOWNLOAD_URL" ]]; then
-  echo "Binary install failed: release asset '${ASSET_NAME}' not found." >&2
+  echo "Binary install failed: no matching release asset (tried: ${ASSET_CANDIDATES[*]})." >&2
   echo "Falling back to bun/npm..."
   install_from_package_manager
 fi
 
 mkdir -p "$BIN_DIR"
-echo "Downloading ${ASSET_NAME} → ${DEST}"
+echo "Downloading ${CHOSEN_ASSET} → ${DEST}"
 curl -fsSL "$DOWNLOAD_URL" -o "$DEST"
 chmod +x "$DEST"
 ln -sf "$DEST" "$DEST_YMC"

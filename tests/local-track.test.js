@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {
 	classifyPlayMedia,
+	getLegacyTrackDestinationPath,
 	getTrackDestinationPath,
 	loadDownloadsIndex,
 	resolveLocalTrackPath,
@@ -66,10 +67,15 @@ test('classifyPlayMedia passes through file: URLs', () => {
 	);
 });
 
-test('getTrackDestinationPath matches Artist/Album/Title layout', () => {
+test('getTrackDestinationPath embeds videoId in filename', () => {
 	const dest = getTrackDestinationPath(sampleTrack, '/dl', 'mp3');
 	expect(dest).toBe(
-		path.join('/dl', 'Test Artist', 'Test Album', 'Test Song.mp3'),
+		path.join(
+			'/dl',
+			'Test Artist',
+			'Test Album',
+			'Test Song [abc123XYZ01].mp3',
+		),
 	);
 });
 
@@ -88,9 +94,23 @@ test('upsertDownloadsIndexEntry and resolveLocalTrackPath use index first', () =
 	expect(resolved).toBe(path.resolve(filePath));
 });
 
-test('resolveLocalTrackPath falls back to legacy reconstructed path', () => {
-	const root = makeTempDir('ymc-local-track-legacy');
+test('resolveLocalTrackPath finds videoId filename without index', () => {
+	const root = makeTempDir('ymc-local-track-id-path');
 	const dest = getTrackDestinationPath(sampleTrack, root, 'mp3');
+	mkdirSync(path.dirname(dest), {recursive: true});
+	writeFileSync(dest, 'fake');
+
+	const resolved = resolveLocalTrackPath(sampleTrack, {
+		downloadDirectory: root,
+		downloadFormat: 'mp3',
+		indexPath: path.join(root, 'missing-index.json'),
+	});
+	expect(resolved).toBe(dest);
+});
+
+test('resolveLocalTrackPath falls back to legacy title-only path', () => {
+	const root = makeTempDir('ymc-local-track-legacy');
+	const dest = getLegacyTrackDestinationPath(sampleTrack, root, 'mp3');
 	mkdirSync(path.dirname(dest), {recursive: true});
 	writeFileSync(dest, 'fake');
 

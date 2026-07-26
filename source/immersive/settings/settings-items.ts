@@ -18,7 +18,7 @@ import type {SettingsRow} from '../ui/settings-overlay.ts';
 
 type ConfigService = ReturnType<typeof getConfigService>;
 
-export const IMMERSIVE_SETTINGS_COUNT = 25;
+export const IMMERSIVE_SETTINGS_COUNT = 26;
 
 const QUALITIES: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high'];
 const DOWNLOAD_FORMATS: DownloadFormat[] = ['mp3', 'm4a'];
@@ -59,10 +59,10 @@ export function createSleepTimerState(): SleepTimerState {
 }
 
 export function getSettingsRowKind(index: number): SettingsRowKind {
-	if (index === 10 || index === 14 || index === 16 || index === 19) {
+	if (index === 10 || index === 14 || index === 16 || index === 20) {
 		return 'text';
 	}
-	if (index >= 21) {
+	if (index >= 22) {
 		return 'navigate';
 	}
 	return 'cycle';
@@ -76,7 +76,7 @@ export function getSettingsTextField(index: number): SettingsTextField | null {
 			return 'llmBaseUrl';
 		case 16:
 			return 'downloadDirectory';
-		case 19:
+		case 20:
 			return 'cookiesFile';
 		default:
 			return null;
@@ -145,6 +145,7 @@ export function buildImmersiveSettingsRows(
 	const quality = config.get('streamQuality') ?? 'high';
 	const downloadDirectory = config.get('downloadDirectory') ?? '';
 	const downloadFormat = config.get('downloadFormat') ?? 'mp3';
+	const preferLocal = config.get('preferLocalPlayback') ?? true;
 
 	const timerService = getSleepTimerService();
 	const remainingSeconds = timerService.getRemainingSeconds();
@@ -199,6 +200,10 @@ export function buildImmersiveSettingsRows(
 		},
 		{label: 'Download Folder', value: downloadDirectory || '(not set)'},
 		{label: 'Download Format', value: downloadFormat.toUpperCase()},
+		{
+			label: 'Prefer Local Playback',
+			value: formatOnOff(preferLocal),
+		},
 		{
 			label: 'Cookies From Browser',
 			value: formatCookiesFromBrowserLabel(config.get('cookiesFromBrowser')),
@@ -380,11 +385,16 @@ export function cycleImmersiveSetting(
 			return `Download format: ${nextFormat.toUpperCase()}`;
 		}
 		case 18: {
+			const next = !(config.get('preferLocalPlayback') ?? true);
+			config.set('preferLocalPlayback', next);
+			return `Prefer local playback: ${formatOnOff(next)}`;
+		}
+		case 19: {
 			const next = nextCookiesFromBrowser(config.get('cookiesFromBrowser'));
 			config.set('cookiesFromBrowser', next);
 			return `Cookies from browser: ${formatCookiesFromBrowserLabel(next)}`;
 		}
-		case 20: {
+		case 21: {
 			const timerService = getSleepTimerService();
 			if (timerService.isActive()) {
 				timerService.cancel();
@@ -403,13 +413,13 @@ export function cycleImmersiveSetting(
 			timerService.start(nextPreset, options.onSleepTimerExpire);
 			return `Sleep timer: ${nextPreset} min`;
 		}
-		case 21:
-			return 'Import Playlists: run youtube-music-cli (standard TUI) for this feature';
 		case 22:
-			return 'Export Playlists: run youtube-music-cli (standard TUI) for this feature';
+			return 'Import Playlists: run youtube-music-cli (standard TUI) for this feature';
 		case 23:
-			return 'Custom Keybindings: run youtube-music-cli (standard TUI) for this feature';
+			return 'Export Playlists: run youtube-music-cli (standard TUI) for this feature';
 		case 24:
+			return 'Custom Keybindings: run youtube-music-cli (standard TUI) for this feature';
+		case 25:
 			return 'Manage Plugins: run youtube-music-cli (standard TUI) for this feature';
 		default:
 			return null;

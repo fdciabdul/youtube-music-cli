@@ -378,7 +378,7 @@ test(
 		const overlay = createSettingsOverlayState();
 		openSettingsOverlay(overlay);
 		expect(overlay.active).toBe(true);
-		expect(SETTINGS_ROW_COUNT).toBe(25);
+		expect(SETTINGS_ROW_COUNT).toBe(26);
 
 		expect(handleSettingsInput(overlay, 'down', SETTINGS_ROW_COUNT)).toBe(
 			'none',
@@ -391,7 +391,7 @@ test(
 		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
 			'begin_text',
 		);
-		overlay.selectedIndex = 21;
+		overlay.selectedIndex = 22;
 		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
 			'navigate',
 		);
@@ -420,10 +420,11 @@ test(
 		const sleepTimer = createSleepTimerState();
 		const rows = buildImmersiveSettingsRows(config);
 
-		expect(rows.length).toBe(25);
+		expect(rows.length).toBe(26);
 		expect(rows[0]?.label.includes('Stream Quality')).toBe(true);
-		expect(rows[20]?.label.includes('Sleep Timer')).toBe(true);
-		expect(rows[24]?.label.includes('Manage Plugins')).toBe(true);
+		expect(rows[18]?.label.includes('Prefer Local')).toBe(true);
+		expect(rows[21]?.label.includes('Sleep Timer')).toBe(true);
+		expect(rows[25]?.label.includes('Manage Plugins')).toBe(true);
 
 		const message = cycleImmersiveSetting(config, 6, {
 			sleepTimer,

@@ -25,7 +25,11 @@ if ($FromNpm) {
 	Install-FromPackageManager
 }
 
-$AssetName = 'youtube-music-cli.exe'
+# Prefer platform-specific asset; fall back to legacy name.
+$AssetCandidates = @(
+	'youtube-music-cli-windows-x64.exe',
+	'youtube-music-cli.exe'
+)
 $DestExe = Join-Path $BinDir 'youtube-music-cli.exe'
 $DestYmc = Join-Path $BinDir 'ymc.exe'
 
@@ -35,9 +39,14 @@ try {
 		'User-Agent' = 'youtube-music-cli-install'
 		'Accept'     = 'application/vnd.github+json'
 	}
-	$asset = $release.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
+
+	$asset = $null
+	foreach ($name in $AssetCandidates) {
+		$asset = $release.assets | Where-Object { $_.name -eq $name } | Select-Object -First 1
+		if ($asset) { break }
+	}
 	if (-not $asset) {
-		throw "Release asset '$AssetName' not found on latest release."
+		throw "No Windows release binary found (tried: $($AssetCandidates -join ', '))."
 	}
 
 	if (-not (Test-Path $BinDir)) {

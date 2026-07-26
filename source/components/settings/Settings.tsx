@@ -51,6 +51,7 @@ const SETTINGS_ITEMS = [
 	'Downloads Enabled',
 	'Download Folder',
 	'Download Format',
+	'Prefer Local Playback',
 	'Cookies From Browser',
 	'Cookies File',
 	'Sleep Timer',
@@ -98,6 +99,9 @@ export default function Settings() {
 	);
 	const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>(
 		config.get('downloadFormat') ?? 'mp3',
+	);
+	const [preferLocalPlayback, setPreferLocalPlayback] = useState(
+		config.get('preferLocalPlayback') ?? true,
 	);
 	const [cookiesFromBrowser, setCookiesFromBrowser] = useState<
 		CookiesFromBrowser | undefined
@@ -243,6 +247,12 @@ export default function Settings() {
 		config.set('downloadFormat', nextFormat);
 	};
 
+	const togglePreferLocalPlayback = () => {
+		const next = !preferLocalPlayback;
+		setPreferLocalPlayback(next);
+		config.set('preferLocalPlayback', next);
+	};
+
 	const cycleCookiesFromBrowser = () => {
 		const next = nextCookiesFromBrowser(cookiesFromBrowser);
 		setCookiesFromBrowser(next);
@@ -340,18 +350,20 @@ export default function Settings() {
 		} else if (selectedIndex === 17) {
 			cycleDownloadFormat();
 		} else if (selectedIndex === 18) {
-			cycleCookiesFromBrowser();
+			togglePreferLocalPlayback();
 		} else if (selectedIndex === 19) {
-			setIsEditingCookiesFile(true);
+			cycleCookiesFromBrowser();
 		} else if (selectedIndex === 20) {
-			cycleSleepTimer();
+			setIsEditingCookiesFile(true);
 		} else if (selectedIndex === 21) {
-			dispatch({category: 'NAVIGATE', view: VIEW.IMPORT});
+			cycleSleepTimer();
 		} else if (selectedIndex === 22) {
-			dispatch({category: 'NAVIGATE', view: VIEW.EXPORT_PLAYLISTS});
+			dispatch({category: 'NAVIGATE', view: VIEW.IMPORT});
 		} else if (selectedIndex === 23) {
-			dispatch({category: 'NAVIGATE', view: VIEW.KEYBINDINGS});
+			dispatch({category: 'NAVIGATE', view: VIEW.EXPORT_PLAYLISTS});
 		} else if (selectedIndex === 24) {
+			dispatch({category: 'NAVIGATE', view: VIEW.KEYBINDINGS});
+		} else if (selectedIndex === 25) {
 			dispatch({category: 'NAVIGATE', view: VIEW.PLUGINS});
 		}
 	};
@@ -723,7 +735,7 @@ export default function Settings() {
 				</Text>
 			</Box>
 
-			{/* Cookies From Browser */}
+			{/* Prefer Local Playback */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -734,6 +746,21 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 18}
 				>
+					Prefer Local Playback: {preferLocalPlayback ? 'ON' : 'OFF'}
+				</Text>
+			</Box>
+
+			{/* Cookies From Browser */}
+			<Box paddingX={1}>
+				<Text
+					backgroundColor={
+						selectedIndex === 19 ? theme.colors.primary : undefined
+					}
+					color={
+						selectedIndex === 19 ? theme.colors.background : theme.colors.text
+					}
+					bold={selectedIndex === 19}
+				>
 					Cookies From Browser:{' '}
 					{formatCookiesFromBrowserLabel(cookiesFromBrowser)}
 				</Text>
@@ -741,7 +768,7 @@ export default function Settings() {
 
 			{/* Cookies File */}
 			<Box paddingX={1}>
-				{isEditingCookiesFile && selectedIndex === 19 ? (
+				{isEditingCookiesFile && selectedIndex === 20 ? (
 					<TextInput
 						value={cookiesFile}
 						onChange={setCookiesFile}
@@ -757,12 +784,12 @@ export default function Settings() {
 				) : (
 					<Text
 						backgroundColor={
-							selectedIndex === 19 ? theme.colors.primary : undefined
+							selectedIndex === 20 ? theme.colors.primary : undefined
 						}
 						color={
-							selectedIndex === 19 ? theme.colors.background : theme.colors.text
+							selectedIndex === 20 ? theme.colors.background : theme.colors.text
 						}
-						bold={selectedIndex === 19}
+						bold={selectedIndex === 20}
 					>
 						Cookies File: {cookiesFile.trim() || '(not set)'}
 					</Text>
@@ -773,37 +800,22 @@ export default function Settings() {
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
-						selectedIndex === 20 ? theme.colors.primary : undefined
+						selectedIndex === 21 ? theme.colors.primary : undefined
 					}
 					color={
-						selectedIndex === 20
+						selectedIndex === 21
 							? theme.colors.background
 							: isActive
 								? theme.colors.accent
 								: theme.colors.text
 					}
-					bold={selectedIndex === 20}
+					bold={selectedIndex === 21}
 				>
 					{sleepTimerLabel}
 				</Text>
 			</Box>
 
 			{/* Import Playlists */}
-			<Box paddingX={1}>
-				<Text
-					backgroundColor={
-						selectedIndex === 21 ? theme.colors.primary : undefined
-					}
-					color={
-						selectedIndex === 21 ? theme.colors.background : theme.colors.text
-					}
-					bold={selectedIndex === 21}
-				>
-					Import Playlists →
-				</Text>
-			</Box>
-
-			{/* Export Playlists */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -814,11 +826,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 22}
 				>
-					Export Playlists →
+					Import Playlists →
 				</Text>
 			</Box>
 
-			{/* Custom Keybindings */}
+			{/* Export Playlists */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -829,11 +841,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 23}
 				>
-					Custom Keybindings →
+					Export Playlists →
 				</Text>
 			</Box>
 
-			{/* Manage Plugins */}
+			{/* Custom Keybindings */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -843,6 +855,21 @@ export default function Settings() {
 						selectedIndex === 24 ? theme.colors.background : theme.colors.text
 					}
 					bold={selectedIndex === 24}
+				>
+					Custom Keybindings →
+				</Text>
+			</Box>
+
+			{/* Manage Plugins */}
+			<Box paddingX={1}>
+				<Text
+					backgroundColor={
+						selectedIndex === 25 ? theme.colors.primary : undefined
+					}
+					color={
+						selectedIndex === 25 ? theme.colors.background : theme.colors.text
+					}
+					bold={selectedIndex === 25}
 				>
 					Manage Plugins →
 				</Text>
