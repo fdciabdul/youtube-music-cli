@@ -1,7 +1,18 @@
+## [0.1.1](https://github.com/involvex/youtube-music-cli/compare/v0.1.0...v0.1.1) (2026-07-27)
+
+### Features
+
+- cookies, stats share, log rotation, history, and bun tests ([68608df](https://github.com/involvex/youtube-music-cli/commit/68608df2235c4730babdaa648fcb8ddfce6ba4c3))
+- local-play settings, videoId filenames, and multi-arch releases ([9f6eac2](https://github.com/involvex/youtube-music-cli/commit/9f6eac2f5fd86335276f262b1f835dda44301ace))
+- prefer local downloads and clean agent/install tooling ([bc37062](https://github.com/involvex/youtube-music-cli/commit/bc370622f4599686818d4ddd826dce52627e2662))
+- show Local media source and document release assets ([def7129](https://github.com/involvex/youtube-music-cli/commit/def71299268bd8ecac9aa9e26e0e0713a24cd407))
+- **web:** add favorites with heart toggle and play random ([6091a45](https://github.com/involvex/youtube-music-cli/commit/6091a456d5a0186ed1928e86a2078e2b7f655a1f))
+
 # [0.1.0](https://github.com/involvex/youtube-music-cli/compare/v0.0.100...v0.1.0) (2026-07-25)
 
 ### Bug Fixes
 
+- **release:** align react version with npm overrides for publish ([d00f9f2](https://github.com/involvex/youtube-music-cli/commit/d00f9f2a5ec2e4fdf021735482ac1c5260f6f82a))
 - **web:** align react and react-dom to 19.2.8 ([24b2994](https://github.com/involvex/youtube-music-cli/commit/24b2994a2c254963e12e21549ec86236c89f9338))
 - **web:** ship dist/web with build and resolve static path ([2101684](https://github.com/involvex/youtube-music-cli/commit/2101684d60aced734ac55b80d7a31d4e8bcc5c9c))
 
