@@ -20,6 +20,7 @@ import {
 	loadSearchStations,
 	flattenRadioStations,
 } from '../radio-stations/radio-stations.service.ts';
+import {getFavoritesManager} from '../favorites/favorites.service.ts';
 
 class WebServerManager {
 	private config: WebServerConfig;
@@ -123,6 +124,8 @@ class WebServerManager {
 				onConfigUpdate: this.handleConfigUpdate.bind(this),
 				onLiveStreamsRequest: this.handleLiveStreamsRequest.bind(this),
 				onRadioSearchRequest: this.handleRadioSearchRequest.bind(this),
+				onFavoritesRequest: this.handleFavoritesRequest.bind(this),
+				onFavoritesToggle: this.handleFavoritesToggle.bind(this),
 			});
 
 			this.isRunning = true;
@@ -562,6 +565,52 @@ class WebServerManager {
 				'RADIO_SEARCH_FAILED',
 			);
 		}
+	}
+
+	/**
+	 * Broadcast the current favorites list to web clients
+	 */
+	private async broadcastFavoritesList(): Promise<void> {
+		const favorites = getFavoritesManager();
+		await favorites.ensureLoaded();
+		const streamingService = getWebStreamingService();
+		streamingService.broadcast({
+			type: 'favorites-list',
+			tracks: favorites.getAllTracks(),
+		});
+	}
+
+	/**
+	 * Handle favorites list request from web client
+	 */
+	private handleFavoritesRequest(): void {
+		void this.broadcastFavoritesList().catch(error => {
+			logger.error('WebServerManager', 'Favorites request failed', {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		});
+	}
+
+	/**
+	 * Handle favorite toggle (add/remove) from web client
+	 */
+	private handleFavoritesToggle(track: Track): void {
+		void (async () => {
+			try {
+				const favorites = getFavoritesManager();
+				await favorites.toggle(track);
+				await this.broadcastFavoritesList();
+			} catch (error) {
+				logger.error('WebServerManager', 'Favorites toggle failed', {
+					videoId: track.videoId,
+					error: error instanceof Error ? error.message : String(error),
+				});
+				getWebStreamingService().sendError(
+					'Failed to update favorites. Please try again.',
+					'FAVORITES_TOGGLE_FAILED',
+				);
+			}
+		})();
 	}
 
 	/**

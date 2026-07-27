@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {Heart} from 'lucide-react';
 import {useWebSocket} from './hooks/useWebSocket';
 import {
 	usePlayerStore,
@@ -9,6 +10,7 @@ import AppShell from './components/shell/AppShell';
 import type {AppView} from './components/shell/Nav';
 import NowPlaying from './components/player/NowPlaying';
 import LiveView from './components/live/LiveView';
+import FavoritesView from './components/favorites/FavoritesView';
 import ProgressBar from './components/ProgressBar';
 import type {
 	ServerMessage,
@@ -28,6 +30,7 @@ function App() {
 	const [liveStations, setLiveStations] = useState<RadioStation[]>([]);
 	const [radioResults, setRadioResults] = useState<RadioStation[]>([]);
 	const [isSearchingRadio, setIsSearchingRadio] = useState(false);
+	const [favorites, setFavorites] = useState<Track[]>([]);
 
 	const currentTrack = usePlayerStore(
 		(state: PlayerStore) => state.currentTrack,
@@ -73,6 +76,8 @@ function App() {
 				) {
 					setIsSearchingRadio(false);
 					setRadioResults(message.stations);
+				} else if (message.type === 'favorites-list' && message.tracks) {
+					setFavorites(message.tracks);
 				}
 			},
 		},
@@ -85,6 +90,12 @@ function App() {
 			}
 		});
 	}, [send]);
+
+	useEffect(() => {
+		if (isConnected) {
+			send({type: 'favorites-request'});
+		}
+	}, [isConnected, send]);
 
 	useEffect(() => {
 		const playIcon = isPlaying ? '▶ ' : '⏸ ';
@@ -130,6 +141,33 @@ function App() {
 	const handlePlayStation = (station: RadioStation) => {
 		sendCommand({category: 'PLAY_STREAM', station});
 	};
+
+	const handleRequestFavorites = () => {
+		send({type: 'favorites-request'});
+	};
+
+	const handleToggleFavorite = (track: Track) => {
+		send({type: 'favorites-toggle', track});
+	};
+
+	const handlePlayRandomFavorite = () => {
+		if (favorites.length === 0) {
+			return;
+		}
+		const start = Math.floor(Math.random() * favorites.length);
+		const rotated = [...favorites.slice(start), ...favorites.slice(0, start)];
+		const first = rotated[0];
+		if (!first) {
+			return;
+		}
+		sendCommand({category: 'SET_QUEUE', queue: rotated});
+		sendCommand({category: 'PLAY', track: first});
+	};
+
+	const isCurrentFavorite = Boolean(
+		currentTrack &&
+		favorites.some(track => track.videoId === currentTrack.videoId),
+	);
 
 	const transport = {
 		isPlaying,
@@ -185,6 +223,13 @@ function App() {
 								playbackMode={playbackMode}
 								station={currentStation}
 								streamNowPlaying={streamNowPlaying}
+								isFavorite={isCurrentFavorite}
+								isConnected={isConnected}
+								onToggleFavorite={
+									currentTrack
+										? () => handleToggleFavorite(currentTrack)
+										: undefined
+								}
 							/>
 							{playbackMode !== 'stream' && (
 								<ProgressBar
@@ -216,6 +261,24 @@ function App() {
 					onPlayStation={handlePlayStation}
 					onRequestLiveStreams={handleRequestLiveStreams}
 					onSearchRadio={handleSearchRadio}
+				/>
+			)}
+
+			{currentView === 'favorites' && (
+				<FavoritesView
+					favorites={favorites}
+					isConnected={isConnected}
+					currentTrack={currentTrack}
+					isPlaying={isPlaying}
+					onRequestFavorites={handleRequestFavorites}
+					onToggleFavorite={handleToggleFavorite}
+					onPlayTrack={track => sendCommand({category: 'PLAY', track})}
+					onPlayRandom={handlePlayRandomFavorite}
+					onAddCurrent={() => {
+						if (currentTrack) {
+							handleToggleFavorite(currentTrack);
+						}
+					}}
 				/>
 			)}
 
@@ -289,6 +352,34 @@ function App() {
 											}
 										>
 											+ Queue
+										</button>
+										<button
+											type="button"
+											className={`secondary heart-btn${
+												favorites.some(f => f.videoId === track.videoId)
+													? ' heart-btn--active'
+													: ''
+											}`}
+											aria-label={
+												favorites.some(f => f.videoId === track.videoId)
+													? 'Remove from favorites'
+													: 'Add to favorites'
+											}
+											aria-pressed={favorites.some(
+												f => f.videoId === track.videoId,
+											)}
+											disabled={!isConnected}
+											onClick={() => handleToggleFavorite(track)}
+										>
+											<Heart
+												size={16}
+												fill={
+													favorites.some(f => f.videoId === track.videoId)
+														? 'currentColor'
+														: 'none'
+												}
+												aria-hidden
+											/>
 										</button>
 									</div>
 								</div>

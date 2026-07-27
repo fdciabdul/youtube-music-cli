@@ -1,4 +1,4 @@
-import {Radio} from 'lucide-react';
+import {Heart, Radio} from 'lucide-react';
 import type {Artist, RadioStation, StreamNowPlaying, Track} from '../../types';
 
 interface NowPlayingProps {
@@ -8,6 +8,9 @@ interface NowPlayingProps {
 	playbackMode?: 'youtube' | 'stream';
 	station?: RadioStation | null;
 	streamNowPlaying?: StreamNowPlaying | null;
+	isFavorite?: boolean;
+	onToggleFavorite?: () => void;
+	isConnected?: boolean;
 }
 
 export default function NowPlaying({
@@ -17,6 +20,9 @@ export default function NowPlaying({
 	playbackMode,
 	station,
 	streamNowPlaying,
+	isFavorite = false,
+	onToggleFavorite,
+	isConnected = false,
 }: NowPlayingProps) {
 	if (playbackMode === 'stream' && station) {
 		const title = streamNowPlaying?.title || station.name;
@@ -65,7 +71,27 @@ export default function NowPlaying({
 				{isPlaying ? 'Now Playing' : 'Paused'}
 				{autoplay ? ' · Radio' : ''}
 			</div>
-			<h2 className="now-playing__title">{track.title}</h2>
+			<div className="now-playing__title-row">
+				<h2 className="now-playing__title">{track.title}</h2>
+				{onToggleFavorite && (
+					<button
+						type="button"
+						className={`heart-btn${isFavorite ? ' heart-btn--active' : ''}`}
+						disabled={!isConnected}
+						aria-label={
+							isFavorite ? 'Remove from favorites' : 'Add to favorites'
+						}
+						aria-pressed={isFavorite}
+						onClick={onToggleFavorite}
+					>
+						<Heart
+							size={22}
+							fill={isFavorite ? 'currentColor' : 'none'}
+							aria-hidden
+						/>
+					</button>
+				)}
+			</div>
 			<p className="now-playing__artists">{artists}</p>
 			{track.album && <p className="now-playing__album">{track.album.name}</p>}
 		</div>

@@ -16,7 +16,8 @@ export type ServerMessage =
 	| SearchResultsMessage
 	| ConfigUpdateMessage
 	| LiveStreamsListMessage
-	| RadioSearchResultsMessage;
+	| RadioSearchResultsMessage
+	| FavoritesListMessage;
 
 /** Player state update message */
 export interface StateUpdateMessage {
@@ -88,6 +89,12 @@ export interface RadioSearchResultsMessage {
 	stations: RadioStation[];
 }
 
+/** Favorites list message */
+export interface FavoritesListMessage {
+	type: 'favorites-list';
+	tracks: Track[];
+}
+
 /** WebSocket client message types */
 export type ClientMessage =
 	| CommandMessage
@@ -96,7 +103,9 @@ export type ClientMessage =
 	| SearchRequestMessage
 	| ConfigUpdateRequestMessage
 	| LiveStreamsRequestMessage
-	| RadioSearchRequestMessage;
+	| RadioSearchRequestMessage
+	| FavoritesRequestMessage
+	| FavoritesToggleMessage;
 
 /** Command message from client */
 export interface CommandMessage {
@@ -141,6 +150,17 @@ export interface RadioSearchRequestMessage {
 	type: 'radio-search-request';
 	query: string;
 	countrycode?: string;
+}
+
+/** Favorites list request from client */
+export interface FavoritesRequestMessage {
+	type: 'favorites-request';
+}
+
+/** Toggle (add/remove) a track in favorites */
+export interface FavoritesToggleMessage {
+	type: 'favorites-toggle';
+	track: Track;
 }
 
 /** Configuration interface */

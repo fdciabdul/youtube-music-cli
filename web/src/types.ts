@@ -142,7 +142,8 @@ export interface ServerMessage {
 		| 'search-results'
 		| 'config-update'
 		| 'live-streams-list'
-		| 'radio-search-results';
+		| 'radio-search-results'
+		| 'favorites-list';
 	state?: Partial<PlayerState>;
 	event?: string;
 	data?: unknown;
@@ -150,6 +151,7 @@ export interface ServerMessage {
 	results?: SearchResult[];
 	config?: Partial<Config>;
 	stations?: RadioStation[];
+	tracks?: Track[];
 }
 
 export interface ClientMessage {
@@ -159,13 +161,16 @@ export interface ClientMessage {
 		| 'search-request'
 		| 'config-update'
 		| 'live-streams-request'
-		| 'radio-search-request';
+		| 'radio-search-request'
+		| 'favorites-request'
+		| 'favorites-toggle';
 	action?: PlayerAction;
 	token?: string;
 	query?: string;
 	searchType?: 'all' | 'songs' | 'artists' | 'albums' | 'playlists';
 	config?: Partial<Config>;
 	countrycode?: string;
+	track?: Track;
 }
 
 export interface Config {
