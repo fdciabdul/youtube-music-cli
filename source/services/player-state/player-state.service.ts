@@ -6,6 +6,11 @@ import {CONFIG_DIR} from '../../utils/constants.ts';
 import {formatError, formatErrorData} from '../../utils/error.ts';
 import {logger} from '../logger/logger.service.ts';
 import type {Track} from '../../types/youtube-music.types.ts';
+import type {
+	PlaybackMode,
+	RadioStation,
+} from '../../types/radio-station.types.ts';
+import type {RadioSeed} from '../../types/radio.types.ts';
 
 const STATE_FILE = join(CONFIG_DIR, 'player-state.json');
 const SCHEMA_VERSION = 1;
@@ -22,6 +27,12 @@ export interface PersistedPlayerState {
 	autoplay?: boolean;
 	sessionHistory?: string[];
 	explicitQueueLength?: number;
+	/** Whether playback was a YouTube track or a live/radio stream. */
+	playbackMode?: PlaybackMode;
+	/** Live/radio station being played, when playbackMode is 'stream'. */
+	currentStation?: RadioStation | null;
+	radioIsActive?: boolean;
+	radioSeed?: RadioSeed | null;
 	lastUpdated: string; // ISO timestamp
 }
 
@@ -35,6 +46,10 @@ const defaultState: PersistedPlayerState = {
 	shuffle: false,
 	repeat: 'off',
 	autoplay: true,
+	playbackMode: 'youtube',
+	currentStation: null,
+	radioIsActive: false,
+	radioSeed: null,
 	lastUpdated: new Date().toISOString(),
 };
 

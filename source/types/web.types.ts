@@ -3,6 +3,7 @@
 import type {PlayerAction, PlayerState} from './player.types.ts';
 import type {ImportProgress, ImportResult} from './import.types.ts';
 import type {Track, Album, Artist, Playlist} from './youtube-music.types.ts';
+import type {RadioStation} from './radio-station.types.ts';
 
 /** WebSocket server message types */
 export type ServerMessage =
@@ -13,7 +14,9 @@ export type ServerMessage =
 	| ImportProgressMessage
 	| ImportResultMessage
 	| SearchResultsMessage
-	| ConfigUpdateMessage;
+	| ConfigUpdateMessage
+	| LiveStreamsListMessage
+	| RadioSearchResultsMessage;
 
 /** Player state update message */
 export interface StateUpdateMessage {
@@ -73,13 +76,27 @@ export interface ConfigUpdateMessage {
 	config: Partial<Config>;
 }
 
+/** Live/radio stream catalog message */
+export interface LiveStreamsListMessage {
+	type: 'live-streams-list';
+	stations: RadioStation[];
+}
+
+/** Radio station search/browse results message */
+export interface RadioSearchResultsMessage {
+	type: 'radio-search-results';
+	stations: RadioStation[];
+}
+
 /** WebSocket client message types */
 export type ClientMessage =
 	| CommandMessage
 	| AuthRequestMessage
 	| ImportRequestMessage
 	| SearchRequestMessage
-	| ConfigUpdateRequestMessage;
+	| ConfigUpdateRequestMessage
+	| LiveStreamsRequestMessage
+	| RadioSearchRequestMessage;
 
 /** Command message from client */
 export interface CommandMessage {
@@ -112,6 +129,18 @@ export interface SearchRequestMessage {
 export interface ConfigUpdateRequestMessage {
 	type: 'config-update';
 	config: Partial<Config>;
+}
+
+/** Live/radio stream catalog request from client */
+export interface LiveStreamsRequestMessage {
+	type: 'live-streams-request';
+}
+
+/** Radio station search/browse request from client */
+export interface RadioSearchRequestMessage {
+	type: 'radio-search-request';
+	query: string;
+	countrycode?: string;
 }
 
 /** Configuration interface */

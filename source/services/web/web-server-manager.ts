@@ -10,6 +10,16 @@ import {getSearchService} from '../youtube-music/search.service.ts';
 import {logger} from '../logger/logger.service.ts';
 import {resolveTrackPlayUrl} from '../../utils/local-track.ts';
 import type {Track} from '../../types/youtube-music.types.ts';
+import type {RadioStation} from '../../types/radio-station.types.ts';
+import {
+	getLiveStreams,
+	toRadioStation,
+} from '../live-streams/live-streams.service.ts';
+import {
+	loadBrowseStations,
+	loadSearchStations,
+	flattenRadioStations,
+} from '../radio-stations/radio-stations.service.ts';
 
 class WebServerManager {
 	private config: WebServerConfig;
@@ -111,6 +121,8 @@ class WebServerManager {
 				onImportRequest: this.handleImportRequest.bind(this),
 				onSearchRequest: this.handleSearchRequest.bind(this),
 				onConfigUpdate: this.handleConfigUpdate.bind(this),
+				onLiveStreamsRequest: this.handleLiveStreamsRequest.bind(this),
+				onRadioSearchRequest: this.handleRadioSearchRequest.bind(this),
 			});
 
 			this.isRunning = true;
@@ -225,8 +237,42 @@ class WebServerManager {
 				this.internalState.isPlaying = false;
 				this.internalState.progress = 0;
 				this.internalState.currentTrack = null;
+				this.internalState.playbackMode = 'youtube';
+				this.internalState.currentStation = null;
+				this.internalState.streamNowPlaying = null;
 				playerService.stop();
 				break;
+			case 'PLAY_STREAM': {
+				if (action.station) {
+					const station = action.station;
+					this.internalState.playbackMode = 'stream';
+					this.internalState.currentStation = station;
+					this.internalState.streamNowPlaying = null;
+					this.internalState.mediaSource = null;
+					this.internalState.currentTrack = null;
+					this.internalState.queue = [];
+					this.internalState.queuePosition = 0;
+					this.internalState.explicitQueueLength = 0;
+					this.internalState.radioIsActive = false;
+					this.internalState.autoplay = false;
+					this.internalState.isPlaying = true;
+					this.internalState.progress = 0;
+					this.internalState.error = null;
+
+					const config = getConfigService();
+					void playerService.play(station.streamUrl, {
+						volume: this.internalState.volume,
+						trackId: station.id,
+						audioNormalization: config.get('audioNormalization') ?? false,
+						proxy: config.get('proxy'),
+						gaplessPlayback: config.get('gaplessPlayback') ?? true,
+						crossfadeDuration: config.get('crossfadeDuration') ?? 0,
+						equalizerPreset: config.get('equalizerPreset') ?? 'flat',
+						volumeFadeDuration: config.get('volumeFadeDuration') ?? 0,
+					});
+				}
+				break;
+			}
 			case 'NEXT': {
 				if (this.internalState.queue.length === 0) break;
 
@@ -456,6 +502,65 @@ class WebServerManager {
 				searchType,
 				error: error instanceof Error ? error.message : String(error),
 			});
+		}
+	}
+
+	/**
+	 * Handle live streams list request from web client
+	 */
+	private handleLiveStreamsRequest(): void {
+		try {
+			const stations: RadioStation[] = getLiveStreams().map(entry =>
+				toRadioStation(entry),
+			);
+
+			const streamingService = getWebStreamingService();
+			streamingService.broadcast({
+				type: 'live-streams-list',
+				stations,
+			});
+		} catch (error) {
+			logger.error('WebServerManager', 'Live streams request failed', {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+
+	/**
+	 * Handle radio station search/browse request from web client
+	 */
+	private async handleRadioSearchRequest(
+		query: string,
+		countrycode?: string,
+	): Promise<void> {
+		logger.info('WebServerManager', 'Radio search request from client', {
+			query,
+			countrycode,
+		});
+
+		try {
+			const list = query.trim()
+				? await loadSearchStations(query)
+				: await loadBrowseStations({countrycode});
+			const stations = flattenRadioStations(list);
+
+			const streamingService = getWebStreamingService();
+			streamingService.broadcast({
+				type: 'radio-search-results',
+				stations,
+			});
+		} catch (error) {
+			logger.error('WebServerManager', 'Radio search failed', {
+				query,
+				countrycode,
+				error: error instanceof Error ? error.message : String(error),
+			});
+
+			const streamingService = getWebStreamingService();
+			streamingService.sendError(
+				'Radio station search failed. Please try again.',
+				'RADIO_SEARCH_FAILED',
+			);
 		}
 	}
 

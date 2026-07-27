@@ -75,15 +75,18 @@ function Initializer({flags}: {flags?: Flags}) {
 			});
 		} else if (flags?.continue) {
 			void loadPlayerState().then(persistedState => {
-				if (!persistedState?.currentTrack) {
+				const hasTrack = Boolean(persistedState?.currentTrack);
+				const hasStation = Boolean(persistedState?.currentStation);
+
+				if (!persistedState || (!hasTrack && !hasStation)) {
 					getNotificationService().notify(
 						'No previous playback to resume',
-						'Play a track first',
+						'Play a track, radio station, or live stream first',
 					);
 					return;
 				}
 
-				// Restore the queue and start playback
+				// Restore the queue/station and start playback
 				playerDispatch({
 					category: 'RESTORE_STATE',
 					currentTrack: persistedState.currentTrack,
@@ -94,11 +97,17 @@ function Initializer({flags}: {flags?: Flags}) {
 					shuffle: persistedState.shuffle,
 					repeat: persistedState.repeat,
 					autoplay: true,
+					playbackMode: persistedState.playbackMode ?? 'youtube',
+					currentStation: persistedState.currentStation ?? null,
+					radioIsActive: persistedState.radioIsActive ?? false,
+					radioSeed: persistedState.radioSeed ?? null,
 				});
 
 				getNotificationService().notify(
 					'Resuming playback',
-					persistedState.currentTrack?.title ?? 'Unknown',
+					hasTrack
+						? (persistedState.currentTrack?.title ?? 'Unknown')
+						: (persistedState.currentStation?.name ?? 'Unknown station'),
 				);
 			});
 		}
@@ -116,7 +125,7 @@ function Initializer({flags}: {flags?: Flags}) {
 }
 
 function HeadlessLayout({flags}: {flags?: Flags}) {
-	const {play, pause, resume, next, previous} = usePlayer();
+	const {play, pause, resume, next, previous, playStream} = usePlayer();
 	const {getTrack, getPlaylist, search} = useYouTubeMusic();
 
 	useEffect(() => {
@@ -177,6 +186,13 @@ function HeadlessLayout({flags}: {flags?: Flags}) {
 
 			if (flags?.continue) {
 				const persistedState = await loadPlayerState();
+				if (persistedState?.currentStation) {
+					const station = persistedState.currentStation;
+					playStream(station);
+					console.log(`Resuming stream: ${station.name}`);
+					return;
+				}
+
 				if (!persistedState?.currentTrack) {
 					console.error('No previous playback to resume');
 					process.exitCode = 1;
@@ -203,6 +219,7 @@ function HeadlessLayout({flags}: {flags?: Flags}) {
 	}, [
 		flags,
 		play,
+		playStream,
 		pause,
 		resume,
 		next,

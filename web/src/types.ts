@@ -25,6 +25,40 @@ export interface Playlist {
 	tracks: Track[];
 }
 
+export interface RadioStation {
+	id: string;
+	name: string;
+	streamUrl: string;
+	region?: string;
+	genre?: string;
+	source?: 'builtin' | 'radio-browser' | 'live-catalog';
+	stationuuid?: string;
+}
+
+export interface StreamNowPlaying {
+	title: string | null;
+	artist: string | null;
+	raw: string | null;
+}
+
+export type PlaybackMode = 'youtube' | 'stream';
+
+export type RadioCountryOption = {
+	code: string;
+	label: string;
+};
+
+export const RADIO_COUNTRY_OPTIONS: readonly RadioCountryOption[] = [
+	{code: 'DE', label: 'Germany'},
+	{code: 'AT', label: 'Austria'},
+	{code: 'CH', label: 'Switzerland'},
+	{code: 'US', label: 'United States'},
+	{code: 'GB', label: 'United Kingdom'},
+	{code: 'FR', label: 'France'},
+	{code: 'NL', label: 'Netherlands'},
+	{code: 'ALL', label: 'All countries'},
+] as const;
+
 export interface PlayerState {
 	currentTrack: Track | null;
 	isPlaying: boolean;
@@ -39,6 +73,12 @@ export interface PlayerState {
 	autoplay: boolean;
 	isLoading: boolean;
 	error: string | null;
+	playbackMode?: PlaybackMode;
+	currentStation?: RadioStation | null;
+	streamNowPlaying?: StreamNowPlaying | null;
+	mediaSource?: 'local' | 'youtube' | null;
+	radioIsActive?: boolean;
+	explicitQueueLength?: number;
 }
 
 export interface PlayerAction {
@@ -69,7 +109,8 @@ export interface PlayerAction {
 		| 'SET_LOADING'
 		| 'SET_ERROR'
 		| 'RESTORE_STATE'
-		| 'SET_SPEED';
+		| 'SET_SPEED'
+		| 'PLAY_STREAM';
 	track?: Track;
 	position?: number;
 	volume?: number;
@@ -84,6 +125,7 @@ export interface PlayerAction {
 	queuePosition?: number;
 	shuffle?: boolean;
 	repeat?: 'off' | 'all' | 'one';
+	station?: RadioStation;
 }
 
 export interface SearchResult {
@@ -98,22 +140,32 @@ export interface ServerMessage {
 		| 'error'
 		| 'auth'
 		| 'search-results'
-		| 'config-update';
+		| 'config-update'
+		| 'live-streams-list'
+		| 'radio-search-results';
 	state?: Partial<PlayerState>;
 	event?: string;
 	data?: unknown;
 	error?: string;
 	results?: SearchResult[];
 	config?: Partial<Config>;
+	stations?: RadioStation[];
 }
 
 export interface ClientMessage {
-	type: 'command' | 'auth-request' | 'search-request' | 'config-update';
+	type:
+		| 'command'
+		| 'auth-request'
+		| 'search-request'
+		| 'config-update'
+		| 'live-streams-request'
+		| 'radio-search-request';
 	action?: PlayerAction;
 	token?: string;
 	query?: string;
 	searchType?: 'all' | 'songs' | 'artists' | 'albums' | 'playlists';
 	config?: Partial<Config>;
+	countrycode?: string;
 }
 
 export interface Config {

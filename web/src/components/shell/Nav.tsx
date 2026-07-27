@@ -1,10 +1,11 @@
 import {ListMusic, Radio, Search, Settings, Disc3} from 'lucide-react';
 
-export type AppView = 'player' | 'search' | 'queue' | 'settings';
+export type AppView = 'player' | 'search' | 'queue' | 'live' | 'settings';
 
 const NAV_ITEMS: Array<{id: AppView; label: string; icon: typeof Disc3}> = [
 	{id: 'player', label: 'Player', icon: Disc3},
 	{id: 'search', label: 'Search', icon: Search},
+	{id: 'live', label: 'Live', icon: Radio},
 	{id: 'queue', label: 'Queue', icon: ListMusic},
 	{id: 'settings', label: 'Settings', icon: Settings},
 ];
@@ -34,15 +35,6 @@ export default function Nav({currentView, onNavigate, variant}: NavProps) {
 						</button>
 					);
 				})}
-				<button
-					type="button"
-					className="nav-rail__item"
-					disabled
-					title="Coming soon"
-				>
-					<Radio size={18} aria-hidden />
-					Live
-				</button>
 			</nav>
 		);
 	}

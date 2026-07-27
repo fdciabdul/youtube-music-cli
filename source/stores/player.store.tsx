@@ -406,6 +406,8 @@ export function playerReducer(
 			logger.info('PlayerReducer', 'RESTORE_STATE', {
 				hasTrack: !!action.currentTrack,
 				queueLength: action.queue.length,
+				playbackMode: action.playbackMode ?? 'youtube',
+				hasStation: !!action.currentStation,
 			});
 			return {
 				...state,
@@ -418,9 +420,11 @@ export function playerReducer(
 				explicitQueueLength: action.explicitQueueLength ?? action.queue.length,
 				isPlaying: false,
 				abLoop: {a: null, b: null},
-				playbackMode: 'youtube',
-				currentStation: null,
+				playbackMode: action.playbackMode ?? 'youtube',
+				currentStation: action.currentStation ?? null,
 				streamNowPlaying: null,
+				radioIsActive: action.radioIsActive ?? false,
+				radioSeed: action.radioSeed ?? null,
 			};
 
 		default:
@@ -1084,21 +1088,28 @@ function PlayerManager() {
 
 	// Handle play/pause state
 	useEffect(() => {
+		// Identify the currently active media (track or live/radio stream) so
+		// pause/resume works regardless of playback mode.
+		const activeId =
+			state.playbackMode === 'stream'
+				? state.currentStation?.id
+				: state.currentTrack?.videoId;
+
 		if (state.isPlaying) {
-			// Resume only if the same track is already loaded in the player service.
-			// If the track changed, the "handle track changes" effect will call play().
+			// Resume only if the same track/station is already loaded in the player
+			// service. If it changed, the track/stream effects will call play().
 			const currentTrackId = playerService.getCurrentTrackId?.() ?? '';
 			logger.debug('PlayerManager', 'Play/pause effect', {
 				isPlaying: state.isPlaying,
 				currentTrackId,
-				stateVideoId: state.currentTrack?.videoId,
+				activeId,
 			});
-			if (!currentTrackId || state.currentTrack?.videoId === currentTrackId) {
+			if (!currentTrackId || activeId === currentTrackId) {
 				void playerService.resume();
 			} else {
 				logger.debug('PlayerManager', 'Skipping resume', {
 					currentTrackId,
-					stateVideoId: state.currentTrack?.videoId,
+					activeId,
 				});
 			}
 		} else if (
@@ -1108,7 +1119,13 @@ function PlayerManager() {
 			// Reconnect-capable pause — keeps UI and orphan mpv in sync on Windows.
 			void playerService.pause();
 		}
-	}, [state.isPlaying, state.currentTrack, playerService]);
+	}, [
+		state.isPlaying,
+		state.currentTrack,
+		state.playbackMode,
+		state.currentStation,
+		playerService,
+	]);
 
 	// Handle volume changes
 	useEffect(() => {
@@ -1339,6 +1356,8 @@ export function PlayerProvider({children}: {children: ReactNode}) {
 					hasTrack: !!persistedState.currentTrack,
 					queueLength: persistedState.queue.length,
 					progress: persistedState.progress,
+					playbackMode: persistedState.playbackMode ?? 'youtube',
+					hasStation: !!persistedState.currentStation,
 				});
 
 				// Restore all state atomically with single dispatch
@@ -1354,6 +1373,10 @@ export function PlayerProvider({children}: {children: ReactNode}) {
 					repeat: persistedState.repeat,
 					autoplay: persistedState.autoplay ?? true,
 					explicitQueueLength: persistedState.explicitQueueLength,
+					playbackMode: persistedState.playbackMode ?? 'youtube',
+					currentStation: persistedState.currentStation ?? null,
+					radioIsActive: persistedState.radioIsActive ?? false,
+					radioSeed: persistedState.radioSeed ?? null,
 				});
 			}
 		});
@@ -1382,6 +1405,10 @@ export function PlayerProvider({children}: {children: ReactNode}) {
 					autoplay: state.autoplay,
 					sessionHistory: inkSessionHistory,
 					explicitQueueLength: state.explicitQueueLength,
+					playbackMode: state.playbackMode,
+					currentStation: state.currentStation,
+					radioIsActive: state.radioIsActive,
+					radioSeed: state.radioSeed,
 				});
 			},
 			// Debounce progress updates (5s), immediate for track/queue changes
@@ -1403,6 +1430,10 @@ export function PlayerProvider({children}: {children: ReactNode}) {
 		state.repeat,
 		state.autoplay,
 		state.explicitQueueLength,
+		state.playbackMode,
+		state.currentStation,
+		state.radioIsActive,
+		state.radioSeed,
 	]);
 
 	// Save immediately on unmount/quit
@@ -1426,6 +1457,10 @@ export function PlayerProvider({children}: {children: ReactNode}) {
 				autoplay: currentState.autoplay,
 				sessionHistory: inkSessionHistory,
 				explicitQueueLength: currentState.explicitQueueLength,
+				playbackMode: currentState.playbackMode,
+				currentStation: currentState.currentStation,
+				radioIsActive: currentState.radioIsActive,
+				radioSeed: currentState.radioSeed,
 			});
 		};
 

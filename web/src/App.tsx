@@ -8,12 +8,14 @@ import {
 import AppShell from './components/shell/AppShell';
 import type {AppView} from './components/shell/Nav';
 import NowPlaying from './components/player/NowPlaying';
+import LiveView from './components/live/LiveView';
 import ProgressBar from './components/ProgressBar';
 import type {
 	ServerMessage,
 	ClientMessage,
 	Artist,
 	Track,
+	RadioStation,
 	SearchResult,
 	Config,
 } from './types';
@@ -23,6 +25,9 @@ function App() {
 	const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 	const [_config, setConfig] = useState<Config | null>(null);
 	const [currentView, setCurrentView] = useState<AppView>('player');
+	const [liveStations, setLiveStations] = useState<RadioStation[]>([]);
+	const [radioResults, setRadioResults] = useState<RadioStation[]>([]);
+	const [isSearchingRadio, setIsSearchingRadio] = useState(false);
 
 	const currentTrack = usePlayerStore(
 		(state: PlayerStore) => state.currentTrack,
@@ -39,6 +44,15 @@ function App() {
 	const autoplay = usePlayerStore((state: PlayerStore) => state.autoplay);
 	const isLoading = usePlayerStore((state: PlayerStore) => state.isLoading);
 	const volume = usePlayerStore((state: PlayerStore) => state.volume);
+	const playbackMode = usePlayerStore(
+		(state: PlayerStore) => state.playbackMode,
+	);
+	const currentStation = usePlayerStore(
+		(state: PlayerStore) => state.currentStation ?? null,
+	);
+	const streamNowPlaying = usePlayerStore(
+		(state: PlayerStore) => state.streamNowPlaying ?? null,
+	);
 
 	const {send, isConnected, isConnecting} = useWebSocket(
 		`ws://${window.location.host}/ws`,
@@ -51,6 +65,14 @@ function App() {
 					setCurrentView('search');
 				} else if (message.type === 'config-update' && message.config) {
 					setConfig(prev => ({...prev, ...message.config}) as Config);
+				} else if (message.type === 'live-streams-list' && message.stations) {
+					setLiveStations(message.stations);
+				} else if (
+					message.type === 'radio-search-results' &&
+					message.stations
+				) {
+					setIsSearchingRadio(false);
+					setRadioResults(message.stations);
 				}
 			},
 		},
@@ -65,16 +87,19 @@ function App() {
 	}, [send]);
 
 	useEffect(() => {
-		if (currentTrack) {
+		const playIcon = isPlaying ? '▶ ' : '⏸ ';
+		if (playbackMode === 'stream' && currentStation) {
+			const label = streamNowPlaying?.title || currentStation.name;
+			document.title = `${playIcon}${label} — Radio | ymc`;
+		} else if (currentTrack) {
 			const artists = currentTrack.artists
 				.map((a: Artist) => a.name)
 				.join(', ');
-			const playIcon = isPlaying ? '▶ ' : '⏸ ';
 			document.title = `${playIcon}${currentTrack.title} — ${artists} | ymc`;
 		} else {
 			document.title = 'ymc';
 		}
-	}, [currentTrack, isPlaying]);
+	}, [currentTrack, isPlaying, playbackMode, currentStation, streamNowPlaying]);
 
 	const sendCommand = (action: ClientMessage['action']) => {
 		if (action) {
@@ -91,6 +116,19 @@ function App() {
 
 	const handleConfigUpdate = (key: string, value: unknown) => {
 		send({type: 'config-update', config: {[key]: value} as Partial<Config>});
+	};
+
+	const handleRequestLiveStreams = () => {
+		send({type: 'live-streams-request'});
+	};
+
+	const handleSearchRadio = (query: string, countrycode?: string) => {
+		setIsSearchingRadio(true);
+		send({type: 'radio-search-request', query, countrycode});
+	};
+
+	const handlePlayStation = (station: RadioStation) => {
+		sendCommand({category: 'PLAY_STREAM', station});
 	};
 
 	const transport = {
@@ -129,25 +167,32 @@ function App() {
 			transport={transport}
 		>
 			<div className="sr-only" aria-live="polite" aria-atomic="true">
-				{currentTrack
-					? `${isPlaying ? 'Playing' : 'Paused'}: ${currentTrack.title}`
-					: ''}
+				{playbackMode === 'stream' && currentStation
+					? `${isPlaying ? 'Playing' : 'Paused'}: ${currentStation.name}`
+					: currentTrack
+						? `${isPlaying ? 'Playing' : 'Paused'}: ${currentTrack.title}`
+						: ''}
 			</div>
 
 			{(currentView === 'player' || currentView === 'queue') && (
 				<>
-					{currentTrack ? (
+					{currentTrack || (playbackMode === 'stream' && currentStation) ? (
 						<>
 							<NowPlaying
 								track={currentTrack}
 								isPlaying={isPlaying}
 								autoplay={autoplay}
+								playbackMode={playbackMode}
+								station={currentStation}
+								streamNowPlaying={streamNowPlaying}
 							/>
-							<ProgressBar
-								progress={progress}
-								duration={duration}
-								onSeek={position => sendCommand({category: 'SEEK', position})}
-							/>
+							{playbackMode !== 'stream' && (
+								<ProgressBar
+									progress={progress}
+									duration={duration}
+									onSeek={position => sendCommand({category: 'SEEK', position})}
+								/>
+							)}
 						</>
 					) : (
 						<div className="empty-state">
@@ -158,6 +203,20 @@ function App() {
 						</div>
 					)}
 				</>
+			)}
+
+			{currentView === 'live' && (
+				<LiveView
+					liveStations={liveStations}
+					radioResults={radioResults}
+					isConnected={isConnected}
+					isSearching={isSearchingRadio}
+					currentStation={playbackMode === 'stream' ? currentStation : null}
+					isStationPlaying={playbackMode === 'stream' && isPlaying}
+					onPlayStation={handlePlayStation}
+					onRequestLiveStreams={handleRequestLiveStreams}
+					onSearchRadio={handleSearchRadio}
+				/>
 			)}
 
 			{currentView === 'search' && (

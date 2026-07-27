@@ -25,6 +25,8 @@ interface WebSocketServerOptions {
 		searchType: 'all' | 'songs' | 'artists' | 'albums' | 'playlists',
 	) => void;
 	onConfigUpdate?: (config: Record<string, unknown>) => void;
+	onLiveStreamsRequest?: () => void;
+	onRadioSearchRequest?: (query: string, countrycode?: string) => void;
 }
 
 class WebSocketServerClass {
@@ -44,6 +46,8 @@ class WebSocketServerClass {
 		searchType: 'all' | 'songs' | 'artists' | 'albums' | 'playlists',
 	) => void;
 	private onConfigUpdate?: (config: Record<string, unknown>) => void;
+	private onLiveStreamsRequest?: () => void;
+	private onRadioSearchRequest?: (query: string, countrycode?: string) => void;
 
 	constructor() {
 		this.config = {
@@ -65,6 +69,8 @@ class WebSocketServerClass {
 		this.onImportRequest = options.onImportRequest;
 		this.onSearchRequest = options.onSearchRequest;
 		this.onConfigUpdate = options.onConfigUpdate;
+		this.onLiveStreamsRequest = options.onLiveStreamsRequest;
+		this.onRadioSearchRequest = options.onRadioSearchRequest;
 
 		logger.info('WebSocketServer', 'Starting server', {
 			host: this.config.host,
@@ -238,6 +244,18 @@ class WebSocketServerClass {
 			case 'config-update':
 				if (this.onConfigUpdate) {
 					this.onConfigUpdate(message.config as Record<string, unknown>);
+				}
+				break;
+
+			case 'live-streams-request':
+				if (this.onLiveStreamsRequest) {
+					this.onLiveStreamsRequest();
+				}
+				break;
+
+			case 'radio-search-request':
+				if (this.onRadioSearchRequest) {
+					this.onRadioSearchRequest(message.query, message.countrycode);
 				}
 				break;
 

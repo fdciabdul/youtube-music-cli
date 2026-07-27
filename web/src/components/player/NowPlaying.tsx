@@ -1,16 +1,42 @@
-import type {Artist, Track} from '../../types';
+import {Radio} from 'lucide-react';
+import type {Artist, RadioStation, StreamNowPlaying, Track} from '../../types';
 
 interface NowPlayingProps {
 	track: Track | null;
 	isPlaying: boolean;
 	autoplay: boolean;
+	playbackMode?: 'youtube' | 'stream';
+	station?: RadioStation | null;
+	streamNowPlaying?: StreamNowPlaying | null;
 }
 
 export default function NowPlaying({
 	track,
 	isPlaying,
 	autoplay,
+	playbackMode,
+	station,
+	streamNowPlaying,
 }: NowPlayingProps) {
+	if (playbackMode === 'stream' && station) {
+		const title = streamNowPlaying?.title || station.name;
+		const artist = streamNowPlaying?.artist;
+
+		return (
+			<div key={station.id} className="now-playing track-fade-in">
+				<div className="now-playing__art now-playing__art--stream">
+					<Radio size={48} aria-hidden />
+				</div>
+				<div className="now-playing__status">
+					{isPlaying ? 'Live Now' : 'Paused'} · Radio
+				</div>
+				<h2 className="now-playing__title">{title}</h2>
+				<p className="now-playing__artists">{artist || station.name}</p>
+				{station.genre && <p className="now-playing__album">{station.genre}</p>}
+			</div>
+		);
+	}
+
 	if (!track) {
 		return (
 			<div className="now-playing">

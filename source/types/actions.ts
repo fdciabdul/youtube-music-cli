@@ -1,7 +1,7 @@
 // Explicit action type definitions
 import type {SearchFilters, Track} from './youtube-music.types.ts';
 import type {RadioSeed} from './radio.types.ts';
-import type {RadioStation} from './radio-station.types.ts';
+import type {PlaybackMode, RadioStation} from './radio-station.types.ts';
 
 export interface PlayAction {
 	readonly category: 'PLAY';
@@ -135,6 +135,11 @@ export interface RestoreStateAction {
 	repeat: 'off' | 'all' | 'one';
 	autoplay?: boolean;
 	explicitQueueLength?: number;
+	/** Restores live/radio stream playback instead of a YouTube track. */
+	playbackMode?: PlaybackMode;
+	currentStation?: RadioStation | null;
+	radioIsActive?: boolean;
+	radioSeed?: RadioSeed | null;
 }
 
 export interface SetSpeedAction {

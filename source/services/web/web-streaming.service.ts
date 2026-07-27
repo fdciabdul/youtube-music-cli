@@ -197,6 +197,13 @@ class WebStreamingService {
 			'autoplay',
 			'isLoading',
 			'error',
+			'playbackMode',
+			'currentStation',
+			'streamNowPlaying',
+			'mediaSource',
+			'radioIsActive',
+			'radioSeed',
+			'explicitQueueLength',
 		];
 
 		for (const field of fields) {

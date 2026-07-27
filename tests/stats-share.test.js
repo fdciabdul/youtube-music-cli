@@ -36,8 +36,15 @@ test('formatStatsShareCard includes totals and GitHub URL', async () => {
 	expect(card.includes('Listening time: ~42h')).toBe(true);
 	expect(card.includes('Song A — Artist X (42)')).toBe(true);
 	expect(card.includes('Artist X (120)')).toBe(true);
-	expect(card.includes('https://github.com/involvex/youtube-music-cli')).toBe(
-		true,
+
+	// Assert the exact repo URL line rather than a raw substring match, since
+	// naive `string.includes(url)` checks can be spoofed by embedding the
+	// expected URL inside an attacker-controlled one (CodeQL
+	// js/incomplete-url-substring-sanitization).
+	const lines = card.split('\n');
+	expect(lines).toContain(
+		'Get your stats with youtube-music-cli — https://github.com/involvex/youtube-music-cli',
 	);
+
 	expect(card.includes('youtube-musicc')).toBe(false);
 });
