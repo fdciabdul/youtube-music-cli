@@ -22,6 +22,22 @@ jobs:
         run: bun install
       - name: Build
         run: bun run build
+      # Publish the JS/web package first — never include compiled Bun binaries
+      # in the npm tarball (they blow past registry size limits / E413).
+      - name: Check npm package contents
+        run: |
+          set -euo pipefail
+          npm pack --dry-run 2>&1 | tee pack-dry-run.txt
+          if grep -E 'dist/(ymc-win32|youtube-music-cli)' pack-dry-run.txt; then
+            echo "Compiled binaries must not be included in the npm package."
+            exit 1
+          fi
+          PACKAGE_SIZE="$(awk '/package size:/ {print $4, $5}' pack-dry-run.txt | tail -1)"
+          echo "npm pack dry-run package size: ${PACKAGE_SIZE}"
+      - uses: JS-DevTools/npm-publish@v4
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+
       - name: Compile platform binaries
         run: |
           set -euo pipefail
@@ -46,10 +62,6 @@ jobs:
             awk '/^#+ \[?[0-9]/ { if (p) exit; p=1 } p' CHANGELOG.md > latest-release.md
             echo "Using CHANGELOG slice"
           fi
-      - uses: JS-DevTools/npm-publish@v4
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-
       - name: Release to GitHub
         uses: softprops/action-gh-release@v3
         if: github.ref_type == 'tag'

@@ -15,7 +15,9 @@
 		"ymc": "dist/source/cli.js"
 	},
 	"files": [
-		"dist",
+		"dist/source",
+		"dist/web",
+		"dist/tray-icon.ico",
 		"README.md",
 		"CHANGELOG.md",
 		"LICENSE",
