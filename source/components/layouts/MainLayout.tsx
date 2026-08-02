@@ -190,6 +190,15 @@ function MainLayout() {
 
 	// Global keyboard bindings
 	useKeyBinding(KEYBINDINGS.QUIT, handleQuit);
+
+	// Esc from player view goes back (player has no native back binding)
+	const handlePlayerBack = useCallback(() => {
+		if (navState.currentView === VIEW.PLAYER) {
+			dispatch({category: 'GO_BACK'});
+		}
+	}, [navState.currentView, dispatch]);
+
+	useKeyBinding(KEYBINDINGS.BACK, handlePlayerBack);
 	useKeyBinding(
 		navState.currentView === VIEW.RADIO ||
 			navState.currentView === VIEW.LIVE_STREAMS
