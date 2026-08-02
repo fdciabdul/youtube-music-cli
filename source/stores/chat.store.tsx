@@ -8,8 +8,11 @@ import {
 	type ReactNode,
 } from 'react';
 import type {ChatMessage} from '../types/llm.types.ts';
+import type {Track} from '../types/youtube-music.types.ts';
 import {getConfigService} from '../services/config/config.service.ts';
 import {getLLMService} from '../services/llm/llm.service.ts';
+import {usePlayer} from '../hooks/usePlayer.ts';
+import {type ToolExecutorContext} from '../services/llm/tool-executor.ts';
 
 type ChatAction =
 	| {category: 'SET_MESSAGES'; messages: ChatMessage[]}
@@ -85,6 +88,7 @@ function ChatProvider({children}: {children: ReactNode}) {
 	const configService = getConfigService();
 	const configServiceRef = useRef(configService);
 	const llmService = getLLMService();
+	const {state: playerState, dispatch: playerDispatch} = usePlayer();
 
 	useEffect(() => {
 		const savedHistory = configServiceRef.current.get('llmChatHistory');
@@ -106,11 +110,49 @@ function ChatProvider({children}: {children: ReactNode}) {
 
 		try {
 			const context = {
-				currentTrack: '',
-				queueLength: 0,
-				playlists: [],
+				currentTrack: playerState.currentTrack?.title ?? '',
+				queueLength: playerState.queue.length,
+				playlists: (configServiceRef.current.get('playlists') ?? []).map(
+					(p: {playlistId: string; name: string}) => ({
+						playlistId: p.playlistId,
+						name: p.name,
+					}),
+				),
 			};
-			const response = await llmService.chat(prompt, context, state.messages);
+
+			const toolContext: ToolExecutorContext = {
+				addToQueue: (tracks: Track[]) => {
+					tracks.forEach(t => {
+						playerDispatch({category: 'ADD_TO_QUEUE', track: t});
+					});
+				},
+				playTracks: (tracks: Track[]) => {
+					if (tracks.length > 0) {
+						playerDispatch({category: 'SET_QUEUE', queue: tracks});
+						playerDispatch({category: 'PLAY', track: tracks[0]!});
+					}
+				},
+				createPlaylist: (name: string, tracks: Track[]): string | null => {
+					const currentPlaylists =
+						configServiceRef.current.get('playlists') || [];
+					const newPlaylist = {
+						playlistId: `ai-${Date.now()}`,
+						name,
+						tracks,
+					};
+					currentPlaylists.push(newPlaylist);
+					configServiceRef.current.set('playlists', currentPlaylists);
+					return newPlaylist.playlistId;
+				},
+				getQueue: () => playerState.queue,
+			};
+
+			const response = await llmService.chat(
+				prompt,
+				context,
+				state.messages,
+				toolContext,
+			);
 			dispatch({category: 'ADD_ASSISTANT_MESSAGE', content: response.text});
 		} catch (error) {
 			const message =

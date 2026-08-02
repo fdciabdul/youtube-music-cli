@@ -159,5 +159,30 @@ export function getToolDefinitions(): ToolDefinition[] {
 				required: [],
 			},
 		},
+		{
+			name: 'generate_playlist',
+			description:
+				'Generate a playlist of tracks matching a mood, genre, or description. Searches YouTube Music for tracks matching the description and can add them to the queue or create a new playlist.',
+			parameters: {
+				type: 'object',
+				properties: {
+					description: {
+						type: 'string',
+						description:
+							'Natural language description of the desired playlist (e.g., "relaxing morning jazz", "energetic workout tracks", "sad indie songs for raining")',
+					},
+					trackCount: {
+						type: 'number',
+						description: 'Number of tracks to include (default 20, max 50)',
+					},
+					mode: {
+						type: 'string',
+						description:
+							'Action to take: queue adds to play queue, playlist creates a new playlist, both does both. Default is queue.',
+					},
+				},
+				required: ['description'],
+			},
+		},
 	];
 }

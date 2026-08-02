@@ -42,6 +42,9 @@ How ideas in `SUGGESTIONS.md` become concrete work, and what to pick up next.
 - Downloads index (`downloads-index.json` for local playback preference)
 - GitHub Actions release pipeline (cross-platform binaries on tag → GitHub Releases + npm)
 - Web favorites/live nav (`web/src/components/favorites/`, `web/src/components/live/`)
+- Mood-Based Radio (8 presets: relaxing, energetic, focus, chill, workout, sleep, party, melancholy)
+- AI Playlist Generation (`generate_playlist` LLM tool with queue/playlist/both modes)
+- LLM tool executor refactored with `ToolExecutorContext` for real queue/playlist dispatch
 
 ## Active focus (post-0.1.0)
 

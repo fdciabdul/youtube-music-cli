@@ -48,8 +48,9 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **New Releases** - Dedicated view for newly released music
 - Implemented **Trending** - Dedicated view for trending music
 - Implemented **Search Result Cache** - LRU cache with configurable TTL for search API responses
-- Planned **Mood-Based Radio** - Start a radio station seeded by a mood or energy level selection
-- Planned **AI Playlist Generation** - Generate a playlist from a natural-language prompt (e.g., "relaxing morning jazz")
+- Implemented **Mood-Based Radio** — predefined mood presets (relaxing, energetic, focus, chill, workout, sleep, party, melancholy) that seed radio playback via the existing `RadioService` + `getSuggestions` pipeline
+- Implemented **AI Playlist Generation** — a `generate_playlist` LLM tool that takes a natural-language description, searches for matching tracks, and queues or creates a playlist
+- Planned **Smart Recommendations** - AI/ML-based track suggestions beyond YouTube's built-in algorithm
 - Planned **Playlist Radio Mode** - Endless radio-like playback generated from a playlist or track
 
 ## 📋 Playlist Management

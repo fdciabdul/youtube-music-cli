@@ -72,6 +72,7 @@ export const VIEW = {
 	STATS: 'stats',
 	RADIO: 'radio',
 	LIVE_STREAMS: 'live_streams',
+	MOOD_RADIO: 'mood_radio',
 } as const;
 
 // Search types
@@ -107,6 +108,7 @@ export const KEYBINDINGS = {
 	TOGGLE_RADIO: ['shift+x'],
 	RADIO_STREAMS: ['shift+i'],
 	LIVE_STREAMS: ['shift+v'],
+	MOOD_RADIO: ['shift+t'],
 
 	// Player
 	PLAY_PAUSE: [' '],

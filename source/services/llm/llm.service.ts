@@ -12,6 +12,7 @@ import {logger} from '../logger/logger.service.ts';
 import {getConfigService} from '../config/config.service.ts';
 import {getToolDefinitions} from './tool-definitions.ts';
 import {executeTool} from './tool-executor.ts';
+import type {ToolExecutorContext} from './tool-executor.ts';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -91,6 +92,7 @@ class LLMService {
 		prompt: string,
 		context: ChatContext,
 		history: ChatMessage[] = [],
+		toolContext?: ToolExecutorContext,
 	): Promise<LLMResponse> {
 		if (!this.isConfigured()) {
 			const error: LLMError = {
@@ -116,7 +118,7 @@ class LLMService {
 
 		try {
 			this.recordRequest();
-			const response = await this.makeRequest(messages, tools);
+			const response = await this.makeRequest(messages, tools, toolContext);
 			return response;
 		} catch (error) {
 			if (error instanceof Error) {
@@ -155,11 +157,13 @@ You can help users:
 - Find and play music using natural language
 - Create and manage playlists  
 - Get recommendations based on current track
+- Generate playlists from mood or description
 - Answer questions about music
 
 When user asks to play music or add to queue, use the add_to_queue tool.
 When user asks for recommendations based on what's playing, use get_suggestions.
 When user wants to create a playlist, use create_playlist.
+When user asks to generate a playlist from a mood or description, use generate_playlist.
 
 Current playback state: `;
 
@@ -203,6 +207,7 @@ Be concise and helpful. Use tools to fulfill user requests.`;
 	private async makeRequest(
 		messages: GeminiContent[],
 		tools: ToolDefinition[],
+		toolContext?: ToolExecutorContext,
 	): Promise<LLMResponse> {
 		const url = this.endpoint
 			? `${this.endpoint}?key=${this.apiKey}`
@@ -271,7 +276,11 @@ Be concise and helpful. Use tools to fulfill user requests.`;
 			});
 			for (const toolCall of toolCalls) {
 				try {
-					const result = await executeTool(toolCall.name, toolCall.args);
+					const result = await executeTool(
+						toolCall.name,
+						toolCall.args,
+						toolContext,
+					);
 					logger.debug('LLMService', `Tool ${toolCall.name} executed`, {
 						success: result.success,
 					});

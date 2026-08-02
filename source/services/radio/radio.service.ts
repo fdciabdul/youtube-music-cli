@@ -5,6 +5,7 @@ import {logger} from '../logger/logger.service.ts';
 import {formatError} from '../../utils/error.ts';
 import type {Track} from '../../types/youtube-music.types.ts';
 import type {RadioSeed, RadioSeedType} from '../../types/radio.types.ts';
+import {BUILTIN_MOODS} from '../../data/builtin-moods.ts';
 
 class RadioService {
 	private playedVideoIds: Set<string> = new Set();
@@ -68,6 +69,17 @@ class RadioService {
 					}
 
 					return [];
+				}
+
+				case 'mood': {
+					const mood = BUILTIN_MOODS.find(m => m.id === id);
+					if (!mood) return [];
+					const allTracks: Track[] = [];
+					for (const seed of mood.seeds) {
+						const seedTracks = await this.fetchBySeedType(seed.type, seed.id);
+						allTracks.push(...seedTracks);
+					}
+					return this.deduplicate(allTracks).slice(0, 50);
 				}
 
 				default:

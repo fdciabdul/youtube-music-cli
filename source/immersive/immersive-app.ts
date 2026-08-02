@@ -1,6 +1,7 @@
 import process from 'node:process';
 import type {Flags} from '../types/cli.types.ts';
 import type {RadioStation} from '../types/radio-station.types.ts';
+import type {RadioSeed} from '../types/radio.types.ts';
 import type {
 	Playlist,
 	SearchResult,
@@ -1163,6 +1164,67 @@ export async function startImmersiveApp(
 		},
 		onPlayRadioStation: async (station: RadioStation) => {
 			await playRadioStream(station);
+		},
+		onPlayMoodRadio: async (moodId: string) => {
+			const {BUILTIN_MOODS} = await import('../data/builtin-moods.ts');
+			const mood = BUILTIN_MOODS.find(m => m.id === moodId);
+			if (!mood) {
+				return `Mood "${moodId}" not found`;
+			}
+
+			const radioService = getRadioService();
+			const seed: RadioSeed = {
+				type: 'mood',
+				id: mood.id,
+				name: mood.name,
+			};
+			const tracks = await radioService.fetchTracksForSeed(seed);
+
+			if (tracks.length === 0) {
+				return `No tracks found for mood "${mood.name}"`;
+			}
+
+			state.playbackMode = 'youtube';
+			state.currentStation = null;
+			state.streamNowPlaying = null;
+			state.currentTrack = null;
+			state.queue = tracks;
+			state.queueIndex = 0;
+			state.explicitQueueLength = tracks.length;
+			state.radioIsActive = true;
+			state.radioSeed = seed;
+			state.autoplay = true;
+			state.currentTime = 0;
+			state.duration = 0;
+			fetchedForVideoId = null;
+			waitingForAutoplayAtQueueEnd = false;
+			radioPhaseNotified = false;
+
+			const notificationsEnabled = config.get('notifications') ?? false;
+			isAdvancing = true;
+			beginAdvanceGrace();
+
+			const firstTrack = tracks[0]!;
+			const streamUrl = await getMusicService().getStreamUrl(
+				firstTrack.videoId,
+			);
+
+			await playerService.play(streamUrl, {
+				...getPlaybackOptions(state.volume),
+				trackId: firstTrack.videoId,
+			});
+			playerService.resume();
+			state.isPlaying = true;
+			updateTrayIcon(`${mood.name} Radio`);
+
+			if (notificationsEnabled) {
+				showTrackChangeToast(
+					firstTrack.title,
+					firstTrack.artists[0]?.name ?? '',
+				);
+			}
+
+			return null;
 		},
 		onRemoveFavoriteTrack: async (track: Track) => {
 			await favoritesManager.remove(track.videoId);

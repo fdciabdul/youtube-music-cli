@@ -39,6 +39,10 @@ function Initializer({flags}: {flags?: Flags}) {
 		dispatch({category: 'NAVIGATE', view: VIEW.AI_CHAT});
 	});
 
+	useKeyBinding(KEYBINDINGS.AI_RECOMMENDATIONS, () => {
+		dispatch({category: 'NAVIGATE', view: VIEW.AI_RECOMMENDATIONS});
+	});
+
 	useEffect(() => {
 		// Check for background playback state on startup
 		const config = getConfigService();

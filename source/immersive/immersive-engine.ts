@@ -99,6 +99,15 @@ import {
 	renderLiveStreamsOverlay,
 	type LiveStreamsOverlayState,
 } from './ui/live-streams-overlay.ts';
+import {
+	createMoodRadioOverlayState,
+	closeMoodRadioOverlay,
+	getSelectedMood,
+	handleMoodRadioOverlayInput,
+	openMoodRadioOverlay,
+	renderMoodRadioOverlay,
+	type MoodRadioOverlayState,
+} from './ui/mood-radio-overlay.ts';
 import type {RadioStation} from '../types/radio-station.types.ts';
 import {
 	getUpcomingTracks,
@@ -170,6 +179,7 @@ export interface ImmersiveOptions {
 	onPlayAllFavorites?: () => Promise<string | null>;
 	onPlayRandomFavorite?: () => Promise<string | null>;
 	onPlayRadioStation?: (station: RadioStation) => Promise<void>;
+	onPlayMoodRadio?: (moodId: string) => Promise<string | null>;
 	onToggleShuffle?: () => void;
 	onToggleRepeat?: () => void;
 	onToggleAutoplay?: () => void;
@@ -196,6 +206,8 @@ export class ImmersiveEngine {
 	private radioOverlay: RadioOverlayState = createRadioOverlayState();
 	private liveStreamsOverlay: LiveStreamsOverlayState =
 		createLiveStreamsOverlayState();
+	private moodRadioOverlay: MoodRadioOverlayState =
+		createMoodRadioOverlayState();
 
 	private options: ImmersiveOptions;
 	private effectiveWidth: number;
@@ -439,6 +451,7 @@ export class ImmersiveEngine {
 				this.settingsOverlay,
 				this.radioOverlay,
 				this.liveStreamsOverlay,
+				this.moodRadioOverlay,
 			);
 			renderSearchOverlay(fb, tw, th, this.searchOverlay);
 			renderLibraryOverlay(
@@ -458,6 +471,7 @@ export class ImmersiveEngine {
 			);
 			renderRadioOverlay(fb, tw, th, this.radioOverlay);
 			renderLiveStreamsOverlay(fb, tw, th, this.liveStreamsOverlay);
+			renderMoodRadioOverlay(fb, tw, th, this.moodRadioOverlay);
 
 			const isDisco =
 				playerState?.isDiscoMode ?? this.options.discoMode ?? false;
@@ -578,6 +592,11 @@ export class ImmersiveEngine {
 			return;
 		}
 
+		if (this.moodRadioOverlay.active) {
+			void this.handleMoodRadioKey(keyName);
+			return;
+		}
+
 		if (this.searchOverlay.active) {
 			void this.handleSearchKey(keyName);
 			return;
@@ -613,6 +632,9 @@ export class ImmersiveEngine {
 				break;
 			case 'v':
 				openLiveStreamsOverlay(this.liveStreamsOverlay);
+				break;
+			case 't':
+				openMoodRadioOverlay(this.moodRadioOverlay);
 				break;
 			case 'p':
 				openPlaylistPicker(this.libraryOverlay);
@@ -1008,6 +1030,35 @@ export class ImmersiveEngine {
 		} catch (error) {
 			this.liveStreamsOverlay.status =
 				error instanceof Error ? error.message : 'Failed to play stream';
+		}
+	}
+
+	private async handleMoodRadioKey(key: string): Promise<void> {
+		const action = handleMoodRadioOverlayInput(this.moodRadioOverlay, key);
+
+		if (action === 'close') {
+			return;
+		}
+
+		if (action !== 'play') {
+			return;
+		}
+
+		const mood = getSelectedMood(this.moodRadioOverlay);
+		if (!mood) {
+			return;
+		}
+
+		try {
+			this.moodRadioOverlay.status = `Starting ${mood.name} radio...`;
+			const result = await this.options.onPlayMoodRadio?.(mood.id);
+			closeMoodRadioOverlay(this.moodRadioOverlay);
+			if (result) {
+				this.moodRadioOverlay.status = result;
+			}
+		} catch (error) {
+			this.moodRadioOverlay.status =
+				error instanceof Error ? error.message : 'Failed to start mood radio';
 		}
 	}
 
@@ -1617,6 +1668,7 @@ function renderControls(
 	settingsOverlay: SettingsOverlayState,
 	radioOverlay: RadioOverlayState,
 	liveStreamsOverlay: LiveStreamsOverlayState,
+	moodRadioOverlay: MoodRadioOverlayState,
 ): void {
 	const separatorY = layoutFooterY(height, 0);
 	const modeY = layoutFooterY(height, 1);
@@ -1659,6 +1711,8 @@ function renderControls(
 		controls = '[↑↓] Select   [Enter] Play   [Esc] Close';
 	} else if (liveStreamsOverlay.active) {
 		controls = '[↑↓] Select   [Enter] Play   [Esc] Close';
+	} else if (moodRadioOverlay.active) {
+		controls = '[↑↓] Select   [Enter] Play Radio   [Esc] Close';
 	} else if (playerState) {
 		modeLine = buildModeStatusLine(playerState);
 		controls = buildPlayerShortcutLine(width - 4);

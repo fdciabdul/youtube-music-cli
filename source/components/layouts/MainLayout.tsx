@@ -34,6 +34,7 @@ import AIChatView from '../ai/AIChatView.tsx';
 import StatsDashboard from '../stats/StatsDashboard.tsx';
 import RadioStreamsLayout from './RadioStreamsLayout.tsx';
 import LiveStreamsLayout from './LiveStreamsLayout.tsx';
+import MoodRadioLayout from './MoodRadioLayout.tsx';
 import {KEYBINDINGS, VIEW} from '../../utils/constants.ts';
 import {Box} from 'ink';
 import {useTerminalSize} from '../../hooks/useTerminalSize.ts';
@@ -143,6 +144,10 @@ function MainLayout() {
 		dispatch({category: 'NAVIGATE', view: VIEW.LIVE_STREAMS});
 	}, [dispatch]);
 
+	const goToMoodRadio = useCallback(() => {
+		dispatch({category: 'NAVIGATE', view: VIEW.MOOD_RADIO});
+	}, [dispatch]);
+
 	const handleDetach = useCallback(() => {
 		// Detach mode: Exit CLI while keeping music playing
 		const player = getPlayerService();
@@ -209,6 +214,7 @@ function MainLayout() {
 	useKeyBinding(KEYBINDINGS.STATS_VIEW, goToStats);
 	useKeyBinding(KEYBINDINGS.RADIO_STREAMS, goToRadioStreams);
 	useKeyBinding(KEYBINDINGS.LIVE_STREAMS, goToLiveStreams);
+	useKeyBinding(KEYBINDINGS.MOOD_RADIO, goToMoodRadio);
 	useKeyBinding(KEYBINDINGS.DETACH, handleDetach);
 	useKeyBinding(KEYBINDINGS.RESUME_BACKGROUND, handleResumeBackground);
 
@@ -305,6 +311,9 @@ function MainLayout() {
 			case 'ai_chat':
 				return <AIChatView key="ai_chat" />;
 
+			case 'ai_recommendations':
+				return <AIChatView key="ai_recommendations" />;
+
 			case 'stats':
 				return <StatsDashboard key="stats" />;
 
@@ -313,6 +322,9 @@ function MainLayout() {
 
 			case 'live_streams':
 				return <LiveStreamsLayout key="live_streams" />;
+
+			case 'mood_radio':
+				return <MoodRadioLayout key="mood_radio" />;
 
 			default:
 				return <PlayerLayout key="player-default" />;

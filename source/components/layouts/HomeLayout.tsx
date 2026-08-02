@@ -81,6 +81,7 @@ export default function HomeLayout() {
 		{label: '❤️ Favorites', view: VIEW.FAVORITES},
 		{label: '📻 Radio Streams', view: VIEW.RADIO},
 		{label: '📡 Live Streams', view: VIEW.LIVE_STREAMS},
+		{label: '🎭 Mood Radio', view: VIEW.MOOD_RADIO},
 		{label: '🕒 Queue & History', view: VIEW.HISTORY},
 		{label: '🎲 Play Random Song', action: handlePlayRandom},
 		{label: '🎵 Play Random Favorite', action: handlePlayRandomFavorite},

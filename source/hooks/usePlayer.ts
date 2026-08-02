@@ -40,12 +40,12 @@ export function usePlayer() {
 	);
 
 	const startRadio = useCallback(
-		async (seed: RadioSeed) => {
+		async (seed: RadioSeed): Promise<boolean> => {
 			const radioService = getRadioService();
 			const tracks = await radioService.fetchTracksForSeed(seed);
 
 			if (tracks.length === 0) {
-				return;
+				return false;
 			}
 
 			dispatch({category: 'CLEAR_QUEUE'});
@@ -60,6 +60,7 @@ export function usePlayer() {
 			}
 
 			dispatch({category: 'START_RADIO', seed});
+			return true;
 		},
 		[dispatch],
 	);
