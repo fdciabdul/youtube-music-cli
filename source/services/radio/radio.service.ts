@@ -15,8 +15,18 @@ class RadioService {
 	}
 
 	async fetchTracksForSeed(seed: RadioSeed): Promise<Track[]> {
+		logger.debug('RadioService', 'fetchTracksForSeed called', {
+			type: seed.type,
+			id: seed.id,
+			name: seed.name,
+		});
 		this.playedVideoIds.clear();
 		const tracks = await this.fetchBySeedType(seed.type, seed.id);
+		logger.debug('RadioService', 'fetchTracksForSeed result', {
+			type: seed.type,
+			id: seed.id,
+			trackCount: tracks.length,
+		});
 		return this.deduplicate(tracks);
 	}
 
@@ -47,10 +57,23 @@ class RadioService {
 				}
 
 				case 'artist': {
+					logger.debug('RadioService', 'Searching for artist', {
+						artistName: id,
+					});
 					const artistResults = await musicService.search(id, {type: 'songs'});
+					logger.debug('RadioService', 'Artist search raw results', {
+						artistName: id,
+						totalResults: artistResults.results.length,
+						resultTypes: artistResults.results.map(r => r.type),
+					});
 					const tracks = artistResults.results
 						.filter(r => r.type === 'song')
 						.map(r => r.data as Track);
+					logger.debug('RadioService', 'Artist search filtered tracks', {
+						artistName: id,
+						filteredCount: tracks.length,
+						firstTrackTitle: tracks[0]?.title,
+					});
 					return tracks.slice(0, 30);
 				}
 
@@ -73,13 +96,32 @@ class RadioService {
 
 				case 'mood': {
 					const mood = BUILTIN_MOODS.find(m => m.id === id);
-					if (!mood) return [];
+					if (!mood) {
+						logger.warn('RadioService', 'Mood not found', {id});
+						return [];
+					}
+					logger.debug('RadioService', 'Mood seeds', {
+						moodId: mood.id,
+						seedCount: mood.seeds.length,
+						seeds: mood.seeds.map(s => ({type: s.type, id: s.id})),
+					});
 					const allTracks: Track[] = [];
 					for (const seed of mood.seeds) {
 						const seedTracks = await this.fetchBySeedType(seed.type, seed.id);
+						logger.debug('RadioService', 'Mood seed result', {
+							seedType: seed.type,
+							seedId: seed.id,
+							trackCount: seedTracks.length,
+						});
 						allTracks.push(...seedTracks);
 					}
-					return this.deduplicate(allTracks).slice(0, 50);
+					logger.debug('RadioService', 'Mood total tracks', {
+						total: allTracks.length,
+					});
+					// Don't deduplicate here — fetchTracksForSeed/fetchMoreTracks already
+					// call deduplicate on the returned array. Deduplicating here would
+					// populate playedVideoIds, causing the outer dedup to return 0 tracks.
+					return allTracks.slice(0, 50);
 				}
 
 				default:
