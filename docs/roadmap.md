@@ -28,12 +28,26 @@ How ideas in `SUGGESTIONS.md` become concrete work, and what to pick up next.
 - Download pipeline (yt-dlp → youtubei → Invidious) + mpv IPC hardening
 - History/Favorites save hardening (#23) + clearer error formatting
 - Prefer local downloads (`preferLocalPlayback`, downloads index, Local badge)
+- Immersive visualizer (`source/immersive/visualizer/`)
+- Mix from track / similar tracks (`M` key, `createMixFromResult`)
+- Config doctor (`youtube-music-cli config doctor [--fix]`)
+- Cookies for yt-dlp (`cookiesFromBrowser` / `cookiesFile` settings)
+- Sleep timer (5/10/15/30/60 min presets)
+- Version check (24h auto-check)
+- Dependency checker (brew/scoop/choco/apt/dnf/pacman install plans)
+- Debug logs (daily rotation, 14-day retention, 5 MB mid-session rotate)
+- Subtitle support (`--slang=en`, `--sub-scale=1.3`)
+- Proxy support (`--http-proxy` + HTTPS_PROXY env)
+- Batch downloads (`downloadTracks()` multi-track)
+- Downloads index (`downloads-index.json` for local playback preference)
+- GitHub Actions release pipeline (cross-platform binaries on tag → GitHub Releases + npm)
+- Web favorites/live nav (`web/src/components/favorites/`, `web/src/components/live/`)
 
 ## Active focus (post-0.1.0)
 
-1. **Discovery** — Smart recommendations beyond YouTube’s built-in related tracks; playlist radio mode.
-2. **Offline** — Prefer cached downloads when the network fails; deepen offline-only playback UX.
-3. **Web v1.1** — Media Session API, favorites/live in the web nav, mini-player route.
+1. **Web v1.1** — Media Session API for system media controls; mini-player route for low-footprint browser control.
+2. **Discovery** — Smart recommendations beyond YouTube's built-in related tracks; playlist radio mode.
+3. **Offline** — Prefer cached downloads when the network fails; deepen offline-only playback UX.
 
 ## Toward 1.0.0
 

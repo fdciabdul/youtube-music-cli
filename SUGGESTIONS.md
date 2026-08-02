@@ -38,13 +38,16 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **Advanced Search Filters** - Filter by artist, album, year, and duration
 - Implemented **Search History** - Recent search queries with selection
 - Implemented **Suggestions** - Related track suggestions based on currently playing track
+- Implemented **Mix from Track** - Create a queue of similar tracks from any result (`M` key, `createMixFromResult`)
+- Implemented **Similar Artists** - Discover similar tracks via mix creation from artist/track results
 - Planned **Smart Recommendations** - AI/ML-based track suggestions beyond YouTube's built-in algorithm
 
 ### Medium Priority
 
 - Implemented **Genre Browsing** - Browse music by genre or mood
 - Implemented **New Releases** - Dedicated view for newly released music
-- Planned **Similar Artists** - Discover artists similar to the currently playing one
+- Implemented **Trending** - Dedicated view for trending music
+- Implemented **Search Result Cache** - LRU cache with configurable TTL for search API responses
 - Planned **Mood-Based Radio** - Start a radio station seeded by a mood or energy level selection
 - Planned **AI Playlist Generation** - Generate a playlist from a natural-language prompt (e.g., "relaxing morning jazz")
 - Planned **Playlist Radio Mode** - Endless radio-like playback generated from a playlist or track
@@ -54,6 +57,7 @@ This document tracks potential features, enhancements, and improvements for yout
 ### High Priority
 
 - Implemented **Favorites** - Persistence for favorite tracks, toggle with `f`, view with `Shift+F`
+- Implemented **Listening History** - Track recently played songs with history store + history service
 - Implemented **Playlist Creation & Management** - Create, edit, and delete playlists within the TUI
 - Implemented **Playlist Import** - Import playlists from Spotify and YouTube
 - Implemented **Playlist Export** - Export playlists to JSON and M3U8 formats
@@ -74,7 +78,7 @@ This document tracks potential features, enhancements, and improvements for yout
 
 ### High Priority
 
-- Planned **Visualizer** - ASCII/ANSI audio visualizer rendered in the terminal
+- Implemented **Visualizer** (immersive only) - Audio visualizer rendered in the immersive Windows mode (`source/immersive/visualizer/`)
 - Planned **Album Art** - Display album artwork using terminal graphics protocols (sixel, kitty)
 - Planned **Split View** - Side-by-side panels for queue and search results
 
@@ -97,6 +101,7 @@ This document tracks potential features, enhancements, and improvements for yout
 ### High Priority
 
 - Implemented **Plugin System** - Full plugin lifecycle (install, enable, disable, update, remove)
+- Implemented **YouTube Music Cookies** - `cookiesFromBrowser` and `cookiesFile` settings for yt-dlp bot-check bypass
 - Planned **YouTube Music Account Login** - OAuth login for library access, premium streams, personal playlists (#18)
 - Planned **Custom mpv Config Passthrough** - Allow extra mpv flags to be specified in config or via CLI
 
@@ -115,6 +120,10 @@ This document tracks potential features, enhancements, and improvements for yout
 - Planned **tmux Status Line** - Show currently playing track in the tmux status bar
 - Planned **Alfred/Raycast Extension** - macOS launcher integration for quick search and playback
 
+### Low Priority
+
+- Planned **Additional Lyrics Sources** - Integrate Musixmatch or other lyrics providers alongside LRCLIB
+
 ## 🔧 Technical Improvements
 
 ### High Priority
@@ -123,6 +132,8 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **Dependency Checker** - Auto-detect and offer to install mpv/yt-dlp via brew/scoop/choco
 - Implemented **Version Check** - Auto-check npm registry for updates once per 24 hours
 - Implemented **Streaming Quality** - Configurable audio quality (low/medium/high)
+- Implemented **Config Doctor** - Diagnose and fix common configuration issues (`youtube-music-cli config doctor [--fix]`)
+- Implemented **mpv IPC Hardening** - Play generation, stale promise invalidation, pipe validation, reconnect on drop
 - Planned **Auto-Update Mechanism** - Built-in self-update command (`youtube-music-cli update`)
 
 ### Medium Priority
@@ -132,8 +143,9 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **Config/Settings UI** - Full settings panel in TUI with all configuration options
 - Implemented **Custom Keybindings** - Remappable keyboard shortcuts persisted to config
 - Implemented **Sleep Timer** - Auto-pause after configurable duration (5/10/15/30/60 min presets)
-- Implemented **Subtitle Support** - MPV subtitle rendering with toggle
-- Implemented **Proxy Support** - HTTP proxy via mpv `--http-proxy` flag
+- Implemented **Subtitle Support** - MPV subtitle rendering with `--slang=en` and `--sub-scale=1.3`
+- Implemented **Proxy Support** - HTTP proxy via mpv `--http-proxy` flag and HTTPS_PROXY env
+- Implemented **Debug Logs** - Daily rotating log files (`debug-YYYY-MM-DD.log`) with 14-day retention and 5 MB mid-session rotation
 - Implemented **Search Result Cache** - LRU cache with configurable TTL for API responses
 - Planned **Configurable Cache TTL** - Set how long API responses and stream URLs are cached
 - Planned **Multi-instance Sync** - Sync playback state across multiple terminal sessions
@@ -151,13 +163,14 @@ This document tracks potential features, enhancements, and improvements for yout
 ### High Priority
 
 - Implemented **Track Downloads** - Download tracks as MP3 or M4A via ffmpeg with `Shift+D`
+- Implemented **Batch Downloads** - Download multiple tracks from search results in one action (`downloadTracks()`)
 - Implemented **Cover Art Embedding** - Auto-embed album artwork in downloaded files
 - Implemented **Metadata Tagging** - Auto-tag title, artist, album in downloaded files
 - Implemented **Download Organization** - Organize downloads by artist/album directories
+- Implemented **Downloads Index** - Persistent `downloads-index.json` tracks all downloaded files; enables `preferLocalPlayback` and Local badge
 
 ### Medium Priority
 
-- Planned **Batch Downloads** - Download entire playlists or artist discographies in one action
 - Planned **Download Queue** - Queue and manage multiple downloads with progress tracking
 - Planned **Format Options** - Additional download formats (FLAC, OGG, OPUS)
 - Planned **Download Resume** - Resume interrupted downloads
@@ -169,13 +182,13 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **Homebrew Formula** - Easy installation on macOS via `brew install`
 - Implemented **Windows MSIX Package** - MSIX installer for Windows via `bun run msix`
 - Implemented **Standalone Executable** - Single binary distribution with embedded runtime
+- Implemented **GitHub Actions Release Pipeline** - Automated cross-platform binary builds (linux-x64, windows-x64.exe, darwin-x64, darwin-arm64) on tag push, published to GitHub Releases + npm
 
 ### Medium Priority
 
 - Planned **AUR Package** - Arch Linux package for `yay`/`paru` users
 - Planned **Snap/Flatpak** - Linux universal packages for broader distro support
 - Planned **NixOS / Nix Flake** - Reproducible Nix package for NixOS and `nix profile install`
-- Planned **GitHub Actions Release Pipeline** - Automated cross-platform binary builds on tag push
 
 ### Low Priority
 
@@ -245,6 +258,10 @@ Want to work on any of these? Check our [Contributing Guide](CONTRIBUTING.md) an
 - **[Stable] Plugin System** - Done. Full lifecycle management with install, enable, disable, update, remove.
 - **[Stable] Web frontend** - Bundled Phosphor Console companion UI (`web/` → `dist/web/`) with WebSocket sync; enabled via `--web` / `--web-only`.
 - **[Stable] History/Favorites save hardening** - Done. Save mutex, unique temp files (#23), and `formatError` for user-facing messages.
+- **[Stable] Downloads pipeline** - Done. yt-dlp → youtubei → Invidious fallback; batch download; downloads-index.json for local playback preference.
+- **[Stable] Immersive visualizer** - Done. Audio-collector + disco-engine + hybrid-visualizer in `source/immersive/visualizer/`.
+- **[Stable] Config doctor** - Done. `youtube-music-cli config doctor [--fix]` diagnoses and repairs configuration.
+- **[Stable] mpv IPC hardening** - Done. Play generation, stale promise invalidation, pipe validation, reconnect on drop.
 - **[Next] Smart recommendations** - Extend suggestions with AI-powered or similarity-based discovery beyond YouTube's built-in algorithm.
 - **[Next] Playlist radio mode** - Endless radio-like playback from a playlist seed.
 - **[Next] Offline mode** - Cache downloaded tracks for playback without network.
