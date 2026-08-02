@@ -1,3 +1,15 @@
+## [0.1.2](https://github.com/involvex/youtube-music-cli/compare/v0.1.1...v0.1.2) (2026-08-02)
+
+### Bug Fixes
+
+- **ci:** exclude compiled binaries from npm package ([5a484b6](https://github.com/involvex/youtube-music-cli/commit/5a484b61dd848ef61675d78cf50257d48b2d21fd))
+- **keyboard:** add Esc back navigation from player view ([d6187bb](https://github.com/involvex/youtube-music-cli/commit/d6187bbee0ca4312321289aee2bf6a86d7ff105b))
+- **radio:** remove double-deduplication in mood radio seed fetching ([cf5e759](https://github.com/involvex/youtube-music-cli/commit/cf5e759cd6afe0a6b8cd03329b98bbe1853c8bb9))
+
+### Features
+
+- **mood-radio:** add mood-based radio and AI playlist generation ([829b111](https://github.com/involvex/youtube-music-cli/commit/829b111b7043edde05bba3e89d3fb835000acd7f))
+
 ## [0.1.1](https://github.com/involvex/youtube-music-cli/compare/v0.1.0...v0.1.1) (2026-07-27)
 
 ### Features
