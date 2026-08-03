@@ -1,5 +1,5 @@
 // Player state persistence service
-import {writeFile, readFile, mkdir} from 'node:fs/promises';
+import {writeFile, readFile, mkdir, rename, unlink} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 import {CONFIG_DIR} from '../../utils/constants.ts';
@@ -55,6 +55,10 @@ const defaultState: PersistedPlayerState = {
 
 let saveLock = Promise.resolve();
 
+function isRetryableError(err: NodeJS.ErrnoException): boolean {
+	return err.code === 'EPERM' || err.code === 'EBUSY' || err.code === 'EACCES';
+}
+
 /**
  * Saves player state to disk
  */
@@ -93,17 +97,24 @@ export async function savePlayerState(
 		const tempFile = `${STATE_FILE}.tmp`;
 		await writeFile(tempFile, JSON.stringify(stateToSave, null, 2), 'utf8');
 
-		// On Windows, we need to handle the rename differently
-		if (process.platform === 'win32' && existsSync(STATE_FILE)) {
-			// Delete existing file first on Windows
-			await import('node:fs/promises').then(async fs => {
-				await fs.unlink(STATE_FILE);
-			});
+		// Atomic rename - works on Windows since Node 10+
+		// Retry on Windows file locking issues (EPERM, EBUSY)
+		let attempts = 0;
+		const maxAttempts = 3;
+		while (true) {
+			try {
+				await rename(tempFile, STATE_FILE);
+				break;
+			} catch (error: unknown) {
+				const err = error as NodeJS.ErrnoException;
+				attempts++;
+				if (attempts >= maxAttempts || !isRetryableError(err)) {
+					throw error;
+				}
+				// Wait before retry
+				await new Promise(resolve => setTimeout(resolve, 50 * attempts));
+			}
 		}
-
-		await import('node:fs/promises').then(async fs => {
-			await fs.rename(tempFile, STATE_FILE);
-		});
 
 		logger.debug('PlayerStateService', 'Saved player state', {
 			hasTrack: !!stateToSave.currentTrack,
@@ -175,9 +186,7 @@ export async function loadPlayerState(): Promise<PersistedPlayerState | null> {
 export async function clearPlayerState(): Promise<void> {
 	try {
 		if (existsSync(STATE_FILE)) {
-			await import('node:fs/promises').then(async fs => {
-				await fs.unlink(STATE_FILE);
-			});
+			await unlink(STATE_FILE);
 			logger.info('PlayerStateService', 'Cleared player state');
 		}
 	} catch (error) {

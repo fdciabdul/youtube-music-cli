@@ -10,21 +10,76 @@ type BindingEntry = {
 	action: string;
 	label: string;
 	keys: string[];
+	hasConflict: boolean;
+	conflictWith?: string;
 };
 
 function buildEntries(): BindingEntry[] {
 	const config = getConfigService();
-	return Object.entries(KEYBINDINGS).map(([action, defaultKeys]) => {
+	const entries = Object.entries(KEYBINDINGS).map(([action, defaultKeys]) => {
 		const custom = config.getKeybinding(action);
+		const keys = custom ?? ([...defaultKeys] as string[]);
 		return {
 			action,
 			label: action
 				.toLowerCase()
 				.replace(/_/g, ' ')
 				.replace(/\b\w/g, c => c.toUpperCase()),
-			keys: custom ?? ([...defaultKeys] as string[]),
+			keys,
+			hasConflict: false,
 		};
 	});
+
+	// Detect conflicts
+	const keyToActions = new Map<string, string[]>();
+	for (const entry of entries) {
+		for (const key of entry.keys) {
+			const normalized = key.toLowerCase();
+			if (!keyToActions.has(normalized)) {
+				keyToActions.set(normalized, []);
+			}
+			keyToActions.get(normalized)!.push(entry.action);
+		}
+	}
+
+	// Mark conflicts
+	return entries.map(entry => {
+		const conflicts: string[] = [];
+		for (const key of entry.keys) {
+			const normalized = key.toLowerCase();
+			const actions = keyToActions.get(normalized) || [];
+			if (actions.length > 1) {
+				for (const action of actions) {
+					if (action !== entry.action) {
+						conflicts.push(action);
+					}
+				}
+			}
+		}
+		return {
+			...entry,
+			hasConflict: conflicts.length > 0,
+			conflictWith: conflicts.length > 0 ? conflicts.join(', ') : undefined,
+		};
+	});
+}
+
+function findConflict(
+	newKey: string,
+	currentAction: string,
+): string | undefined {
+	const entries = buildEntries();
+	const normalized = newKey.toLowerCase();
+	for (const entry of entries) {
+		if (entry.action !== currentAction) {
+			for (const key of entry.keys) {
+				if (key.toLowerCase() === normalized) {
+					return entry.action;
+				}
+			}
+		}
+	}
+	return undefined;
 }
 
 export default function KeybindingsLayout() {
@@ -34,6 +89,7 @@ export default function KeybindingsLayout() {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [isCapturing, setIsCapturing] = useState(false);
 	const [statusMessage, setStatusMessage] = useState('');
+	const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
 	useInput((input, key) => {
 		if (isCapturing) {
@@ -54,6 +110,7 @@ export default function KeybindingsLayout() {
 			else if (key.escape) {
 				setIsCapturing(false);
 				setStatusMessage('Cancelled');
+				setConflictWarning(null);
 				return;
 			}
 
@@ -61,14 +118,24 @@ export default function KeybindingsLayout() {
 			parts.push(keyName);
 			const newKey = parts.join('+');
 
-			// Persist new binding
+			// Check for conflicts
 			const entry = entries[selectedIndex];
 			if (!entry) return;
 
+			const conflict = findConflict(newKey, entry.action);
+			if (conflict) {
+				setConflictWarning(
+					`⚠ Conflict: "${newKey}" is also bound to ${conflict}. Press Enter again to override, or Esc to cancel.`,
+				);
+				return;
+			}
+
+			// Persist new binding
 			getConfigService().setKeybinding(entry.action, [newKey]);
 			setEntries(buildEntries());
 			setIsCapturing(false);
 			setStatusMessage(`Bound ${entry.action} to "${newKey}"`);
+			setConflictWarning(null);
 			return;
 		}
 
@@ -82,8 +149,28 @@ export default function KeybindingsLayout() {
 		} else if (key.downArrow || input === 'j') {
 			setSelectedIndex(i => Math.min(entries.length - 1, i + 1));
 		} else if (key.return) {
-			setIsCapturing(true);
-			setStatusMessage('Press any key to bind...');
+			if (conflictWarning) {
+				// User confirmed override despite conflict
+				const entry = entries[selectedIndex];
+				if (!entry) return;
+
+				// Extract the key from the warning message
+				const match = conflictWarning.match(/"([^"]+)"/);
+				if (match && match[1]) {
+					const newKey = match[1];
+					getConfigService().setKeybinding(entry.action, [newKey]);
+					setEntries(buildEntries());
+					setIsCapturing(false);
+					setStatusMessage(
+						`Bound ${entry.action} to "${newKey}" (overrode conflict)`,
+					);
+					setConflictWarning(null);
+				}
+			} else {
+				setIsCapturing(true);
+				setStatusMessage('Press any key to bind...');
+				setConflictWarning(null);
+			}
 		} else if (input === 'r') {
 			// Reset selected binding to default
 			const entry = entries[selectedIndex];
@@ -95,6 +182,7 @@ export default function KeybindingsLayout() {
 				] as string[]);
 				setEntries(buildEntries());
 				setStatusMessage(`Reset ${entry.action} to default`);
+				setConflictWarning(null);
 			}
 		}
 	});
@@ -119,8 +207,24 @@ export default function KeybindingsLayout() {
 				</Box>
 			) : null}
 
+			{conflictWarning ? (
+				<Box
+					marginBottom={1}
+					borderStyle="single"
+					borderColor={theme.colors.warning}
+					padding={1}
+				>
+					<Text color={theme.colors.warning} bold>
+						{conflictWarning}
+					</Text>
+				</Box>
+			) : null}
+
 			{entries.map((entry, index) => {
 				const isSelected = index === selectedIndex;
+				const keyColor = entry.hasConflict
+					? theme.colors.warning
+					: theme.colors.secondary;
 				return (
 					<Box key={entry.action} marginBottom={0}>
 						<Text
@@ -135,7 +239,17 @@ export default function KeybindingsLayout() {
 						>
 							{entry.label.padEnd(25)}
 						</Text>
-						<Text color={theme.colors.secondary}>{entry.keys.join(', ')}</Text>
+						<Text color={keyColor}>
+							{entry.keys.join(', ')}
+							{entry.hasConflict ? ' ⚠' : ''}
+						</Text>
+						{entry.hasConflict && entry.conflictWith ? (
+							<Box marginLeft={2}>
+								<Text color={theme.colors.dim}>
+									(conflicts with: {entry.conflictWith})
+								</Text>
+							</Box>
+						) : null}
 					</Box>
 				);
 			})}

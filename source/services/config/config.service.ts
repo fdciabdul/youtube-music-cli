@@ -4,15 +4,27 @@ import {
 	readFileSync,
 	existsSync,
 	writeFileSync,
-	unlinkSync,
 	renameSync,
+	readdirSync,
+	statSync,
 } from 'node:fs';
-import {writeFile, unlink, rename, mkdir} from 'node:fs/promises';
+import {
+	writeFile,
+	unlink,
+	rename,
+	mkdir,
+	copyFile,
+	readdir,
+} from 'node:fs/promises';
 import type {Config} from '../../types/config.types.ts';
 import {BUILTIN_THEMES, DEFAULT_THEME} from '../../config/themes.config.ts';
 import type {Theme} from '../../types/theme.types.ts';
 import {formatError} from '../../utils/error.ts';
 import path from 'node:path';
+
+const MAX_BACKUPS = 5;
+const BACKUP_DIR = CONFIG_DIR;
+const BACKUP_PREFIX = 'config.json.bak.';
 
 class ConfigService {
 	private configPath: string;
@@ -85,8 +97,92 @@ class ConfigService {
 			}
 
 			return {...this.getDefaultConfig(), ...(parsed as unknown as Config)};
-		} catch {
+		} catch (error) {
+			console.error(
+				'Failed to load config, attempting recovery:',
+				formatError(error),
+			);
+			const recovered = this.tryRecoverFromBackup();
+			if (recovered) {
+				console.log('Successfully recovered config from backup');
+				return recovered;
+			}
 			return null;
+		}
+	}
+
+	private tryRecoverFromBackup(): Config | null {
+		try {
+			if (!existsSync(BACKUP_DIR)) return null;
+
+			const files = readdirSync(BACKUP_DIR)
+				.filter(f => f.startsWith(BACKUP_PREFIX))
+				.map(f => ({file: f, time: statSync(path.join(BACKUP_DIR, f)).mtimeMs}))
+				.sort((a, b) => b.time - a.time);
+
+			for (const {file} of files) {
+				try {
+					const backupPath = path.join(BACKUP_DIR, file);
+					const data = readFileSync(backupPath, 'utf-8');
+					const parsed = JSON.parse(data) as Record<string, unknown>;
+
+					if (Array.isArray(parsed['favorites'])) {
+						this.legacyFavoriteIds = parsed['favorites'].filter(
+							(id): id is string => typeof id === 'string' && id.length > 0,
+						);
+						delete parsed['favorites'];
+					}
+
+					console.log(`Recovered config from backup: ${file}`);
+					return {...this.getDefaultConfig(), ...(parsed as unknown as Config)};
+				} catch {
+					continue;
+				}
+			}
+		} catch {
+			// Ignore recovery errors
+		}
+		return null;
+	}
+
+	private async createBackup(): Promise<void> {
+		if (!existsSync(this.configPath)) return;
+
+		try {
+			const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+			const backupName = `${BACKUP_PREFIX}${timestamp}`;
+			const backupPath = path.join(BACKUP_DIR, backupName);
+			await copyFile(this.configPath, backupPath);
+
+			// Clean old backups
+			await this.cleanOldBackups();
+		} catch {
+			// Ignore backup errors - not critical
+		}
+	}
+
+	private async cleanOldBackups(): Promise<void> {
+		try {
+			const files = await readdir(BACKUP_DIR);
+			const backups = files
+				.filter(f => f.startsWith(BACKUP_PREFIX))
+				.map(async f => ({
+					file: f,
+					time: (await statSync(path.join(BACKUP_DIR, f))).mtimeMs,
+				}));
+
+			const resolved = await Promise.all(backups);
+			resolved.sort((a, b) => b.time - a.time);
+
+			for (const backup of resolved.slice(MAX_BACKUPS)) {
+				try {
+					await unlink(path.join(BACKUP_DIR, backup.file));
+				} catch {
+					// Ignore
+				}
+			}
+		} catch {
+			// Ignore
 		}
 	}
 
@@ -115,14 +211,30 @@ class ConfigService {
 				await mkdir(this.configDir, {recursive: true});
 			}
 
+			// Create backup before writing
+			await this.createBackup();
+
 			const tempFile = `${this.configPath}.tmp`;
 			await writeFile(tempFile, JSON.stringify(this.config, null, 2), 'utf8');
 
-			if (process.platform === 'win32' && existsSync(this.configPath)) {
-				await unlink(this.configPath);
+			// Atomic rename - works on Windows since Node 10+
+			// Retry on Windows file locking issues (EPERM, EBUSY)
+			let attempts = 0;
+			const maxAttempts = 3;
+			while (true) {
+				try {
+					await rename(tempFile, this.configPath);
+					break;
+				} catch (error: unknown) {
+					const err = error as NodeJS.ErrnoException;
+					attempts++;
+					if (attempts >= maxAttempts || !isRetryableError(err)) {
+						throw error;
+					}
+					// Wait before retry
+					await new Promise(resolve => setTimeout(resolve, 50 * attempts));
+				}
 			}
-
-			await rename(tempFile, this.configPath);
 		} catch (error) {
 			console.error('Failed to save config:', formatError(error));
 		} finally {
@@ -144,10 +256,29 @@ class ConfigService {
 		// Write synchronously for critical operations
 		const tempFile = `${this.configPath}.tmp`;
 		writeFileSync(tempFile, JSON.stringify(this.config, null, 2), 'utf8');
-		if (process.platform === 'win32' && existsSync(this.configPath)) {
-			unlinkSync(this.configPath);
+
+		// Atomic rename with retry on Windows
+		let attempts = 0;
+		const maxAttempts = 3;
+		while (true) {
+			try {
+				renameSync(tempFile, this.configPath);
+				break;
+			} catch (error: unknown) {
+				const err = error as NodeJS.ErrnoException;
+				attempts++;
+				if (attempts >= maxAttempts || !isRetryableError(err)) {
+					throw error;
+				}
+				// Small delay
+				Atomics.wait(
+					new Int32Array(new SharedArrayBuffer(4)),
+					0,
+					0,
+					50 * attempts,
+				);
+			}
 		}
-		renameSync(tempFile, this.configPath);
 	}
 
 	updateTheme(themeName: string): void {
@@ -320,6 +451,11 @@ class ConfigService {
 	getProxy(): string | undefined {
 		return this.config.proxy;
 	}
+}
+
+// Check if error is retryable (file locking issues on Windows)
+function isRetryableError(err: NodeJS.ErrnoException): boolean {
+	return err.code === 'EPERM' || err.code === 'EBUSY' || err.code === 'EACCES';
 }
 
 // Singleton instance
