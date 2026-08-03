@@ -5,6 +5,7 @@ import {
 	existsSync,
 	writeFileSync,
 	renameSync,
+	unlinkSync,
 	readdirSync,
 	statSync,
 } from 'node:fs';
@@ -218,7 +219,7 @@ class ConfigService {
 			await writeFile(tempFile, JSON.stringify(this.config, null, 2), 'utf8');
 
 			// Atomic rename - works on Windows since Node 10+
-			// Retry on Windows file locking issues (EPERM, EBUSY)
+			// On Windows, if target exists and is locked, remove first then rename
 			let attempts = 0;
 			const maxAttempts = 3;
 			while (true) {
@@ -230,6 +231,14 @@ class ConfigService {
 					attempts++;
 					if (attempts >= maxAttempts || !isRetryableError(err)) {
 						throw error;
+					}
+					// On retry, try removing target first (Windows file locking)
+					try {
+						if (existsSync(this.configPath)) {
+							await unlink(this.configPath);
+						}
+					} catch {
+						// Ignore unlink errors during retry
 					}
 					// Wait before retry
 					await new Promise(resolve => setTimeout(resolve, 50 * attempts));
@@ -269,6 +278,14 @@ class ConfigService {
 				attempts++;
 				if (attempts >= maxAttempts || !isRetryableError(err)) {
 					throw error;
+				}
+				// On retry, try removing target first (Windows file locking)
+				try {
+					if (existsSync(this.configPath)) {
+						unlinkSync(this.configPath);
+					}
+				} catch {
+					// Ignore
 				}
 				// Small delay
 				Atomics.wait(

@@ -98,7 +98,7 @@ export async function savePlayerState(
 		await writeFile(tempFile, JSON.stringify(stateToSave, null, 2), 'utf8');
 
 		// Atomic rename - works on Windows since Node 10+
-		// Retry on Windows file locking issues (EPERM, EBUSY)
+		// On Windows, if target exists and is locked, remove first then rename
 		let attempts = 0;
 		const maxAttempts = 3;
 		while (true) {
@@ -110,6 +110,14 @@ export async function savePlayerState(
 				attempts++;
 				if (attempts >= maxAttempts || !isRetryableError(err)) {
 					throw error;
+				}
+				// On retry, try removing target first (Windows file locking)
+				try {
+					if (existsSync(STATE_FILE)) {
+						await unlink(STATE_FILE);
+					}
+				} catch {
+					// Ignore unlink errors during retry
 				}
 				// Wait before retry
 				await new Promise(resolve => setTimeout(resolve, 50 * attempts));
