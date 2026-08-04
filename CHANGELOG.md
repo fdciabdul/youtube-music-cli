@@ -1,3 +1,11 @@
+## [0.1.3](https://github.com/involvex/youtube-music-cli/compare/v0.1.2...v0.1.3) (2026-08-04)
+
+### Bug Fixes
+
+- handle Windows file locking in config and player-state save ([cebd5e9](https://github.com/involvex/youtube-music-cli/commit/cebd5e9e88b7cd2d0d3890c3c26eae72264741f1))
+- **keybindings:** resolve Shift+A collision and wire custom keybindings into dispatcher ([15e395e](https://github.com/involvex/youtube-music-cli/commit/15e395ee9198df5b26bf489381178f304d6a30c5)), closes [#1](https://github.com/involvex/youtube-music-cli/issues/1)
+- prevent config corruption on Windows and add keybinding conflict warnings ([f1aa38b](https://github.com/involvex/youtube-music-cli/commit/f1aa38ba3c9e3c09050dfafcc34066b013caa5db))
+
 ## [0.1.2](https://github.com/involvex/youtube-music-cli/compare/v0.1.1...v0.1.2) (2026-08-02)
 
 ### Bug Fixes
