@@ -5,7 +5,7 @@ import {useHistory} from '../../stores/history.store.tsx';
 import {useTerminalSize} from '../../hooks/useTerminalSize.ts';
 import {truncate} from '../../utils/format.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {usePlayer} from '../../hooks/usePlayer.ts';
 import type {Track} from '../../types/youtube-music.types.ts';
@@ -173,15 +173,15 @@ export default function HistoryLayout() {
 		removeFromQueue(effectiveQueueIndex);
 	}, [focus, queue.length, effectiveQueueIndex, removeFromQueue]);
 
-	useKeyBinding(KEYBINDINGS.BACK, () => {
+	useKeyBinding(resolveKeybinding('BACK'), () => {
 		dispatch({category: 'GO_BACK'});
 	});
-	useKeyBinding(KEYBINDINGS.UP, navigateUp);
-	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
-	useKeyBinding(KEYBINDINGS.SELECT, playSelected);
+	useKeyBinding(resolveKeybinding('UP'), navigateUp);
+	useKeyBinding(resolveKeybinding('DOWN'), navigateDown);
+	useKeyBinding(resolveKeybinding('SELECT'), playSelected);
 	useKeyBinding(['tab'], toggleFocus);
-	useKeyBinding(KEYBINDINGS.ADD_TO_QUEUE, enqueueSelected);
-	useKeyBinding(KEYBINDINGS.PLAY_NEXT, playNextSelected);
+	useKeyBinding(resolveKeybinding('ADD_TO_QUEUE'), enqueueSelected);
+	useKeyBinding(resolveKeybinding('PLAY_NEXT'), playNextSelected);
 	useKeyBinding(['d', 'delete', 'backspace'], removeSelected);
 	useKeyBinding(['c'], () => {
 		if (focus === 'queue') clearQueue();

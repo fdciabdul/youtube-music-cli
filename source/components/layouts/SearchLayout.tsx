@@ -11,7 +11,8 @@ import type {
 import {useTheme} from '../../hooks/useTheme.ts';
 import SearchBar from '../search/SearchBar.tsx';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {KEYBINDINGS, VIEW} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
+import {VIEW} from '../../utils/constants.ts';
 import {Box, Text} from 'ink';
 import {usePlayer} from '../../hooks/usePlayer.ts';
 import {ICONS} from '../../utils/icons.ts';
@@ -142,10 +143,10 @@ function SearchLayout() {
 		performSearch,
 	]);
 
-	useKeyBinding(KEYBINDINGS.INCREASE_RESULTS, increaseLimit, {
+	useKeyBinding(resolveKeybinding('INCREASE_RESULTS'), increaseLimit, {
 		bypassBlock: true,
 	});
-	useKeyBinding(KEYBINDINGS.DECREASE_RESULTS, decreaseLimit, {
+	useKeyBinding(resolveKeybinding('DECREASE_RESULTS'), decreaseLimit, {
 		bypassBlock: true,
 	});
 
@@ -158,25 +159,33 @@ function SearchLayout() {
 
 	useKeyBinding(['h'], goToHistory);
 	useKeyBinding(
-		KEYBINDINGS.SEARCH_FILTER_ARTIST,
+		resolveKeybinding('SEARCH_FILTER_ARTIST'),
 		() => beginFilterEdit('artist'),
 		{
 			bypassBlock: true,
 		},
 	);
 	useKeyBinding(
-		KEYBINDINGS.SEARCH_FILTER_ALBUM,
+		resolveKeybinding('SEARCH_FILTER_ALBUM'),
 		() => beginFilterEdit('album'),
 		{
 			bypassBlock: true,
 		},
 	);
-	useKeyBinding(KEYBINDINGS.SEARCH_FILTER_YEAR, () => beginFilterEdit('year'), {
-		bypassBlock: true,
-	});
-	useKeyBinding(KEYBINDINGS.SEARCH_FILTER_DURATION, cycleDurationFilter, {
-		bypassBlock: true,
-	});
+	useKeyBinding(
+		resolveKeybinding('SEARCH_FILTER_YEAR'),
+		() => beginFilterEdit('year'),
+		{
+			bypassBlock: true,
+		},
+	);
+	useKeyBinding(
+		resolveKeybinding('SEARCH_FILTER_DURATION'),
+		cycleDurationFilter,
+		{
+			bypassBlock: true,
+		},
+	);
 
 	// Initial search if query is in state (usually from CLI flags)
 	useEffect(() => {
@@ -215,7 +224,7 @@ function SearchLayout() {
 		dispatch({category: 'NAVIGATE', view: VIEW.HOME});
 	}, [dispatch]);
 
-	useKeyBinding(KEYBINDINGS.BACK, goBack);
+	useKeyBinding(resolveKeybinding('BACK'), goBack);
 	useKeyBinding(['escape'], goToHome, {bypassBlock: true});
 
 	const handleMixCreated = useCallback((message: string) => {

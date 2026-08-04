@@ -6,7 +6,8 @@ import {useTheme} from '../../hooks/useTheme.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {getConfigService} from '../../services/config/config.service.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {KEYBINDINGS, VIEW} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
+import {VIEW} from '../../utils/constants.ts';
 import {useSleepTimer} from '../../hooks/useSleepTimer.ts';
 import {formatTime} from '../../utils/format.ts';
 import {ensureDownloadDirectory} from '../../utils/download-path.ts';
@@ -368,9 +369,9 @@ export default function Settings() {
 		}
 	};
 
-	useKeyBinding(KEYBINDINGS.UP, navigateUp);
-	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
-	useKeyBinding(KEYBINDINGS.SELECT, handleSelect);
+	useKeyBinding(resolveKeybinding('UP'), navigateUp);
+	useKeyBinding(resolveKeybinding('DOWN'), navigateDown);
+	useKeyBinding(resolveKeybinding('SELECT'), handleSelect);
 
 	const sleepTimerLabel =
 		isActive && remainingSeconds !== null

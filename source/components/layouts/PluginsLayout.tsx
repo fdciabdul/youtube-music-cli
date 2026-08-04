@@ -4,7 +4,7 @@ import {Box, Text} from 'ink';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {usePlugins} from '../../stores/plugins.store.tsx';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import PluginsList from '../plugins/PluginsList.tsx';
 import PluginInstallDialog from '../plugins/PluginInstallDialog.tsx';
 
@@ -78,8 +78,8 @@ export default function PluginsLayout() {
 	}, []);
 
 	// Key bindings
-	useKeyBinding(KEYBINDINGS.UP, navigateUp);
-	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
+	useKeyBinding(resolveKeybinding('UP'), navigateUp);
+	useKeyBinding(resolveKeybinding('DOWN'), navigateDown);
 	useKeyBinding(['e'], togglePlugin);
 	useKeyBinding(['r'], removePlugin);
 	useKeyBinding(['u'], handleUpdate);

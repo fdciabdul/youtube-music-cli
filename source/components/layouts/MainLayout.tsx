@@ -35,7 +35,8 @@ import StatsDashboard from '../stats/StatsDashboard.tsx';
 import RadioStreamsLayout from './RadioStreamsLayout.tsx';
 import LiveStreamsLayout from './LiveStreamsLayout.tsx';
 import MoodRadioLayout from './MoodRadioLayout.tsx';
-import {KEYBINDINGS, VIEW} from '../../utils/constants.ts';
+import {VIEW} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {Box} from 'ink';
 import {useTerminalSize} from '../../hooks/useTerminalSize.ts';
 import {getPlayerService} from '../../services/player/player.service.ts';
@@ -189,7 +190,7 @@ function MainLayout() {
 	}, [dispatch]);
 
 	// Global keyboard bindings
-	useKeyBinding(KEYBINDINGS.QUIT, handleQuit);
+	useKeyBinding(resolveKeybinding('QUIT'), handleQuit);
 
 	// Esc from player view goes back (player has no native back binding)
 	const handlePlayerBack = useCallback(() => {
@@ -198,34 +199,34 @@ function MainLayout() {
 		}
 	}, [navState.currentView, dispatch]);
 
-	useKeyBinding(KEYBINDINGS.BACK, handlePlayerBack);
+	useKeyBinding(resolveKeybinding('BACK'), handlePlayerBack);
 	useKeyBinding(
 		navState.currentView === VIEW.RADIO ||
 			navState.currentView === VIEW.LIVE_STREAMS
 			? []
-			: KEYBINDINGS.SEARCH,
+			: resolveKeybinding('SEARCH'),
 		goToSearch,
 	);
-	useKeyBinding(KEYBINDINGS.PLAYLISTS, goToPlaylists);
-	useKeyBinding(KEYBINDINGS.PLUGINS, goToPlugins);
-	useKeyBinding(KEYBINDINGS.SUGGESTIONS, goToSuggestions);
-	useKeyBinding(KEYBINDINGS.HISTORY, goToHistory);
-	useKeyBinding(KEYBINDINGS.HOME, goToHome);
-	useKeyBinding(KEYBINDINGS.SETTINGS, goToSettings);
-	useKeyBinding(KEYBINDINGS.HELP, goToHelp);
+	useKeyBinding(resolveKeybinding('PLAYLISTS'), goToPlaylists);
+	useKeyBinding(resolveKeybinding('PLUGINS'), goToPlugins);
+	useKeyBinding(resolveKeybinding('SUGGESTIONS'), goToSuggestions);
+	useKeyBinding(resolveKeybinding('HISTORY'), goToHistory);
+	useKeyBinding(resolveKeybinding('HOME'), goToHome);
+	useKeyBinding(resolveKeybinding('SETTINGS'), goToSettings);
+	useKeyBinding(resolveKeybinding('HELP'), goToHelp);
 	useKeyBinding(['M'], togglePlayerMode);
 	useKeyBinding(['l'], goToLyrics);
 	useKeyBinding(['T'], goToTrending);
 	useKeyBinding(['e'], goToExplore);
 	useKeyBinding(['i'], goToImport);
-	useKeyBinding(KEYBINDINGS.NEW_RELEASES, goToNewReleases);
-	useKeyBinding(KEYBINDINGS.GENRES, goToGenres);
-	useKeyBinding(KEYBINDINGS.STATS_VIEW, goToStats);
-	useKeyBinding(KEYBINDINGS.RADIO_STREAMS, goToRadioStreams);
-	useKeyBinding(KEYBINDINGS.LIVE_STREAMS, goToLiveStreams);
-	useKeyBinding(KEYBINDINGS.MOOD_RADIO, goToMoodRadio);
-	useKeyBinding(KEYBINDINGS.DETACH, handleDetach);
-	useKeyBinding(KEYBINDINGS.RESUME_BACKGROUND, handleResumeBackground);
+	useKeyBinding(resolveKeybinding('NEW_RELEASES'), goToNewReleases);
+	useKeyBinding(resolveKeybinding('GENRES'), goToGenres);
+	useKeyBinding(resolveKeybinding('STATS_VIEW'), goToStats);
+	useKeyBinding(resolveKeybinding('RADIO_STREAMS'), goToRadioStreams);
+	useKeyBinding(resolveKeybinding('LIVE_STREAMS'), goToLiveStreams);
+	useKeyBinding(resolveKeybinding('MOOD_RADIO'), goToMoodRadio);
+	useKeyBinding(resolveKeybinding('DETACH'), handleDetach);
+	useKeyBinding(resolveKeybinding('RESUME_BACKGROUND'), handleResumeBackground);
 
 	// Register goHome callback for Ctrl+C handling in search view
 	useEffect(() => {

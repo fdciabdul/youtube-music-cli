@@ -6,8 +6,9 @@ import {useNavigation} from '../../hooks/useNavigation.ts';
 import {useHistory} from '../../stores/history.store.tsx';
 import {useFavorites} from '../../stores/favorites.store.tsx';
 import {usePlayer} from '../../hooks/usePlayer.ts';
-import {VIEW, KEYBINDINGS} from '../../utils/constants.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
+import {VIEW} from '../../utils/constants.ts';
 import {truncate, formatTime} from '../../utils/format.ts';
 import {useTerminalSize} from '../../hooks/useTerminalSize.ts';
 import {ICONS} from '../../utils/icons.ts';
@@ -113,20 +114,20 @@ export default function HomeLayout() {
 		}
 	};
 
-	useKeyBinding(KEYBINDINGS.UP, () => {
+	useKeyBinding(resolveKeybinding('UP'), () => {
 		setSelectedIndex(prev => (prev > 0 ? prev - 1 : totalItems - 1));
 	});
 
-	useKeyBinding(KEYBINDINGS.DOWN, () => {
+	useKeyBinding(resolveKeybinding('DOWN'), () => {
 		setSelectedIndex(prev => (prev < totalItems - 1 ? prev + 1 : 0));
 	});
 
-	useKeyBinding(KEYBINDINGS.SELECT, handleSelect);
-	useKeyBinding(KEYBINDINGS.SEARCH, () =>
+	useKeyBinding(resolveKeybinding('SELECT'), handleSelect);
+	useKeyBinding(resolveKeybinding('SEARCH'), () =>
 		dispatch({category: 'NAVIGATE', view: VIEW.SEARCH}),
 	);
 
-	useKeyBinding(KEYBINDINGS.TOGGLE_FAVORITE, () => {
+	useKeyBinding(resolveKeybinding('TOGGLE_FAVORITE'), () => {
 		if (playerState.currentTrack) {
 			toggleFavorite(playerState.currentTrack);
 		}

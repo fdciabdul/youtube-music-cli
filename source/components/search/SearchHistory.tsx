@@ -5,7 +5,8 @@ import {useTheme} from '../../hooks/useTheme.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {getConfigService} from '../../services/config/config.service.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {KEYBINDINGS, VIEW} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
+import {VIEW} from '../../utils/constants.ts';
 
 type Props = {
 	onSelect: (query: string) => void;
@@ -34,9 +35,9 @@ export default function SearchHistory({onSelect}: Props) {
 		}
 	}, [history, selectedIndex, dispatch, onSelect]);
 
-	useKeyBinding(KEYBINDINGS.UP, navigateUp);
-	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
-	useKeyBinding(KEYBINDINGS.SELECT, handleSelect);
+	useKeyBinding(resolveKeybinding('UP'), navigateUp);
+	useKeyBinding(resolveKeybinding('DOWN'), navigateDown);
+	useKeyBinding(resolveKeybinding('SELECT'), handleSelect);
 
 	return (
 		<Box flexDirection="column" gap={1}>

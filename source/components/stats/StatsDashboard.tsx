@@ -3,7 +3,7 @@ import {useState} from 'react';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useStats} from '../../stores/stats.store.tsx';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {
 	copyTextToClipboard,
@@ -21,7 +21,7 @@ export default function StatsDashboard() {
 	const {dispatch} = useNavigation();
 	const [status, setStatus] = useState<string | null>(null);
 
-	useKeyBinding(KEYBINDINGS.BACK, () => {
+	useKeyBinding(resolveKeybinding('BACK'), () => {
 		dispatch({category: 'GO_BACK'});
 	});
 

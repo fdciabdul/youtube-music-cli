@@ -23,7 +23,7 @@ import {loadPlayerState} from './services/player-state/player-state.service.ts';
 import type {Track} from './types/youtube-music.types.ts';
 
 import {useKeyBinding} from './hooks/useKeyboard.ts';
-import {KEYBINDINGS} from './utils/constants.ts';
+import {resolveKeybinding} from './utils/keybinding-resolver.ts';
 import {ChatProvider} from './stores/chat.store.tsx';
 
 function Initializer({flags}: {flags?: Flags}) {
@@ -31,15 +31,33 @@ function Initializer({flags}: {flags?: Flags}) {
 	const {play, dispatch: playerDispatch, startRadio} = usePlayer();
 	const {getTrack, getPlaylist} = useYouTubeMusic();
 
-	useKeyBinding(KEYBINDINGS.FAVORITES_VIEW, () => {
+	useKeyBinding(resolveKeybinding('FAVORITES_VIEW'), () => {
 		dispatch({category: 'NAVIGATE', view: VIEW.FAVORITES});
 	});
 
-	useKeyBinding(KEYBINDINGS.AI_CHAT, () => {
+	useKeyBinding(resolveKeybinding('AI_CHAT'), () => {
+		const config = getConfigService();
+		if (!config.getLLMEnabled()) {
+			getNotificationService().notify(
+				'AI Assistant is OFF',
+				'Enable it in Settings to use this key',
+			);
+			return;
+		}
+
 		dispatch({category: 'NAVIGATE', view: VIEW.AI_CHAT});
 	});
 
-	useKeyBinding(KEYBINDINGS.AI_RECOMMENDATIONS, () => {
+	useKeyBinding(resolveKeybinding('AI_RECOMMENDATIONS'), () => {
+		const config = getConfigService();
+		if (!config.getLLMEnabled()) {
+			getNotificationService().notify(
+				'AI Assistant is OFF',
+				'Enable it in Settings to use this key',
+			);
+			return;
+		}
+
 		dispatch({category: 'NAVIGATE', view: VIEW.AI_RECOMMENDATIONS});
 	});
 

@@ -3,8 +3,9 @@ import {useState} from 'react';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {usePlayer} from '../../hooks/usePlayer.ts';
-import {VIEW, KEYBINDINGS} from '../../utils/constants.ts';
+import {VIEW} from '../../utils/constants.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {BUILTIN_MOODS} from '../../data/builtin-moods.ts';
 import type {RadioSeed} from '../../types/radio.types.ts';
 
@@ -16,21 +17,21 @@ export default function MoodRadioLayout() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	useKeyBinding(KEYBINDINGS.UP, () => {
+	useKeyBinding(resolveKeybinding('UP'), () => {
 		setSelectedIndex(i => Math.max(0, i - 1));
 		setError(null);
 	});
-	useKeyBinding(KEYBINDINGS.DOWN, () => {
+	useKeyBinding(resolveKeybinding('DOWN'), () => {
 		setSelectedIndex(i => Math.min(BUILTIN_MOODS.length - 1, i + 1));
 		setError(null);
 	});
-	useKeyBinding(KEYBINDINGS.BACK, () => {
+	useKeyBinding(resolveKeybinding('BACK'), () => {
 		dispatch({category: 'GO_BACK'});
 	});
-	useKeyBinding(KEYBINDINGS.QUIT, () => {
+	useKeyBinding(resolveKeybinding('QUIT'), () => {
 		dispatch({category: 'GO_BACK'});
 	});
-	useKeyBinding(KEYBINDINGS.SELECT, async () => {
+	useKeyBinding(resolveKeybinding('SELECT'), async () => {
 		const mood = BUILTIN_MOODS[selectedIndex];
 		if (!mood || isLoading) return;
 

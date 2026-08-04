@@ -4,10 +4,10 @@ import TextInput from 'ink-text-input';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {usePlayer} from '../../hooks/usePlayer.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {useKeyboardBlocker} from '../../hooks/useKeyboardBlocker.tsx';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {useTerminalSize} from '../../hooks/useTerminalSize.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
 import {truncate} from '../../utils/format.ts';
 import type {RadioStation} from '../../types/radio-station.types.ts';
 import {RADIO_COUNTRY_OPTIONS} from '../../types/radio-station.types.ts';
@@ -337,12 +337,12 @@ export default function RadioStationsList() {
 		);
 	}, [listRows, effectiveSelectedIndex]);
 
-	useKeyBinding(KEYBINDINGS.UP, navigateUp);
-	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
-	useKeyBinding(KEYBINDINGS.SELECT, playSelected);
-	useKeyBinding(KEYBINDINGS.QUIT, goBack);
-	useKeyBinding(KEYBINDINGS.BACK, goBack);
-	useKeyBinding(KEYBINDINGS.SEARCH, startSearch);
+	useKeyBinding(resolveKeybinding('UP'), navigateUp);
+	useKeyBinding(resolveKeybinding('DOWN'), navigateDown);
+	useKeyBinding(resolveKeybinding('SELECT'), playSelected);
+	useKeyBinding(resolveKeybinding('QUIT'), goBack);
+	useKeyBinding(resolveKeybinding('BACK'), goBack);
+	useKeyBinding(resolveKeybinding('SEARCH'), startSearch);
 	useKeyBinding(['r'], () => {
 		void playRandom();
 	});

@@ -4,10 +4,10 @@ import {useTheme} from '../../hooks/useTheme.ts';
 import {useFavorites} from '../../stores/favorites.store.tsx';
 import {usePlayer} from '../../hooks/usePlayer.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {ICONS} from '../../utils/icons.ts';
 import {truncate} from '../../utils/format.ts';
 import {useTerminalSize} from '../../hooks/useTerminalSize.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
 
 export default function FavoritesList() {
 	const {theme} = useTheme();
@@ -68,11 +68,11 @@ export default function FavoritesList() {
 	}, [favorites, selectedIndex, removeFavorite]);
 
 	// Key bindings
-	useKeyBinding(KEYBINDINGS.UP, navigateUp);
-	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
-	useKeyBinding(KEYBINDINGS.SELECT, playSelected);
-	useKeyBinding(KEYBINDINGS.ADD_TO_QUEUE, enqueueSelected);
-	useKeyBinding(KEYBINDINGS.PLAY_NEXT, playNextSelected);
+	useKeyBinding(resolveKeybinding('UP'), navigateUp);
+	useKeyBinding(resolveKeybinding('DOWN'), navigateDown);
+	useKeyBinding(resolveKeybinding('SELECT'), playSelected);
+	useKeyBinding(resolveKeybinding('ADD_TO_QUEUE'), enqueueSelected);
+	useKeyBinding(resolveKeybinding('PLAY_NEXT'), playNextSelected);
 	useKeyBinding(['delete', 'd', 'backspace'], handleRemove);
 	useKeyBinding(['f'], handleRemove); // Toggle off in this view means remove
 	useKeyBinding(['shift+p'], playAll); // Reuse playlist play shortcut? Or just Enter on a "Play All" button?

@@ -22,6 +22,7 @@ import {BUILTIN_THEMES, DEFAULT_THEME} from '../../config/themes.config.ts';
 import type {Theme} from '../../types/theme.types.ts';
 import {formatError} from '../../utils/error.ts';
 import path from 'node:path';
+import {refreshKeybindings} from '../../utils/keybinding-resolver.ts';
 
 const MAX_BACKUPS = 5;
 const BACKUP_DIR = CONFIG_DIR;
@@ -339,7 +340,19 @@ class ConfigService {
 			keys,
 			description: `Custom binding for ${action}`,
 		};
+		refreshKeybindings();
 		this.save();
+	}
+
+	clearKeybinding(action: string): void {
+		delete this.config.keybindings[action];
+		refreshKeybindings();
+		this.save();
+	}
+
+	resetKeybindingsForTests(): void {
+		this.config.keybindings = {};
+		refreshKeybindings();
 	}
 
 	addToHistory(trackId: string): void {

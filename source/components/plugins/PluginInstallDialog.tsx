@@ -5,7 +5,7 @@ import TextInput from 'ink-text-input';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {usePlugins} from '../../stores/plugins.store.tsx';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 
 interface PluginInstallDialogProps {
 	onClose: () => void;
@@ -51,7 +51,7 @@ export default function PluginInstallDialog({
 		}
 	}, [installing, onClose]);
 
-	useKeyBinding(KEYBINDINGS.BACK, handleClose);
+	useKeyBinding(resolveKeybinding('BACK'), handleClose);
 
 	return (
 		<Box flexDirection="column" gap={1}>

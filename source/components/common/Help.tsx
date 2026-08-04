@@ -3,7 +3,8 @@ import {Box, Text} from 'ink';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
+import {getConfigService} from '../../services/config/config.service.ts';
 import {useCallback} from 'react';
 
 export default function Help() {
@@ -14,8 +15,10 @@ export default function Help() {
 		dispatch({category: 'GO_BACK'});
 	}, [dispatch]);
 
-	useKeyBinding(KEYBINDINGS.BACK, closeHelp);
-	useKeyBinding(KEYBINDINGS.SELECT, closeHelp);
+	useKeyBinding(resolveKeybinding('BACK'), closeHelp);
+	useKeyBinding(resolveKeybinding('SELECT'), closeHelp);
+
+	const llmEnabled = getConfigService().getLLMEnabled();
 
 	return (
 		<Box flexDirection="column" gap={1} padding={1}>
@@ -60,6 +63,15 @@ export default function Help() {
 						<Text> | </Text>
 						<Text color={theme.colors.text}>o</Text> - Listening statistics (top
 						tracks/artists, totals)
+						{llmEnabled && (
+							<>
+								<Text> | </Text>
+								<Text color={theme.colors.text}>A</Text> - AI Chat
+								<Text> | </Text>
+								<Text color={theme.colors.text}>Ctrl+Shift+A</Text> - AI
+								Recommendations
+							</>
+						)}
 					</Text>
 				</Box>
 

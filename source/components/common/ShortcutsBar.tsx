@@ -6,8 +6,10 @@ import {useTheme} from '../../hooks/useTheme.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {KEYBINDINGS, VIEW} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {ICONS} from '../../utils/icons.ts';
 import {logger} from '../../services/logger/logger.service.ts';
+import {getConfigService} from '../../services/config/config.service.ts';
 
 const FLASH_DURATION_MS = 300;
 
@@ -54,16 +56,16 @@ export default function ShortcutsBar() {
 		}
 	};
 
-	useKeyBinding(KEYBINDINGS.PLAY_PAUSE, handlePlayPause);
-	useKeyBinding(KEYBINDINGS.NEXT, () => {
+	useKeyBinding(resolveKeybinding('PLAY_PAUSE'), handlePlayPause);
+	useKeyBinding(resolveKeybinding('NEXT'), () => {
 		flash('next');
 		next();
 	});
-	useKeyBinding(KEYBINDINGS.PREVIOUS, () => {
+	useKeyBinding(resolveKeybinding('PREVIOUS'), () => {
 		flash('prev');
 		previous();
 	});
-	useKeyBinding(KEYBINDINGS.VOLUME_UP, () => {
+	useKeyBinding(resolveKeybinding('VOLUME_UP'), () => {
 		flash('volume');
 		logger.debug('ShortcutsBar', 'VOLUME_UP handler called', {
 			keys: KEYBINDINGS.VOLUME_UP,
@@ -72,7 +74,7 @@ export default function ShortcutsBar() {
 		});
 		volumeUp();
 	});
-	useKeyBinding(KEYBINDINGS.VOLUME_DOWN, () => {
+	useKeyBinding(resolveKeybinding('VOLUME_DOWN'), () => {
 		flash('volume');
 		logger.debug('ShortcutsBar', 'VOLUME_DOWN handler called', {
 			keys: KEYBINDINGS.VOLUME_DOWN,
@@ -81,27 +83,27 @@ export default function ShortcutsBar() {
 		});
 		volumeDown();
 	});
-	useKeyBinding(KEYBINDINGS.VOLUME_FINE_UP, () => {
+	useKeyBinding(resolveKeybinding('VOLUME_FINE_UP'), () => {
 		flash('volume');
 		volumeFineUp();
 	});
-	useKeyBinding(KEYBINDINGS.VOLUME_FINE_DOWN, () => {
+	useKeyBinding(resolveKeybinding('VOLUME_FINE_DOWN'), () => {
 		flash('volume');
 		volumeFineDown();
 	});
-	useKeyBinding(KEYBINDINGS.SHUFFLE, () => {
+	useKeyBinding(resolveKeybinding('SHUFFLE'), () => {
 		flash('shuffle');
 		toggleShuffle();
 	});
-	useKeyBinding(radioView ? [] : KEYBINDINGS.REPEAT, () => {
+	useKeyBinding(radioView ? [] : resolveKeybinding('REPEAT'), () => {
 		flash('repeat');
 		toggleRepeat();
 	});
-	useKeyBinding(KEYBINDINGS.AUTOPLAY_TOGGLE, () => {
+	useKeyBinding(resolveKeybinding('AUTOPLAY_TOGGLE'), () => {
 		flash('autoplay');
 		toggleAutoplay();
 	});
-	useKeyBinding(radioView ? [] : KEYBINDINGS.TOGGLE_RADIO, () => {
+	useKeyBinding(radioView ? [] : resolveKeybinding('TOGGLE_RADIO'), () => {
 		flash('radio');
 		if (playerState.radioIsActive) {
 			stopRadio();
@@ -143,6 +145,8 @@ export default function ShortcutsBar() {
 			? theme.colors.primary
 			: theme.colors.dim;
 
+	const llmEnabled = getConfigService().getLLMEnabled();
+
 	return (
 		<Box
 			borderStyle="single"
@@ -168,6 +172,13 @@ export default function ShortcutsBar() {
 				<Text color={theme.colors.text}>Genres [Sft+M]</Text> •{' '}
 				<Text color={theme.colors.text}>{ICONS.SEARCH} [/]</Text> •{' '}
 				<Text color={theme.colors.text}>{ICONS.HELP} [?]</Text>
+				{llmEnabled && (
+					<>
+						{' '}
+						• <Text color={theme.colors.text}>AI Chat [A]</Text> •{' '}
+						<Text color={theme.colors.text}>AI Recs [Ctrl+Shift+A]</Text>
+					</>
+				)}
 			</Text>
 
 			{/* Right: Playback mode + volume indicator */}

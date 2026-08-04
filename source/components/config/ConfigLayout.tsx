@@ -3,8 +3,8 @@ import {Box, Text} from 'ink';
 import {useState, useCallback} from 'react';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
 import {getConfigService} from '../../services/config/config.service.ts';
 import {logger} from '../../services/logger/logger.service.ts';
 
@@ -90,12 +90,12 @@ export default function ConfigLayout() {
 		dispatch({category: 'GO_BACK'});
 	}, [dispatch]);
 
-	useKeyBinding(KEYBINDINGS.UP, goUp);
-	useKeyBinding(KEYBINDINGS.DOWN, goDown);
-	useKeyBinding(KEYBINDINGS.SELECT, handleSelect);
-	useKeyBinding(KEYBINDINGS.VOLUME_UP, increaseVolumeStep);
-	useKeyBinding(KEYBINDINGS.VOLUME_DOWN, decreaseVolumeStep);
-	useKeyBinding(KEYBINDINGS.BACK, goBack);
+	useKeyBinding(resolveKeybinding('UP'), goUp);
+	useKeyBinding(resolveKeybinding('DOWN'), goDown);
+	useKeyBinding(resolveKeybinding('SELECT'), handleSelect);
+	useKeyBinding(resolveKeybinding('VOLUME_UP'), increaseVolumeStep);
+	useKeyBinding(resolveKeybinding('VOLUME_DOWN'), decreaseVolumeStep);
+	useKeyBinding(resolveKeybinding('BACK'), goBack);
 
 	const currentTheme = theme.name;
 	const currentQuality =

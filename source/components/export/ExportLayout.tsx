@@ -4,7 +4,7 @@ import {Box, Text} from 'ink';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {
 	getExportService,
 	type ExportFormat,
@@ -94,7 +94,7 @@ export default function ExportLayout() {
 	}, [selectedFormat, selectedPlaylist, playlists, exportService]);
 
 	// Keyboard bindings
-	useKeyBinding(KEYBINDINGS.UP, () => {
+	useKeyBinding(resolveKeybinding('UP'), () => {
 		if (step === 'format') {
 			setSelectedFormat(prev => Math.max(0, prev - 1));
 		} else if (step === 'playlist') {
@@ -102,7 +102,7 @@ export default function ExportLayout() {
 		}
 	});
 
-	useKeyBinding(KEYBINDINGS.DOWN, () => {
+	useKeyBinding(resolveKeybinding('DOWN'), () => {
 		if (step === 'format') {
 			setSelectedFormat(prev => Math.min(FORMATS.length - 1, prev + 1));
 		} else if (step === 'playlist') {
@@ -115,13 +115,13 @@ export default function ExportLayout() {
 		}
 	});
 
-	useKeyBinding(KEYBINDINGS.SELECT, () => {
+	useKeyBinding(resolveKeybinding('SELECT'), () => {
 		if (step === 'format') selectFormat();
 		else if (step === 'playlist') startExport();
 		else if (step === 'result') goBack();
 	});
 
-	useKeyBinding(KEYBINDINGS.BACK, goBack);
+	useKeyBinding(resolveKeybinding('BACK'), goBack);
 
 	return (
 		<Box flexDirection="column" gap={1} paddingX={1}>

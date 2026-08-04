@@ -5,7 +5,7 @@ import {useYouTubeMusic} from '../../hooks/useYouTubeMusic.ts';
 import {usePlayer} from '../../hooks/usePlayer.ts';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import type {Track} from '../../types/youtube-music.types.ts';
 import {truncate} from '../../utils/format.ts';
 
@@ -40,9 +40,9 @@ export default function Suggestions() {
 		}
 	}, [selectedIndex, suggestions, play]);
 
-	useKeyBinding(KEYBINDINGS.UP, navigateUp);
-	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
-	useKeyBinding(KEYBINDINGS.SELECT, playSelected);
+	useKeyBinding(resolveKeybinding('UP'), navigateUp);
+	useKeyBinding(resolveKeybinding('DOWN'), navigateDown);
+	useKeyBinding(resolveKeybinding('SELECT'), playSelected);
 
 	if (isLoading) {
 		return <Text color={theme.colors.accent}>Loading suggestions...</Text>;

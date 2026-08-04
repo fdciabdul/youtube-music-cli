@@ -101,7 +101,7 @@ export const KEYBINDINGS = {
 	DETACH: ['shift+q'],
 	RESUME_BACKGROUND: ['shift+r'],
 	AI_CHAT: ['a'],
-	AI_RECOMMENDATIONS: ['shift+a'],
+	AI_RECOMMENDATIONS: ['ctrl+shift+a'],
 	STATS_VIEW: ['o'],
 
 	// Radio

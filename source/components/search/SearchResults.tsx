@@ -5,10 +5,10 @@ import type {SearchResult, Track} from '../../types/youtube-music.types.ts';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {usePlayer} from '../../hooks/usePlayer.ts';
 import {useFavorites} from '../../stores/favorites.store.tsx';
 import {usePlaylist} from '../../hooks/usePlaylist.ts';
-import {KEYBINDINGS} from '../../utils/constants.ts';
 import {ICONS} from '../../utils/icons.ts';
 import {truncate, formatTime} from '../../utils/format.ts';
 import {useCallback, useRef, useEffect, useState} from 'react';
@@ -330,18 +330,18 @@ function SearchResults({
 		}
 	}, [isActive, results, selectedIndex, playNext]);
 
-	useKeyBinding(KEYBINDINGS.UP, navigateUp);
-	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
-	useKeyBinding(KEYBINDINGS.SELECT, handleSelect);
-	useKeyBinding(KEYBINDINGS.ADD_TO_QUEUE, enqueueSelected);
-	useKeyBinding(KEYBINDINGS.PLAY_NEXT, playNextSelected);
-	useKeyBinding(KEYBINDINGS.CREATE_MIX, () => {
+	useKeyBinding(resolveKeybinding('UP'), navigateUp);
+	useKeyBinding(resolveKeybinding('DOWN'), navigateDown);
+	useKeyBinding(resolveKeybinding('SELECT'), handleSelect);
+	useKeyBinding(resolveKeybinding('ADD_TO_QUEUE'), enqueueSelected);
+	useKeyBinding(resolveKeybinding('PLAY_NEXT'), playNextSelected);
+	useKeyBinding(resolveKeybinding('CREATE_MIX'), () => {
 		void createMixPlaylist();
 	});
-	useKeyBinding(KEYBINDINGS.DOWNLOAD, () => {
+	useKeyBinding(resolveKeybinding('DOWNLOAD'), () => {
 		void downloadSelected();
 	});
-	useKeyBinding(KEYBINDINGS.TOGGLE_FAVORITE, () => {
+	useKeyBinding(resolveKeybinding('TOGGLE_FAVORITE'), () => {
 		if (!isActive) return;
 		const selected = results[selectedIndex];
 		if (selected && selected.type === 'song') {

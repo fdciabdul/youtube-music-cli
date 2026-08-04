@@ -4,11 +4,11 @@ import TextInput from 'ink-text-input';
 import {useCallback, useState} from 'react';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {usePlayer} from '../../hooks/usePlayer.ts';
 import {usePlaylist} from '../../hooks/usePlaylist.ts';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useKeyboardBlocker} from '../../hooks/useKeyboardBlocker.tsx';
-import {KEYBINDINGS} from '../../utils/constants.ts';
 import {getDownloadService} from '../../services/download/download.service.ts';
 import {formatDownloadProgress} from '../../utils/download-progress.ts';
 
@@ -142,14 +142,14 @@ export default function PlaylistList() {
 		selectedIndex,
 	]);
 
-	useKeyBinding(KEYBINDINGS.UP, navigateUp);
-	useKeyBinding(KEYBINDINGS.DOWN, navigateDown);
-	useKeyBinding(KEYBINDINGS.SELECT, startPlaylist);
+	useKeyBinding(resolveKeybinding('UP'), navigateUp);
+	useKeyBinding(resolveKeybinding('DOWN'), navigateDown);
+	useKeyBinding(resolveKeybinding('SELECT'), startPlaylist);
 	useKeyBinding(['r'], handleRename);
-	useKeyBinding(KEYBINDINGS.CREATE_PLAYLIST, handleCreate);
-	useKeyBinding(KEYBINDINGS.DELETE_PLAYLIST, handleDelete);
-	useKeyBinding(KEYBINDINGS.BACK, handleBack);
-	useKeyBinding(KEYBINDINGS.DOWNLOAD, () => {
+	useKeyBinding(resolveKeybinding('CREATE_PLAYLIST'), handleCreate);
+	useKeyBinding(resolveKeybinding('DELETE_PLAYLIST'), handleDelete);
+	useKeyBinding(resolveKeybinding('BACK'), handleBack);
+	useKeyBinding(resolveKeybinding('DOWNLOAD'), () => {
 		void handleDownload();
 	});
 

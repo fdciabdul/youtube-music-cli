@@ -6,7 +6,9 @@ import type {ReactNode} from 'react';
 import {useChat} from '../../stores/chat.store.tsx';
 import {useNavigation} from '../../hooks/useNavigation.ts';
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
-import {VIEW, KEYBINDINGS} from '../../utils/constants.ts';
+import {VIEW} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
+import {getConfigService} from '../../services/config/config.service.ts';
 
 export default function AIChatView(): ReactNode {
 	const {messages, isProcessing, error, sendMessage, isConfigured} = useChat();
@@ -24,7 +26,35 @@ export default function AIChatView(): ReactNode {
 		dispatch({category: 'NAVIGATE', view: VIEW.SETTINGS});
 	};
 
-	useKeyBinding(KEYBINDINGS.SELECT, goToSettings);
+	useKeyBinding(resolveKeybinding('SELECT'), goToSettings);
+
+	const llmEnabled = getConfigService().getLLMEnabled();
+
+	if (!llmEnabled) {
+		return (
+			<Box flexDirection="column" padding={1} height={20}>
+				<Box
+					flexDirection="column"
+					borderStyle="round"
+					borderColor="cyan"
+					padding={1}
+				>
+					<Text bold>AI Assistant</Text>
+				</Box>
+
+				<Box flexDirection="column" flexGrow={1} justifyContent="center">
+					<Text color="yellow">AI Assistant is turned OFF.</Text>
+					<Text />
+					<Text bold>To enable:</Text>
+					<Text>1. Go to Settings</Text>
+					<Text>2. Turn AI Assistant ON</Text>
+					<Text>3. Enter your API key (optional, depending on provider)</Text>
+					<Text />
+					<Text dimColor>Press Enter to go to Settings</Text>
+				</Box>
+			</Box>
+		);
+	}
 
 	if (!isConfigured) {
 		return (

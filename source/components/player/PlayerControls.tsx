@@ -1,7 +1,8 @@
 // Player controls component
 import {useKeyBinding} from '../../hooks/useKeyboard.ts';
 import {getConfigService} from '../../services/config/config.service.ts';
-import {KEYBINDINGS, VIEW} from '../../utils/constants.ts';
+import {VIEW} from '../../utils/constants.ts';
+import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {usePlayer} from '../../hooks/usePlayer.ts';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useFavorites} from '../../stores/favorites.store.tsx';
@@ -114,32 +115,32 @@ export default function PlayerControls() {
 	};
 
 	// Keyboard bindings
-	useKeyBinding(KEYBINDINGS.PLAY_PAUSE, handlePlayPause);
-	useKeyBinding(KEYBINDINGS.NEXT, next);
-	useKeyBinding(KEYBINDINGS.PREVIOUS, previous);
+	useKeyBinding(resolveKeybinding('PLAY_PAUSE'), handlePlayPause);
+	useKeyBinding(resolveKeybinding('NEXT'), next);
+	useKeyBinding(resolveKeybinding('PREVIOUS'), previous);
 	useKeyBinding(['up'], volumeUp);
 	useKeyBinding(['down'], volumeDown);
 	useKeyBinding(['left'], previous);
 	useKeyBinding(['right'], next);
-	useKeyBinding(KEYBINDINGS.SPEED_UP, speedUp);
-	useKeyBinding(KEYBINDINGS.SPEED_DOWN, speedDown);
-	useKeyBinding(KEYBINDINGS.SHUFFLE, toggleShuffle);
-	useKeyBinding(KEYBINDINGS.GAPLESS_TOGGLE, toggleGaplessPlayback);
-	useKeyBinding(KEYBINDINGS.CROSSFADE_CYCLE, cycleCrossfadeDuration);
-	useKeyBinding(KEYBINDINGS.EQUALIZER_CYCLE, cycleEqualizerPreset);
-	useKeyBinding(KEYBINDINGS.AB_LOOP_A, handleABLoopA);
-	useKeyBinding(KEYBINDINGS.AB_LOOP_B, handleABLoopB);
-	useKeyBinding(KEYBINDINGS.AB_LOOP_CLEAR, handleABLoopClear);
-	useKeyBinding(radioView ? [] : KEYBINDINGS.TOGGLE_FAVORITE, () => {
+	useKeyBinding(resolveKeybinding('SPEED_UP'), speedUp);
+	useKeyBinding(resolveKeybinding('SPEED_DOWN'), speedDown);
+	useKeyBinding(resolveKeybinding('SHUFFLE'), toggleShuffle);
+	useKeyBinding(resolveKeybinding('GAPLESS_TOGGLE'), toggleGaplessPlayback);
+	useKeyBinding(resolveKeybinding('CROSSFADE_CYCLE'), cycleCrossfadeDuration);
+	useKeyBinding(resolveKeybinding('EQUALIZER_CYCLE'), cycleEqualizerPreset);
+	useKeyBinding(resolveKeybinding('AB_LOOP_A'), handleABLoopA);
+	useKeyBinding(resolveKeybinding('AB_LOOP_B'), handleABLoopB);
+	useKeyBinding(resolveKeybinding('AB_LOOP_CLEAR'), handleABLoopClear);
+	useKeyBinding(radioView ? [] : resolveKeybinding('TOGGLE_FAVORITE'), () => {
 		if (playerState.currentTrack) {
 			toggleFavorite(playerState.currentTrack);
 		}
 	});
-	useKeyBinding(KEYBINDINGS.TOGGLE_SUBTITLES, () => {
+	useKeyBinding(resolveKeybinding('TOGGLE_SUBTITLES'), () => {
 		const current = config.get('subtitlesEnabled') ?? false;
 		config.set('subtitlesEnabled', !current);
 	});
-	useKeyBinding(KEYBINDINGS.TOGGLE_RADIO, () => {
+	useKeyBinding(resolveKeybinding('TOGGLE_RADIO'), () => {
 		if (playerState.radioIsActive) {
 			stopRadio();
 		} else if (playerState.currentTrack) {
