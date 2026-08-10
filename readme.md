@@ -133,6 +133,8 @@ Release assets (prefer the platform-specific name; install scripts fall back to 
 
 Immersive Win32 build (`ymc-win32.exe`) is separate (`bun run build:win32`) and is not the default install-script binary.
 
+> **Note for Linux packagers:** The compiled binaries are produced by `bun build --compile` and **must not be stripped** (e.g., `strip`, `dh_strip`, pacman's automatic stripping). The `strip` command removes embedded JS/TS code, not just debug symbols, causing the binary to fall back to the raw Bun runtime. For Arch Linux, use `options=('!strip')` in your `PKGBUILD`. For Nix, use `stdenvNoCC.mkDerivation` or set `dontStrip = true`. For dpkg/RPM, exclude the binary from the strip phase. The npm package (`@involvex/youtube-music-cli`) does not have this limitation.
+
 ### Package managers (bun / npm)
 
 ```bash
