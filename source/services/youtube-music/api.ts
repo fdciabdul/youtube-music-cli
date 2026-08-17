@@ -979,21 +979,16 @@ class MusicService {
 				videoId,
 			});
 			const yt = await getClient();
-			const info = await yt.getBasicInfo(videoId);
-			const format = info.chooseFormat({
+			const streamingData = await yt.getStreamingData(videoId, {
 				type: 'audio',
 				quality: 'best',
 			});
-			const streamUrl =
-				typeof format?.decipher === 'function'
-					? format.decipher(yt.session.player)
-					: format?.url;
 
-			if (streamUrl && typeof streamUrl === 'string') {
+			if (streamingData?.url) {
 				logger.info('MusicService', 'Using youtubei.js stream', {
-					urlLength: streamUrl.length,
+					urlLength: streamingData.url.length,
 				});
-				return streamUrl;
+				return streamingData.url;
 			}
 
 			logger.warn('MusicService', 'youtubei.js: No audio format URL found');

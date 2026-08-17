@@ -67,14 +67,3 @@ export interface RelatedContent {
 		| string;
 	[key: string]: unknown;
 }
-
-export interface VideoInfo {
-	related?: {
-		contents: RelatedContent[];
-	};
-	chooseFormat?: (options: {type: string; quality: string}) => {
-		url?: string;
-		decipher?: (player: unknown) => string;
-	} | null;
-	[key: string]: unknown;
-}
