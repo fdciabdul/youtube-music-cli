@@ -20,6 +20,7 @@ import {
 	loadPlayerState,
 	savePlayerState,
 } from '../services/player-state/player-state.service.ts';
+import {showImmersiveBootScreen} from './boot-screen.ts';
 import {
 	ADVANCE_DEBOUNCE_MS,
 	ADVANCE_GRACE_MS,
@@ -1032,6 +1033,7 @@ export async function startImmersiveApp(
 	});
 
 	engine = new ImmersiveEngine({
+		bootScreen: () => showImmersiveBootScreen(),
 		discoMode: state.isDiscoMode,
 		enableTray: true,
 		enableNotifications: config.get('notifications') ?? false,

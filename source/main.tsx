@@ -25,6 +25,8 @@ import type {Track} from './types/youtube-music.types.ts';
 import {useKeyBinding} from './hooks/useKeyboard.ts';
 import {resolveKeybinding} from './utils/keybinding-resolver.ts';
 import {ChatProvider} from './stores/chat.store.tsx';
+import BootScreen from './components/common/BootScreen.tsx';
+import {useState} from 'react';
 
 function Initializer({flags}: {flags?: Flags}) {
 	const {dispatch} = useNavigation();
@@ -259,6 +261,8 @@ function HeadlessLayout({flags}: {flags?: Flags}) {
 }
 
 export default function Main({flags}: {flags?: Flags}) {
+	const [isBooted, setIsBooted] = useState(false);
+
 	return (
 		<ErrorBoundary>
 			<ThemeProvider>
@@ -277,7 +281,13 @@ export default function Main({flags}: {flags?: Flags}) {
 													) : (
 														<>
 															<Initializer flags={flags} />
-															<MainLayout />
+															{isBooted ? (
+																<MainLayout />
+															) : (
+																<BootScreen
+																	onBooted={() => setIsBooted(true)}
+																/>
+															)}
 														</>
 													)}
 												</Box>

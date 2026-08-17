@@ -190,6 +190,7 @@ export interface ImmersiveOptions {
 		field: SettingsTextField,
 		value: string,
 	) => string | null;
+	bootScreen?: () => Promise<void>;
 }
 
 export class ImmersiveEngine {
@@ -246,6 +247,8 @@ export class ImmersiveEngine {
 		enterAltBuffer();
 		hideCursor();
 		clearScreen();
+
+		await this.options.bootScreen?.();
 
 		let Fb: typeof import('./renderer/frame-buffer.ts').FrameBuffer;
 		let Bc: typeof import('./renderer/braille-canvas.ts').BrailleCanvas;
