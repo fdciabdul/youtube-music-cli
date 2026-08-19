@@ -291,8 +291,6 @@ This document tracks potential features, enhancements, and improvements for yout
 
 ### High Priority
 
-- Planned **TOR Support** - Route all traffic through the TOR network for anonymity
-- Planned **No Tracking Mode** - Prevent YouTube from logging listening history via account linkage
 
 ### Medium Priority
 
