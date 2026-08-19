@@ -1,3 +1,13 @@
+## [0.1.4](https://github.com/involvex/youtube-music-cli/compare/v0.1.3...v0.1.4) (2026-08-19)
+
+### Bug Fixes
+
+- **player:** ensure media auto-plays after loading via IPC ([b7b4164](https://github.com/involvex/youtube-music-cli/commit/b7b41644271f73ef108730dc20ff1a59d767414a))
+
+### Features
+
+- add boot screens with YMC ASCII art and sponsor line ([49f6c74](https://github.com/involvex/youtube-music-cli/commit/49f6c742851d1930d71965392857c7ad29ab1915))
+
 ## [0.1.3](https://github.com/involvex/youtube-music-cli/compare/v0.1.2...v0.1.3) (2026-08-04)
 
 ### Bug Fixes
