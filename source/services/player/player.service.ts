@@ -416,6 +416,7 @@ class PlayerService {
 							logger.info('PlayerService', 'Loading URL via IPC loadfile');
 						}
 						this.sendIpcCommand(['loadfile', urlToLoad]);
+						this.sendIpcCommand(['set_property', 'pause', false]);
 					}
 
 					settled = true;

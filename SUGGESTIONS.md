@@ -291,7 +291,6 @@ This document tracks potential features, enhancements, and improvements for yout
 
 ### High Priority
 
-
 ### Medium Priority
 
 - Planned **Encrypted Config** - Encrypt stored preferences and session tokens at rest
