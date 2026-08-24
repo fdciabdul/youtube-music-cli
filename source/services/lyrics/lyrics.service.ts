@@ -126,7 +126,7 @@ class LyricsService {
 						time: line.start,
 						endTime: line.end,
 						text: line.lyric,
-						words: line.syncedLyric.map(w => ({
+						words: (line.syncedLyric ?? []).map(w => ({
 							text: w.character,
 							time: line.start + w.time,
 						})),
