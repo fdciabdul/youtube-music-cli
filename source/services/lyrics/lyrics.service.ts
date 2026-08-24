@@ -134,15 +134,16 @@ class LyricsService {
 					.sort((a, b) => a.time - b.time);
 			} else if (lineSynced?.lyrics) {
 				const parsed = lineSynced.parse(lineSynced.lyrics);
-				synced = parsed
-					? parsed
-							.map(line => ({time: line.time, text: line.text}))
-							.sort((a, b) => a.time - b.time)
-					: null;
+				synced =
+					parsed && parsed.length > 0
+						? parsed
+								.map(line => ({time: line.time, text: line.text}))
+								.sort((a, b) => a.time - b.time)
+						: null;
 			}
 
 			const lyrics: Lyrics = {
-				synced,
+				synced: synced && synced.length > 0 ? synced : null,
 				plain: plain?.lyrics ?? null,
 			};
 
@@ -174,6 +175,7 @@ class LyricsService {
 
 	/** Get the current lyric line index based on playback position */
 	getCurrentLineIndex(lines: LyricLine[], currentTime: number): number {
+		if (lines.length === 0) return -1;
 		let index = 0;
 		for (let i = 0; i < lines.length; i++) {
 			if (lines[i]!.time <= currentTime) {
