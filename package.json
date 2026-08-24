@@ -75,6 +75,7 @@
 	"dependencies": {
 		"@bun-win32/kernel32": "^2.0.1",
 		"@bun-win32/user32": "^4.0.1",
+		"@stef-0012/synclyrics": "^2.5.10",
 		"ansi-escapes": "^7.3.0",
 		"discord-rpc": "^4.0.1",
 		"ink": "^7.1.1",

@@ -1,10 +1,19 @@
-// Lyrics service using LRCLIB API (https://lrclib.net)
-// Free, no authentication required
+// Lyrics service — line-synced lyrics via LRCLIB, with word-level
+// ("richsync") karaoke timing via Musixmatch when available, using the
+// @stef-0012/synclyrics library (https://github.com/Stef-00012/SyncLyrics-npm).
+import {SyncLyrics, type TokenData} from '@stef-0012/synclyrics';
 import {logger} from '../logger/logger.service.ts';
+
+export interface LyricWord {
+	text: string;
+	time: number; // seconds, absolute (relative to track start)
+}
 
 export interface LyricLine {
 	time: number; // seconds
+	endTime?: number; // seconds — only set for word-synced lines
 	text: string;
+	words?: LyricWord[]; // present only when word-level ("richsync") data is available
 }
 
 export interface Lyrics {
@@ -12,11 +21,19 @@ export interface Lyrics {
 	plain: string | null;
 }
 
-const LRCLIB_BASE = 'https://lrclib.net/api';
+let musixmatchToken: TokenData | null = null;
 
 class LyricsService {
 	private static instance: LyricsService;
 	private cache = new Map<string, Lyrics | null>();
+	private manager = new SyncLyrics({
+		logLevel: 'none',
+		sources: ['musixmatch', 'lrclib'],
+		saveMusixmatchToken: tokenData => {
+			musixmatchToken = tokenData;
+		},
+		getMusixmatchToken: () => musixmatchToken,
+	});
 
 	private constructor() {}
 
@@ -25,26 +42,6 @@ class LyricsService {
 			LyricsService.instance = new LyricsService();
 		}
 		return LyricsService.instance;
-	}
-
-	/** Parse LRC format into timed lines */
-	private parseLrc(lrc: string): LyricLine[] {
-		const lines: LyricLine[] = [];
-		const lineRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
-
-		for (const rawLine of lrc.split('\n')) {
-			const match = lineRegex.exec(rawLine.trim());
-			if (match) {
-				const minutes = Number.parseInt(match[1]!, 10);
-				const seconds = Number.parseInt(match[2]!, 10);
-				const centiseconds = Number.parseInt(match[3]!.padEnd(3, '0'), 10);
-				const time = minutes * 60 + seconds + centiseconds / 1000;
-				const text = match[4]!.trim();
-				lines.push({time, text});
-			}
-		}
-
-		return lines.sort((a, b) => a.time - b.time);
 	}
 
 	async getLyrics(
@@ -58,40 +55,52 @@ class LyricsService {
 		}
 
 		try {
-			const params = new URLSearchParams({
-				track_name: trackName,
-				artist_name: artistName,
-				...(duration ? {duration: String(Math.round(duration))} : {}),
+			const result = await this.manager.getLyrics({
+				track: trackName,
+				artist: artistName,
+				length: duration ? Math.round(duration * 1000) : undefined,
 			});
 
-			const response = await fetch(`${LRCLIB_BASE}/get?${params.toString()}`);
-
-			if (!response.ok) {
-				if (response.status === 404) {
-					logger.debug('LyricsService', 'No lyrics found', {
-						trackName,
-						artistName,
-					});
-					this.cache.set(cacheKey, null);
-					return null;
-				}
-				throw new Error(`LRCLIB API error: ${response.status}`);
+			if (!result) {
+				this.cache.set(cacheKey, null);
+				return null;
 			}
 
-			const data = (await response.json()) as {
-				syncedLyrics?: string;
-				plainLyrics?: string;
-			};
+			const {wordSynced, lineSynced, plain} = result.lyrics;
+
+			let synced: LyricLine[] | null = null;
+
+			if (wordSynced?.lyrics && wordSynced.lyrics.length > 0) {
+				synced = wordSynced.lyrics
+					.map(line => ({
+						time: line.start,
+						endTime: line.end,
+						text: line.lyric,
+						words: line.syncedLyric.map(w => ({
+							text: w.character,
+							time: line.start + w.time,
+						})),
+					}))
+					.sort((a, b) => a.time - b.time);
+			} else if (lineSynced?.lyrics) {
+				const parsed = lineSynced.parse(lineSynced.lyrics);
+				synced = parsed
+					? parsed
+							.map(line => ({time: line.time, text: line.text}))
+							.sort((a, b) => a.time - b.time)
+					: null;
+			}
 
 			const lyrics: Lyrics = {
-				synced: data.syncedLyrics ? this.parseLrc(data.syncedLyrics) : null,
-				plain: data.plainLyrics ?? null,
+				synced,
+				plain: plain?.lyrics ?? null,
 			};
 
 			this.cache.set(cacheKey, lyrics);
 			logger.info('LyricsService', 'Lyrics loaded', {
 				trackName,
 				hasSynced: !!lyrics.synced,
+				hasWordSync: !!wordSynced?.lyrics?.length,
 				hasPlain: !!lyrics.plain,
 			});
 			return lyrics;
