@@ -47,7 +47,7 @@ function MainLayout() {
 	const {theme} = useTheme();
 	const {state: navState, dispatch} = useNavigation();
 	const {resume} = usePlayer();
-	const {columns} = useTerminalSize();
+	const {columns, rows} = useTerminalSize();
 
 	// Responsive padding based on terminal size
 	const getPadding = () => (columns < 100 ? 0 : 1);
@@ -347,6 +347,9 @@ function MainLayout() {
 			paddingX={getPadding()}
 			borderStyle="single"
 			borderColor={theme.colors.primary}
+			width={columns}
+			height={rows}
+			overflow="hidden"
 		>
 			{currentView}
 
