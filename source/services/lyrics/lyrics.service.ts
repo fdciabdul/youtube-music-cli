@@ -23,6 +23,51 @@ export interface Lyrics {
 
 let musixmatchToken: TokenData | null = null;
 
+// Generous: a cold lookup can chain a Musixmatch token fetch + search + an
+// LRCLIB fallback, each a real network round trip.
+const FETCH_TIMEOUT_MS = 20000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => {
+			reject(new Error(`Lyrics lookup timed out after ${ms}ms`));
+		}, ms);
+
+		promise.then(
+			value => {
+				clearTimeout(timer);
+				resolve(value);
+			},
+			error => {
+				clearTimeout(timer);
+				reject(error);
+			},
+		);
+	});
+}
+
+// Video titles often carry noise ("Artist - Song (Official Lyric Video)")
+// that hurts lyrics-provider search matching. Strip common suffixes/prefixes.
+function cleanTrackName(title: string, artist: string): string {
+	let cleaned = title
+		.replace(
+			/[([][^()[\]]*\b(official|lyric|lyrics|audio|video|mv|visualizer|hd|4k|remaster(ed)?)\b[^()[\]]*[)\]]/gi,
+			'',
+		)
+		.trim();
+
+	if (artist) {
+		const prefix = new RegExp(`^${escapeRegExp(artist)}\\s*[-–—:]\\s*`, 'i');
+		cleaned = cleaned.replace(prefix, '');
+	}
+
+	return cleaned.trim() || title;
+}
+
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 class LyricsService {
 	private static instance: LyricsService;
 	private cache = new Map<string, Lyrics | null>();
@@ -54,12 +99,17 @@ class LyricsService {
 			return this.cache.get(cacheKey) ?? null;
 		}
 
+		const cleanedTrack = cleanTrackName(trackName, artistName);
+
 		try {
-			const result = await this.manager.getLyrics({
-				track: trackName,
-				artist: artistName,
-				length: duration ? Math.round(duration * 1000) : undefined,
-			});
+			const result = await withTimeout(
+				this.manager.getLyrics({
+					track: cleanedTrack,
+					artist: artistName,
+					length: duration ? Math.round(duration * 1000) : undefined,
+				}),
+				FETCH_TIMEOUT_MS,
+			);
 
 			if (!result) {
 				this.cache.set(cacheKey, null);
@@ -95,6 +145,15 @@ class LyricsService {
 				synced,
 				plain: plain?.lyrics ?? null,
 			};
+
+			if (!lyrics.synced && !lyrics.plain) {
+				logger.debug('LyricsService', 'No lyrics found', {
+					trackName,
+					artistName,
+				});
+				this.cache.set(cacheKey, null);
+				return null;
+			}
 
 			this.cache.set(cacheKey, lyrics);
 			logger.info('LyricsService', 'Lyrics loaded', {
