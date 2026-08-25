@@ -31,9 +31,16 @@ export type ThemeColors = {
 	warning: ColorName;
 };
 
+export type KaraokeColors = {
+	sung: string;
+	peak: string;
+	upcoming: string;
+};
+
 export type Theme = {
 	name: string;
 	colors: ThemeColors;
+	karaoke?: KaraokeColors;
 	inverse?: boolean;
 };
 

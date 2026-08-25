@@ -15,6 +15,11 @@ export const BUILTIN_THEMES: Record<string, Theme> = {
 			success: 'green',
 			warning: 'yellow',
 		},
+		karaoke: {
+			sung: '#22d3ee',
+			peak: '#fbbf24',
+			upcoming: '#dcdfe4',
+		},
 		inverse: false,
 	},
 	light: {
@@ -29,6 +34,11 @@ export const BUILTIN_THEMES: Record<string, Theme> = {
 			error: 'red',
 			success: 'green',
 			warning: 'yellow',
+		},
+		karaoke: {
+			sung: '#2563eb',
+			peak: '#db2777',
+			upcoming: '#111827',
 		},
 		inverse: false,
 	},
@@ -45,6 +55,11 @@ export const BUILTIN_THEMES: Record<string, Theme> = {
 			success: 'greenBright',
 			warning: 'yellowBright',
 		},
+		karaoke: {
+			sung: '#c084fc',
+			peak: '#22d3ee',
+			upcoming: '#e2e8f0',
+		},
 		inverse: false,
 	},
 	matrix: {
@@ -59,6 +74,11 @@ export const BUILTIN_THEMES: Record<string, Theme> = {
 			error: 'red',
 			success: 'greenBright',
 			warning: 'yellow',
+		},
+		karaoke: {
+			sung: '#16a34a',
+			peak: '#4ade80',
+			upcoming: '#bbf7d0',
 		},
 		inverse: false,
 	},
@@ -75,6 +95,11 @@ export const BUILTIN_THEMES: Record<string, Theme> = {
 			success: 'green',
 			warning: 'yellow',
 		},
+		karaoke: {
+			sung: '#bd93f9',
+			peak: '#f1fa8c',
+			upcoming: '#f8f8f2',
+		},
 		inverse: false,
 	},
 	nord: {
@@ -89,6 +114,11 @@ export const BUILTIN_THEMES: Record<string, Theme> = {
 			error: 'red',
 			success: 'greenBright',
 			warning: 'yellow',
+		},
+		karaoke: {
+			sung: '#81a1c1',
+			peak: '#88c0d0',
+			upcoming: '#eceff4',
 		},
 		inverse: false,
 	},
@@ -105,6 +135,11 @@ export const BUILTIN_THEMES: Record<string, Theme> = {
 			success: 'green',
 			warning: 'magenta',
 		},
+		karaoke: {
+			sung: '#268bd2',
+			peak: '#b58900',
+			upcoming: '#eee8d5',
+		},
 		inverse: false,
 	},
 	catppuccin: {
@@ -119,6 +154,11 @@ export const BUILTIN_THEMES: Record<string, Theme> = {
 			error: 'red',
 			success: 'green',
 			warning: 'yellow',
+		},
+		karaoke: {
+			sung: '#cba6f7',
+			peak: '#94e2d5',
+			upcoming: '#cdd6f4',
 		},
 		inverse: false,
 	},

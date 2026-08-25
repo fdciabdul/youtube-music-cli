@@ -1,5 +1,6 @@
-// Lyrics view layout - displays synced or plain lyrics
-import {useState, useEffect} from 'react';
+// Lyrics view layout - displays synced or plain lyrics with karaoke-style
+// word-level highlighting and a smooth color gradient sweep.
+import {useEffect, useState} from 'react';
 import {Box, Text} from 'ink';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {usePlayer} from '../../hooks/usePlayer.ts';
@@ -8,8 +9,18 @@ import {
 	type LyricLine,
 } from '../../services/lyrics/lyrics.service.ts';
 import {useTerminalSize} from '../../hooks/useTerminalSize.ts';
+import {
+	buildKaraokeCells,
+	buildWordSpans,
+	KARAOKE_TICK_MS,
+	resolveKaraokeColors,
+	type CharCell,
+} from '../../utils/karaoke.ts';
 
-const CONTEXT_LINES = 3; // Lines shown before/after current line
+const CONTEXT_LINES = 2; // Lines shown before/after current line
+// Fixed chrome around the lyric list: header border/title (3) + status (1) +
+// gaps (2) + footer (2) + outer padding/safety margin (~6)
+const RESERVED_ROWS = 14;
 
 export default function LyricsLayout() {
 	const {theme} = useTheme();
@@ -22,6 +33,34 @@ export default function LyricsLayout() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const lyricsService = getLyricsService();
+
+	// Interpolate a smooth clock between once-a-second progress ticks so the
+	// karaoke sweep doesn't visibly stair-step.
+	const [smoothProgress, setSmoothProgress] = useState(state.progress);
+	useEffect(() => {
+		const anchorProgress = state.progress;
+		const anchorTime = Date.now();
+
+		const tick = () => {
+			const elapsed = state.isPlaying ? (Date.now() - anchorTime) / 1000 : 0;
+			setSmoothProgress(
+				Math.min(
+					anchorProgress + elapsed,
+					state.duration || Number.POSITIVE_INFINITY,
+				),
+			);
+		};
+
+		queueMicrotask(tick);
+		if (!state.isPlaying) {
+			return;
+		}
+
+		const interval = setInterval(tick, KARAOKE_TICK_MS);
+		return () => {
+			clearInterval(interval);
+		};
+	}, [state.progress, state.isPlaying, state.duration]);
 
 	// Fetch lyrics when track changes
 	useEffect(() => {
@@ -78,15 +117,38 @@ export default function LyricsLayout() {
 	const artist = track?.artists?.map(a => a.name).join(', ') ?? '';
 
 	// Determine current line
-	const currentLineIndex = lyrics?.synced
-		? lyricsService.getCurrentLineIndex(lyrics.synced, state.progress)
-		: -1;
+	const currentLineIndex =
+		lyrics?.synced && lyrics.synced.length > 0
+			? lyricsService.getCurrentLineIndex(lyrics.synced, smoothProgress)
+			: -1;
 
-	// Calculate visible lines window
+	const syncedLines = lyrics?.synced ?? [];
+	const currentLine =
+		currentLineIndex >= 0 ? syncedLines[currentLineIndex] : undefined;
+
+	// Karaoke cells for the active line: real word timestamps when available
+	// (Musixmatch richsync), otherwise a natural-pace estimate from line sync.
+	const karaokeCells: CharCell[] | null = (() => {
+		if (!currentLine) return null;
+		const spans = buildWordSpans(
+			currentLine,
+			syncedLines[currentLineIndex + 1]?.time,
+		);
+		return buildKaraokeCells(
+			spans,
+			smoothProgress,
+			resolveKaraokeColors(theme),
+		);
+	})();
+
+	// Calculate visible lines window sized to fit the terminal
+	const maxLines = Math.max(3, rows - RESERVED_ROWS);
 	const visibleLines = (() => {
 		if (!lyrics?.synced) return null;
-		const start = Math.max(0, currentLineIndex - CONTEXT_LINES);
-		const maxLines = Math.max(5, rows - 8);
+		const start = Math.max(
+			0,
+			Math.min(currentLineIndex - CONTEXT_LINES, lyrics.synced.length - 1),
+		);
 		const end = Math.min(lyrics.synced.length, start + maxLines);
 		return lyrics.synced.slice(start, end).map((line, i) => ({
 			line,
@@ -95,7 +157,7 @@ export default function LyricsLayout() {
 	})();
 
 	return (
-		<Box flexDirection="column" gap={1}>
+		<Box flexDirection="column">
 			{/* Header */}
 			<Box
 				borderStyle="double"
@@ -115,22 +177,36 @@ export default function LyricsLayout() {
 			{/* Synced lyrics */}
 			{!loading && visibleLines && (
 				<Box flexDirection="column" paddingX={1}>
-					{visibleLines.map(({line, globalIndex}) => (
-						<Text
-							key={globalIndex}
-							bold={globalIndex === currentLineIndex}
-							color={
-								globalIndex === currentLineIndex
-									? theme.colors.primary
-									: globalIndex < currentLineIndex
+					{visibleLines.map(({line, globalIndex}) => {
+						const isCurrent = globalIndex === currentLineIndex;
+
+						if (isCurrent && karaokeCells) {
+							return (
+								<Text key={globalIndex} bold>
+									{'▶ '}
+									{karaokeCells.map((cell, i) => (
+										<Text key={i} color={cell.color}>
+											{cell.char}
+										</Text>
+									))}
+								</Text>
+							);
+						}
+
+						return (
+							<Text
+								key={globalIndex}
+								color={
+									globalIndex < currentLineIndex
 										? theme.colors.dim
 										: theme.colors.text
-							}
-						>
-							{globalIndex === currentLineIndex ? '▶ ' : '  '}
-							{line.text || '♪'}
-						</Text>
-					))}
+								}
+							>
+								{'  '}
+								{line.text || '♪'}
+							</Text>
+						);
+					})}
 				</Box>
 			)}
 
@@ -139,7 +215,7 @@ export default function LyricsLayout() {
 				<Box flexDirection="column" paddingX={1}>
 					{lyrics.plain
 						.split('\n')
-						.slice(0, Math.max(5, rows - 8))
+						.slice(0, maxLines)
 						.map((line, i) => (
 							<Text key={i} color={theme.colors.text}>
 								{line || ' '}

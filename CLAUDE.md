@@ -26,6 +26,7 @@ bun run sync:skills  # Copy .agents/skills → .claude/skills
 - Win32 immersive: `source/immersive/` (`--win32`)
 - Player state: `source/stores/player.store.tsx`
 - Playback: `source/services/player/` (mpv IPC)
+- Lyrics: `source/services/lyrics/` (Musixmatch richsync + LRCLIB fallback; karaoke utils in `source/utils/karaoke.ts`)
 - Local downloads: `source/utils/local-track.ts` + `source/services/download/`
 - Config: `source/services/config/config.service.ts`
 
