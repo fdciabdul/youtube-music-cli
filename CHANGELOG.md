@@ -1,3 +1,9 @@
+## [0.1.5](https://github.com/involvex/youtube-music-cli/compare/v0.1.4...v0.1.5) (2026-08-25)
+
+### Features
+
+- **lyrics:** word-level karaoke sync via native Musixmatch richsync ([50e29fc](https://github.com/involvex/youtube-music-cli/commit/50e29fcf5b42ef7a99403c0ff0c2b0803522ec7b)), closes [#40](https://github.com/involvex/youtube-music-cli/issues/40)
+
 ## [0.1.4](https://github.com/involvex/youtube-music-cli/compare/v0.1.3...v0.1.4) (2026-08-19)
 
 ### Bug Fixes
