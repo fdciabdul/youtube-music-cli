@@ -25,6 +25,16 @@ function makeTempDir() {
 	return dir;
 }
 
+// Parse fetch input into a real URL so mock routing matches exact hosts and
+// paths (avoids CodeQL js/incomplete-url-substring-sanitization).
+function toUrl(input) {
+	return new URL(String(input instanceof Request ? input.url : input));
+}
+
+const isMusixmatchEndpoint = (url, endpoint) =>
+	url.host === 'apic-desktop.musixmatch.com' &&
+	url.pathname.endsWith(`/${endpoint}`);
+
 test('lyrics: parseRichsyncBody maps richsync JSON to timed lines', async () => {
 	const {parseRichsyncBody} =
 		await import('../source/services/lyrics/musixmatch.service.ts');
@@ -322,10 +332,10 @@ test(
 		const requestedUrls = [];
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = async input => {
-			const url = String(input instanceof Request ? input.url : input);
-			requestedUrls.push(url);
+			const url = toUrl(input);
+			requestedUrls.push(url.href);
 
-			if (url.includes('/token.get')) {
+			if (isMusixmatchEndpoint(url, 'token.get')) {
 				return new Response(
 					JSON.stringify({
 						message: {
@@ -337,8 +347,8 @@ test(
 				);
 			}
 
-			if (url.includes('/track.search')) {
-				expect(url).toContain('q_duration=120');
+			if (isMusixmatchEndpoint(url, 'track.search')) {
+				expect(url.href).toContain('q_duration=120');
 				return new Response(
 					JSON.stringify({
 						message: {
@@ -361,8 +371,8 @@ test(
 				);
 			}
 
-			if (url.includes('/track.richsync.get')) {
-				expect(url).toContain('track_id=42');
+			if (isMusixmatchEndpoint(url, 'track.richsync.get')) {
+				expect(url.href).toContain('track_id=42');
 				return new Response(
 					JSON.stringify({
 						message: {
@@ -426,10 +436,10 @@ test('lyrics: getLyrics falls back to LRCLIB when richsync unavailable', async (
 	const requestedUrls = [];
 	const originalFetch = globalThis.fetch;
 	globalThis.fetch = async input => {
-		const url = String(input instanceof Request ? input.url : input);
-		requestedUrls.push(url);
+		const url = toUrl(input);
+		requestedUrls.push(url.href);
 
-		if (url.includes('/token.get')) {
+		if (isMusixmatchEndpoint(url, 'token.get')) {
 			return new Response(
 				JSON.stringify({
 					message: {header: {status_code: 200}, body: {user_token: 't'}},
@@ -438,14 +448,14 @@ test('lyrics: getLyrics falls back to LRCLIB when richsync unavailable', async (
 			);
 		}
 
-		if (url.includes('/track.search')) {
+		if (isMusixmatchEndpoint(url, 'track.search')) {
 			// no results from musixmatch
 			return new Response(JSON.stringify({message: {body: {track_list: []}}}), {
 				status: 200,
 			});
 		}
 
-		if (url.includes('lrclib.net')) {
+		if (url.host === 'lrclib.net') {
 			return new Response(
 				JSON.stringify({
 					syncedLyrics:
@@ -494,9 +504,9 @@ test('lyrics: transient lookup errors are retried instead of cached', async () =
 	let lrclibCalls = 0;
 	const originalFetch = globalThis.fetch;
 	globalThis.fetch = async input => {
-		const url = String(input instanceof Request ? input.url : input);
+		const url = toUrl(input);
 
-		if (url.includes('/token.get')) {
+		if (isMusixmatchEndpoint(url, 'token.get')) {
 			return new Response(
 				JSON.stringify({
 					message: {header: {status_code: 200}, body: {user_token: 'tok'}},
@@ -505,13 +515,13 @@ test('lyrics: transient lookup errors are retried instead of cached', async () =
 			);
 		}
 
-		if (url.includes('/track.search')) {
+		if (isMusixmatchEndpoint(url, 'track.search')) {
 			return new Response(JSON.stringify({message: {body: {track_list: []}}}), {
 				status: 200,
 			});
 		}
 
-		if (url.includes('lrclib.net')) {
+		if (url.host === 'lrclib.net') {
 			lrclibCalls += 1;
 			if (lrclibShouldFail) {
 				return new Response('boom', {status: 500});
@@ -551,9 +561,9 @@ test('lyrics: musixmatch token follows cookie redirect and retries captcha', asy
 	const seenCookieHeaders = [];
 	const originalFetch = globalThis.fetch;
 	globalThis.fetch = async (input, init) => {
-		const url = String(input instanceof Request ? input.url : input);
+		const url = toUrl(input);
 
-		if (url.includes('/token.get')) {
+		if (isMusixmatchEndpoint(url, 'token.get')) {
 			tokenCalls += 1;
 			seenCookieHeaders.push(init?.headers?.cookie ?? null);
 
@@ -561,7 +571,7 @@ test('lyrics: musixmatch token follows cookie redirect and retries captcha', asy
 				// redirect dance: set-cookie must be captured and replayed
 				return new Response(null, {
 					status: 301,
-					headers: {location: url, 'set-cookie': 'mxm=abc123; Path=/'},
+					headers: {location: url.href, 'set-cookie': 'mxm=abc123; Path=/'},
 				});
 			}
 
