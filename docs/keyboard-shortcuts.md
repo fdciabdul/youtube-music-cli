@@ -67,13 +67,14 @@ These work from any screen.
 
 ## Playlist
 
-| Key       | Action                     |
-| --------- | -------------------------- |
-| `a`       | Add to playlist            |
-| `d`       | Remove from playlist       |
-| `c`       | Create new playlist        |
-| `D`       | Delete playlist            |
-| `Shift+D` | Download selected playlist |
+| Key       | Action                             |
+| --------- | ---------------------------------- |
+| `a`       | Add to playlist                    |
+| `d`       | Remove from playlist               |
+| `c`       | Create new playlist                |
+| `D`       | Delete playlist                    |
+| `Shift+D` | Download selected playlist         |
+| `m`       | Start radio from selected playlist |
 
 ## Plugins Manager
 

@@ -1,11 +1,13 @@
 // Radio service - manages radio mode playback
 // Generates endless queues of related tracks from a seed
 import {getMusicService} from '../youtube-music/api.ts';
+import {getConfigService} from '../config/config.service.ts';
 import {logger} from '../logger/logger.service.ts';
 import {formatError} from '../../utils/error.ts';
 import type {Track} from '../../types/youtube-music.types.ts';
 import type {RadioSeed, RadioSeedType} from '../../types/radio.types.ts';
 import {BUILTIN_MOODS} from '../../data/builtin-moods.ts';
+import {findLocalPlaylistTracks} from './local-playlist-seed.ts';
 
 class RadioService {
 	private playedVideoIds: Set<string> = new Set();
@@ -36,6 +38,18 @@ class RadioService {
 			const musicService = getMusicService();
 			const suggestions = await musicService.getSuggestions(seed.id);
 			tracks = suggestions;
+		} else if (seed.type === 'local-playlist') {
+			// The playlist's own tracks are already queued/deduped by the time
+			// extension kicks in; continue endlessly with related tracks
+			// anchored on one of the playlist's songs.
+			const stored = findLocalPlaylistTracks(
+				getConfigService().get('playlists'),
+				seed.id,
+			);
+			const anchor = stored?.find(track => track.videoId);
+			tracks = anchor?.videoId
+				? await getMusicService().getSuggestions(anchor.videoId)
+				: [];
 		} else {
 			tracks = await this.fetchBySeedType(seed.type, seed.id);
 		}
@@ -80,6 +94,21 @@ class RadioService {
 				case 'playlist': {
 					const playlist = await musicService.getPlaylist(id);
 					return playlist.tracks ?? [];
+				}
+
+				case 'local-playlist': {
+					// Saved playlists live in the config store; shuffle them so
+					// each radio start feels fresh. Endless continuation beyond
+					// the playlist tracks comes from autoplay suggestions.
+					const tracks = findLocalPlaylistTracks(
+						getConfigService().get('playlists'),
+						id,
+					);
+					if (!tracks) {
+						logger.warn('RadioService', 'Local playlist not found', {id});
+						return [];
+					}
+					return tracks;
 				}
 
 				case 'genre': {

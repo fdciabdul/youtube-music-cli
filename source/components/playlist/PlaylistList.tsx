@@ -14,7 +14,7 @@ import {formatDownloadProgress} from '../../utils/download-progress.ts';
 
 export default function PlaylistList() {
 	const {theme} = useTheme();
-	const {play, setQueue} = usePlayer();
+	const {play, setQueue, startRadio} = usePlayer();
 	const {dispatch} = useNavigation();
 	const downloadService = getDownloadService();
 	const {playlists, createPlaylist, renamePlaylist, deletePlaylist} =
@@ -27,6 +27,7 @@ export default function PlaylistList() {
 	const [renameValue, setRenameValue] = useState('');
 	const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 	const [isDownloading, setIsDownloading] = useState(false);
+	const [radioStatus, setRadioStatus] = useState<string | null>(null);
 	useKeyboardBlocker(renamingPlaylistId !== null);
 
 	const handleCreate = useCallback(() => {
@@ -55,6 +56,30 @@ export default function PlaylistList() {
 		if (!firstTrack) return;
 		play(firstTrack);
 	}, [play, playlists, selectedIndex, renamingPlaylistId, setQueue]);
+
+	// Endless radio-like playback seeded from the selected saved playlist:
+	// shuffled playlist queue first, then autoplay extends with related tracks.
+	const startPlaylistRadio = useCallback(() => {
+		if (renamingPlaylistId) return;
+		const playlist = playlists[selectedIndex];
+		if (!playlist) return;
+		if (playlist.tracks.length === 0) {
+			setRadioStatus(`"${playlist.name}" has no tracks to radio from.`);
+			return;
+		}
+		setRadioStatus(`Starting radio from "${playlist.name}"...`);
+		void startRadio({
+			type: 'local-playlist',
+			id: playlist.playlistId,
+			name: playlist.name,
+		}).then(success => {
+			setRadioStatus(
+				success
+					? `Playing radio from "${playlist.name}".`
+					: `Could not start radio from "${playlist.name}".`,
+			);
+		});
+	}, [playlists, selectedIndex, renamingPlaylistId, startRadio]);
 
 	const handleRename = useCallback(() => {
 		const playlist = playlists[selectedIndex];
@@ -146,6 +171,7 @@ export default function PlaylistList() {
 	useKeyBinding(resolveKeybinding('DOWN'), navigateDown);
 	useKeyBinding(resolveKeybinding('SELECT'), startPlaylist);
 	useKeyBinding(['r'], handleRename);
+	useKeyBinding(resolveKeybinding('CREATE_MIX'), startPlaylistRadio);
 	useKeyBinding(resolveKeybinding('CREATE_PLAYLIST'), handleCreate);
 	useKeyBinding(resolveKeybinding('DELETE_PLAYLIST'), handleDelete);
 	useKeyBinding(resolveKeybinding('BACK'), handleBack);
@@ -224,6 +250,7 @@ export default function PlaylistList() {
 			<Box marginTop={1}>
 				<Text color={theme.colors.dim}>
 					<Text color={theme.colors.text}>Enter</Text> to play |{' '}
+					<Text color={theme.colors.text}>m</Text> radio |{' '}
 					<Text color={theme.colors.text}>r</Text> rename |{' '}
 					<Text color={theme.colors.text}>c</Text> create |{' '}
 					<Text color={theme.colors.text}>Shift+D</Text> download |{' '}
@@ -236,6 +263,7 @@ export default function PlaylistList() {
 				{downloadStatus && (
 					<Text color={theme.colors.accent}>{downloadStatus}</Text>
 				)}
+				{radioStatus && <Text color={theme.colors.accent}> {radioStatus}</Text>}
 			</Box>
 		</Box>
 	);

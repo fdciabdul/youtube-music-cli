@@ -1,5 +1,6 @@
 // Radio mode type definitions
-export type RadioSeedType = 'track' | 'artist' | 'playlist' | 'genre' | 'mood';
+export type RadioSeedType =
+	'track' | 'artist' | 'playlist' | 'genre' | 'mood' | 'local-playlist';
 
 export interface RadioSeed {
 	type: RadioSeedType;

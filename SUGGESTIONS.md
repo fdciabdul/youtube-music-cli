@@ -54,7 +54,7 @@ This document tracks potential features, enhancements, and improvements for yout
 
 ### Medium Priority
 
-- Partial **Playlist Radio Mode** - Endless radio-like playback from a playlist seed via TOGGLE_RADIO + autoplay-coordinator.ts; no dedicated playlist-radio entry point
+- Implemented **Playlist Radio Mode** - Press m on any saved playlist for endless radio: shuffled playlist queue first, then autoplay extends with related tracks; immersive-style extension continues via fetchMoreTracks anchoring on playlist tracks
 - Implemented **Radio Browser** - Browse internet radio stations via radio-browser.service.ts
 - Implemented **Live Streams Catalog** - Curated yt-dlp/mpv live stream catalog (source/data/builtin-live-streams.ts)
 - Suggested **Discovery Queue** - Personalized queue of new tracks/artists based on listening habits
@@ -358,7 +358,7 @@ Want to work on any of these? Check our [Contributing Guide](CONTRIBUTING.md) an
 - **[Stable] mpv IPC hardening** - Done. Play generation, stale promise invalidation, pipe validation, reconnect on drop.
 - **[Stable] Invidious health** - Done. Persisted instance health with 24h discovery TTL.
 - **[Stable] Karaoke lyrics** - Done. Native Musixmatch richsync + LRCLIB fallback; per-character gradient sweep in the lyrics view (v0.1.5).
+- **[Stable] Playlist radio mode** - Done. m on a saved playlist (playlists view) starts shuffled radio; autoplay extends endlessly with related tracks.
 - **[Next] Smart recommendations** - Extend suggestions with AI-powered or similarity-based discovery beyond YouTube's built-in algorithm.
-- **[Next] Playlist radio mode** - Endless radio-like playback from a playlist seed.
 - **[Next] Offline mode** - Cache downloaded tracks for playback without network.
 - **[Next] YouTube Music login** - OAuth login for library access and premium features.
