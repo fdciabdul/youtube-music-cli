@@ -23,6 +23,7 @@ These work from any screen.
 | `Esc`     | Go back / Close menu |
 | `Shift+I` | Open Radio Streams   |
 | `Shift+V` | Open Live Streams    |
+| `l`       | Open lyrics view     |
 
 ## Playback Controls
 

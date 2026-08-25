@@ -97,6 +97,7 @@ This document tracks potential features, enhancements, and improvements for yout
 
 - Implemented **More Themes** - 8 built-in themes (Dark, Light, Midnight, Matrix, Dracula, Nord, Solarized, Catppuccin) plus custom theme support
 - Implemented **Responsive Terminal Layout** - Adapts to terminal width with reduced padding on narrow terminals
+- Implemented **Karaoke Lyrics View** - Active lyric line rendered as a smooth per-character color gradient sweep with theme-aware karaoke colors (sung/peak/upcoming hex triples per theme), interpolated progress clock, and terminal-height-aware window sizing
 - Implemented **Visual Shortcuts Bar** - Context-sensitive shortcut hints at bottom of screen
 - Planned **Mouse Support** - Click and scroll interactions for modern terminal emulators
 - Planned **Waveform Progress Bar** - Replace the plain progress bar with an ASCII waveform representation
@@ -107,7 +108,7 @@ This document tracks potential features, enhancements, and improvements for yout
 
 ### Low Priority
 
-- Planned **Startup Screen** - Branded splash / first-run tips when launching the TUI
+- Implemented **Startup Screen** - Branded boot screen with YMC ASCII art and sponsor line on launch (TUI + immersive)
 
 ## 🖥️ Immersive Windows Mode
 
@@ -194,7 +195,7 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **Desktop Notifications** - Track change notifications via node-notifier
 - Implemented **MPRIS (Linux Media Keys)** - D-Bus media control integration for Linux
 - Implemented **AI Chat (Gemini)** - Natural language music discovery and playback control via LLM
-- Implemented **Synchronized Lyrics** - LRCLIB integration with timed lyric display
+- Implemented **Synchronized Lyrics** - Word-level karaoke timing via native Musixmatch richsync client (persisted token, captcha retry, cookie handling) with LRCLIB line-synced fallback
 - Implemented **Adblock Plugin** - Block ads and sponsored content via audio URL transformation
 - Planned **OS Credential Manager Integration** - Store secrets in macOS Keychain, Windows Credential Manager, or libsecret
 - Planned **Token Refresh** - Automatically refresh expired YouTube session tokens without requiring re-login
@@ -205,7 +206,7 @@ This document tracks potential features, enhancements, and improvements for yout
 
 ### Low Priority
 
-- Planned **Additional Lyrics Sources** - Integrate Musixmatch or other lyrics providers alongside LRCLIB
+- Partial **Additional Lyrics Sources** - Musixmatch richsync integrated natively (v0.1.5); Netease and other providers still open
 - Suggested **Watch Party** - Synchronized listening sessions with friends
 
 ## 🔧 Technical Improvements
@@ -314,7 +315,7 @@ This document tracks potential features, enhancements, and improvements for yout
 ## 💡 Community Requested
 
 - **YouTube Music Account Login** (#18) - OAuth login for library access, premium streams, and personal playlists
-- **Additional Lyrics Sources** (#9) - Pull lyrics from LRCLIB (implemented) and other sources like Musixmatch
+- **Additional Lyrics Sources** (#9) - LRCLIB line-sync (implemented) + Musixmatch word-level richsync (implemented, v0.1.5); further sources welcome
 
 ---
 
@@ -356,6 +357,7 @@ Want to work on any of these? Check our [Contributing Guide](CONTRIBUTING.md) an
 - **[Stable] Config doctor** - Done. youtube-music-cli config doctor [--fix] diagnoses and repairs configuration.
 - **[Stable] mpv IPC hardening** - Done. Play generation, stale promise invalidation, pipe validation, reconnect on drop.
 - **[Stable] Invidious health** - Done. Persisted instance health with 24h discovery TTL.
+- **[Stable] Karaoke lyrics** - Done. Native Musixmatch richsync + LRCLIB fallback; per-character gradient sweep in the lyrics view (v0.1.5).
 - **[Next] Smart recommendations** - Extend suggestions with AI-powered or similarity-based discovery beyond YouTube's built-in algorithm.
 - **[Next] Playlist radio mode** - Endless radio-like playback from a playlist seed.
 - **[Next] Offline mode** - Cache downloaded tracks for playback without network.

@@ -39,6 +39,7 @@ youtube-music-cli/
 │   │   ├── youtube-music/   # YouTube Music API
 │   │   ├── plugin/          # Plugin system
 │   │   ├── config/          # Configuration
+│   │   ├── lyrics/          # Musixmatch richsync + LRCLIB fallback
 │   │   └── logger/          # Logging
 │   │
 │   ├── stores/              # State management
@@ -163,6 +164,23 @@ await favs.saveFavorites(tracks);
 const data = await favs.loadFavorites();
 ```
 
+### LyricsService
+
+Fetches word-synced lyrics with graceful fallbacks.
+
+```typescript
+const lyrics = getLyricsService();
+await lyrics.getLyrics('track title', 'artist', durationSeconds);
+lyrics.getCurrentLineIndex(lines, currentTime);
+```
+
+## Lyrics Pipeline
+
+1. **Title cleaning** - Video-title noise like "(Official Lyric Video)" is stripped before provider lookups (`cleanTrackName`)
+2. **Musixmatch richsync** - Word-level timing via the desktop API (`source/services/lyrics/musixmatch.service.ts`); token persisted to `~/.youtube-music-cli/musixmatch-token.json` with captcha retry and cookie-redirect handling; every request is timeout-bounded
+3. **LRCLIB fallback** - Line-synced LRC when word sync is unavailable (`source/services/lyrics/lyrics.service.ts`); transient lookup errors are never cached as "no lyrics"
+4. **Karaoke rendering** - `source/utils/karaoke.ts` builds word spans (real richsync timing or natural-pace estimates) and interpolates a per-character color sweep; themes may define optional `karaoke` hex triples (`sung`/`peak`/`upcoming`) which are format-validated before use
+
 ### PluginRegistryService
 
 Manages plugin lifecycle.
@@ -238,7 +256,7 @@ A fullscreen Windows-only TUI experience wired to the real player stack (`Player
 
 - **Bridge** (`source/immersive/immersive-app.ts`) - Connects player services, queue state, library/search overlays, favorites, mix creation, and notifications
 - **Actions** (`source/immersive/actions/playback-actions.ts`) - Shared play-from-search, mix creation, favorites, and saved playlist helpers
-- **UI overlays** (`source/immersive/ui/`) - Search browse with type tabs, artist/album filters, adjustable limits, Shift+D download, library menu, 23-row settings overlay, two-line footer with mode status; player volume uses `=`/`+`/`-` (TUI parity)
+- **UI overlays** (`source/immersive/ui/`) - Search browse with type tabs, artist/album filters, adjustable limits, Shift+D download, library menu, 26-row settings overlay, two-line footer with mode status; player volume uses `=`/`+`/`-` (TUI parity)
 - **Renderer** (`source/immersive/renderer/`) - Frame buffer, braille canvas for 2x4 pixel density, flicker-free ANSI output
 - **Visualizer** (`source/immersive/visualizer/`) - Hybrid playback-synced audio bars, disco color cycling with beat detection
 - **Effects** (`source/immersive/effects/`) - Particle system for disco mode, dominant color extraction
@@ -314,7 +332,7 @@ bun run build  # Runs format → lint → typecheck → tsc
 
 ## Testing
 
-- **AVA** - Test runner
+- **bun:test** - Test runner (`tests/*.test.js`)
 - **ink-testing-library** - Component testing
 
 ```bash
