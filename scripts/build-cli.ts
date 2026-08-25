@@ -84,8 +84,15 @@ console.log(
 const webDist = path.join(rootDir, 'dist', 'web');
 const webBesideBinary = path.join(path.dirname(outfile), 'web');
 if (existsSync(path.join(webDist, 'index.html'))) {
-	cpSync(webDist, webBesideBinary, {recursive: true});
-	console.log('Copied web UI to', webBesideBinary);
+	// The compiled binary and dist/web share the same directory, so the
+	// "beside binary" location is already correct; copying a directory onto
+	// itself throws ERR_FS_CP_EINVAL.
+	if (path.resolve(webDist) === path.resolve(webBesideBinary)) {
+		console.log('Web UI already beside binary at', webBesideBinary);
+	} else {
+		cpSync(webDist, webBesideBinary, {recursive: true});
+		console.log('Copied web UI to', webBesideBinary);
+	}
 } else {
 	console.warn(
 		'Web UI not found at dist/web — run bun run build:web before compile for --web support',
