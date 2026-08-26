@@ -132,9 +132,15 @@ class AutoUpdateService {
 		try {
 			switch (channel) {
 				case 'npm': {
-					execSync(`npm install -g ${APP_NAME}@${versionToInstall}`, {
-						stdio: 'inherit',
-					});
+					try {
+						execSync(`bun add -g ${APP_NAME}@${versionToInstall}`, {
+							stdio: 'inherit',
+						});
+					} catch {
+						execSync(`npm install -g ${APP_NAME}@${versionToInstall}`, {
+							stdio: 'inherit',
+						});
+					}
 					break;
 				}
 				case 'brew': {
@@ -156,9 +162,15 @@ class AutoUpdateService {
 					};
 				}
 				default: {
-					execSync(`npm install -g ${APP_NAME}@${versionToInstall}`, {
-						stdio: 'inherit',
-					});
+					try {
+						execSync(`bun add -g ${APP_NAME}@${versionToInstall}`, {
+							stdio: 'inherit',
+						});
+					} catch {
+						execSync(`npm install -g ${APP_NAME}@${versionToInstall}`, {
+							stdio: 'inherit',
+						});
+					}
 					break;
 				}
 			}

@@ -15,6 +15,7 @@ const COMMANDS = [
 	'completions',
 	'logs',
 	'config',
+	'update',
 ];
 
 const PLUGINS_SUBCOMMANDS = [
@@ -160,6 +161,7 @@ _ymc() {
         'completions:Generate shell completion scripts'
         'logs:View and manage debug logs'
         'config:Manage configuration'
+        'update:Check for updates and auto-update'
     )
 
     flags=(
@@ -419,6 +421,7 @@ function getFishDescription(cmd: string): string {
 		completions: 'Generate shell completion scripts',
 		logs: 'View and manage debug logs',
 		config: 'Manage configuration',
+		update: 'Check for updates and auto-update',
 	};
 	return descriptions[cmd] ?? cmd;
 }
