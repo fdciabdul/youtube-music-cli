@@ -86,7 +86,10 @@ class AutoUpdateService {
 		return 'npm';
 	}
 
-	async update(targetVersion?: string): Promise<UpdateResult> {
+	async update(
+		targetVersion?: string,
+		options?: {dryRun?: boolean; checkOnly?: boolean},
+	): Promise<UpdateResult> {
 		const semverRegex = /^\d+\.\d+\.\d+(-[\w.]+)?$/;
 		if (targetVersion && !semverRegex.test(targetVersion)) {
 			return {
@@ -113,6 +116,18 @@ class AutoUpdateService {
 			};
 		}
 
+		if (options?.checkOnly) {
+			return {
+				success: true,
+				channel,
+				currentVersion: APP_VERSION,
+				targetVersion: versionToInstall,
+				message: check.hasUpdate
+					? `Update available: v${APP_VERSION} -> v${versionToInstall} (channel: ${channel})`
+					: `Already up-to-date (v${APP_VERSION})`,
+			};
+		}
+
 		if (!targetVersion && !check.hasUpdate) {
 			return {
 				success: true,
@@ -120,6 +135,16 @@ class AutoUpdateService {
 				currentVersion: APP_VERSION,
 				targetVersion: check.latestVersion,
 				message: `Already up-to-date (v${APP_VERSION})`,
+			};
+		}
+
+		if (options?.dryRun) {
+			return {
+				success: true,
+				channel,
+				currentVersion: APP_VERSION,
+				targetVersion: versionToInstall,
+				message: `[Dry Run] Would update ${APP_NAME} from v${APP_VERSION} to v${versionToInstall} via ${channel}`,
 			};
 		}
 

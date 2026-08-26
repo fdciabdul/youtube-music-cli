@@ -92,6 +92,8 @@ const cli = meow(
 	🚀 Update Commands
 	  $ youtube-music-cli update                  Check for updates and auto-update
 	  $ youtube-music-cli update <version>        Update to a specific version
+	  $ youtube-music-cli update --check          Check for updates without installing
+	  $ youtube-music-cli update --dry-run        Simulate update installation
 
 	📊 Stats Commands
 	  $ youtube-music-cli stats                   Print listening statistics
@@ -212,10 +214,11 @@ const cli = meow(
 				default: false,
 			},
 			// Verbose logging flag
-			verbose: {
+			dryRun: {
 				type: 'boolean',
-				shortFlag: 'V',
-				default: false,
+			},
+			check: {
+				type: 'boolean',
 			},
 			// Stats command flags
 			share: {
@@ -569,9 +572,19 @@ if (command === 'plugins') {
 			const targetVersion = args[0];
 			const autoUpdate = getAutoUpdateService();
 			const channel = autoUpdate.detectChannel();
+			const dryRun = Boolean(cli.flags.dryRun);
+			const checkOnly = Boolean(cli.flags.check);
+
 			console.log(`Detected install channel: ${channel}`);
-			console.log('Checking for updates...');
-			const result = await autoUpdate.update(targetVersion);
+			console.log(
+				checkOnly ? 'Checking for updates...' : 'Checking and updating...',
+			);
+
+			const result = await autoUpdate.update(targetVersion, {
+				dryRun,
+				checkOnly,
+			});
+
 			if (result.success) {
 				console.log(`\n✓ ${result.message}`);
 				process.exit(0);
