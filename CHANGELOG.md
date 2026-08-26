@@ -1,8 +1,21 @@
+## [0.1.6](https://github.com/involvex/youtube-music-cli/compare/v0.1.5...v0.1.6) (2026-08-26)
+
+### Features
+
+- **player:** tui terminal title, configurable cache ttl, sleep-timer fade-out ([b0c79ba](https://github.com/involvex/youtube-music-cli/commit/b0c79ba1524f55b1aefdb95d8a726e3a48f58f19))
+- **update,recommendations:** add auto-update CLI command and smart recommendations service ([44582fe](https://github.com/involvex/youtube-music-cli/commit/44582fe646b464e5f69ae9fcaaf3390757c3ebc7))
+- **web:** add media session api integration and /mini player route ([24713aa](https://github.com/involvex/youtube-music-cli/commit/24713aa5e6c46eccb0a48b0a004c1e9d621e472a))
+
 ## [0.1.5](https://github.com/involvex/youtube-music-cli/compare/v0.1.4...v0.1.5) (2026-08-25)
+
+### Bug Fixes
+
+- **build:** skip self-copy when web dist already sits beside binary ([af0cb92](https://github.com/involvex/youtube-music-cli/commit/af0cb9240784d6718fe39b252ddedc4e03e2fca4))
 
 ### Features
 
 - **lyrics:** word-level karaoke sync via native Musixmatch richsync ([50e29fc](https://github.com/involvex/youtube-music-cli/commit/50e29fcf5b42ef7a99403c0ff0c2b0803522ec7b)), closes [#40](https://github.com/involvex/youtube-music-cli/issues/40)
+- **radio:** endless playlist radio from saved playlists ([31ca8cf](https://github.com/involvex/youtube-music-cli/commit/31ca8cfd4390b8cb06e9b8066f8460032cd8ea0f))
 
 ## [0.1.4](https://github.com/involvex/youtube-music-cli/compare/v0.1.3...v0.1.4) (2026-08-19)
 
