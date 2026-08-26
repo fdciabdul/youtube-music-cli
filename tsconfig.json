@@ -11,6 +11,7 @@
 	},
 	"include": [
 		"source",
+		"tests",
 		"test.tsx",
 		"eslint.config.ts",
 		"scripts/build-cli.ts",

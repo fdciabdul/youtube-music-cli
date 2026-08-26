@@ -4,6 +4,7 @@ import App from './app.tsx';
 import {render} from 'ink';
 import meow from 'meow';
 import {getPluginInstallerService} from './services/plugin/plugin-installer.service.ts';
+import {getAutoUpdateService} from './services/config/auto-update.service.ts';
 import {getPluginUpdaterService} from './services/plugin/plugin-updater.service.ts';
 import {getPluginRegistryService} from './services/plugin/plugin-registry.service.ts';
 import {getImportService} from './services/import/import.service.ts';
@@ -87,6 +88,10 @@ const cli = meow(
 	  $ youtube-music-cli logs --open             Open log file in default editor
 	  $ youtube-music-cli logs --get-path         Print log file path
 	  $ youtube-music-cli logs --set-path <path>  Set custom log file path
+
+	🚀 Update Commands
+	  $ youtube-music-cli update                  Check for updates and auto-update
+	  $ youtube-music-cli update <version>        Update to a specific version
 
 	📊 Stats Commands
 	  $ youtube-music-cli stats                   Print listening statistics
@@ -559,6 +564,22 @@ if (command === 'plugins') {
 
 		console.log(generateCompletion(shell));
 		process.exit(0);
+	} else if (command === 'update') {
+		void (async () => {
+			const targetVersion = args[0];
+			const autoUpdate = getAutoUpdateService();
+			const channel = autoUpdate.detectChannel();
+			console.log(`Detected install channel: ${channel}`);
+			console.log('Checking for updates...');
+			const result = await autoUpdate.update(targetVersion);
+			if (result.success) {
+				console.log(`\n✓ ${result.message}`);
+				process.exit(0);
+			} else {
+				console.error(`\n✗ ${result.message}`);
+				process.exit(1);
+			}
+		})();
 	} else if (command === 'play' && args[0]) {
 		// Play specific track
 		(cli.flags as Flags).playTrack = args[0];

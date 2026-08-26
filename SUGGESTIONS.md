@@ -46,7 +46,7 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **Suggestions** - Related track suggestions based on currently playing track
 - Implemented **Mix from Track** - Create a queue of similar tracks from any result (M key, createMixFromResult)
 - Implemented **Similar Artists** - Discover similar tracks via mix creation from artist/track results
-- Partial **Smart Recommendations** - Mood-based radio + AI playlist generation + autoplay suggestions; ML-based discovery beyond YouTube's algorithm is limited
+- Implemented **Smart Recommendations** - History/stats-scored candidate sorting and artist diversity capping powering the Suggestions view and AI discovery
 - Implemented **Genre Browsing** - Browse music by genre or mood
 - Implemented **New Releases** - Dedicated view for newly released music
 - Implemented **Trending** - Dedicated view for trending music
@@ -370,6 +370,6 @@ Want to work on any of these? Check our [Contributing Guide](CONTRIBUTING.md) an
 - **[Stable] Quick wins batch** - Done. TUI terminal title, configurable cache TTL (cacheTtlMinutes/cacheMaxEntries), sleep-timer fade-out.
 - **[Stable] Web v1.1 (Media Session + mini-player)** - Done. `useMediaSession` hook for lock-screen / media keys, `MiniPlayerView` + `/mini` route with compact controls.
 - **[Next] Auto-update command** - `ymc update` self-update across install channels (standalone/npm/brew/scoop).
-- **[Next] Smart recommendations** - Extend suggestions with AI-powered or similarity-based discovery beyond YouTube's built-in algorithm.
+- **[Stable] Smart recommendations** - History & stats scoring with artist diversity capping powering the TUI Suggestions view.
 - **[Next] Offline mode** - Cache downloaded tracks for playback without network.
 - **[Next] YouTube Music login** - OAuth login for library access and premium features.

@@ -1,5 +1,5 @@
 // Suggestions component
-import {useEffect, useState, useCallback} from 'react';
+import {useEffect, useState, useCallback, startTransition} from 'react';
 import {Box, Text} from 'ink';
 import {useYouTubeMusic} from '../../hooks/useYouTubeMusic.ts';
 import {usePlayer} from '../../hooks/usePlayer.ts';
@@ -8,22 +8,37 @@ import {useKeyBinding} from '../../hooks/useKeyboard.ts';
 import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import type {Track} from '../../types/youtube-music.types.ts';
 import {truncate} from '../../utils/format.ts';
+import {getSmartRecommendations} from '../../services/youtube-music/smart-recommendations.service.ts';
 
 export default function Suggestions() {
 	const {theme} = useTheme();
 	const {state: playerState, play} = usePlayer();
-	const {getSuggestions, isLoading} = useYouTubeMusic();
+	const {isLoading: _isLoading} = useYouTubeMusic();
 	const [suggestions, setSuggestions] = useState<Track[]>([]);
 	const [selectedIndex, setSelectedIndex] = useState(0);
+	const [isLoading, setIsLoading] = useState(false);
 
 	useEffect(() => {
-		if (playerState.currentTrack?.videoId) {
-			getSuggestions(playerState.currentTrack.videoId).then(tracks => {
-				setSuggestions(tracks);
-				setSelectedIndex(0);
+		let active = true;
+		if (playerState.currentTrack) {
+			const currentTrack = playerState.currentTrack;
+			startTransition(() => {
+				setIsLoading(true);
+			});
+			void getSmartRecommendations(currentTrack).then(tracks => {
+				if (active) {
+					startTransition(() => {
+						setSuggestions(tracks);
+						setSelectedIndex(0);
+						setIsLoading(false);
+					});
+				}
 			});
 		}
-	}, [playerState.currentTrack?.videoId, getSuggestions]);
+		return () => {
+			active = false;
+		};
+	}, [playerState.currentTrack]);
 
 	const navigateUp = useCallback(() => {
 		setSelectedIndex(prev => Math.max(0, prev - 1));
