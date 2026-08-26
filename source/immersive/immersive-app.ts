@@ -1305,6 +1305,15 @@ export async function startImmersiveApp(
 					state.isPlaying = false;
 					sleepTimerState.lastPreset = null;
 				},
+				fadeHooks: {
+					onFadeStart: () => state.volume,
+					onFadeTick: volume => {
+						playerService.setVolume(volume);
+					},
+					onFadeEnd: () => {
+						playerService.setVolume(state.volume);
+					},
+				},
 			}),
 		onSettingsTextSave: (field, value) =>
 			saveSettingsTextField(config, field, value),

@@ -27,6 +27,7 @@ This document tracks potential features, enhancements, and improvements for yout
 - Partial **Offline Mode** - Downloads + preferLocalPlayback + local index + resolveTrackPlayUrl(); no true offline queue UI
 - Planned **YouTube Video Support** - Play regular YouTube videos (not just music content)
 - Suggested **Smart Shuffle** - Similarity-aware shuffle that groups related songs instead of pure random
+- Planned **Resume Playback Position** - Remember per-track playback position so long tracks resume where you left off
 
 ### Low Priority
 
@@ -34,6 +35,7 @@ This document tracks potential features, enhancements, and improvements for yout
 - Planned **Pipe/Audio Output Routing** - Route audio to specific output devices per-track or per-playlist
 - Suggested **ReplayGain Support** - Use ReplayGain metadata for consistent perceived loudness across tracks
 - Suggested **Per-Track Crossfade** - Override global crossfade duration per track or playlist
+- Implemented **Sleep Timer Fade-Out** - Volume ramps to zero over ~30s before pausing when the sleep timer expires, then restores the prior volume
 
 ## 🔍 Discovery & Search
 
@@ -76,7 +78,7 @@ This document tracks potential features, enhancements, and improvements for yout
 
 - Planned **Collaborative Playlists** - Share playlists with others via a shareable link or file
 - Planned **Playlist Folders** - Organize playlists into named folders/groups
-- Planned **Duplicate Detection** - Warn when adding a track that already exists in a playlist
+- Implemented **Duplicate Detection** - Warn when adding a track that already exists in a playlist (force-override available)
 - Planned **Queue Snapshots** - Save and restore the current queue as a named snapshot
 - Planned **Playlist Statistics** - Show stats per playlist (total duration, top artists, play counts)
 - Planned **Track Bookmarks** - Bookmark a timestamp within a track to return to it later
@@ -84,6 +86,7 @@ This document tracks potential features, enhancements, and improvements for yout
 - Suggested **Playlist Artwork** - Custom cover art per playlist
 - Suggested **Batch Operations** - Bulk favorite, delete, and add-to-playlist from search results
 - Suggested **Queue Import/Export** - Export current queue as a playlist file or import saved queues
+- Planned **Apple Music Import** - Import playlists from Apple Music (extends the Spotify/YouTube import family)
 
 ## 🎨 User Interface
 
@@ -102,7 +105,7 @@ This document tracks potential features, enhancements, and improvements for yout
 - Planned **Mouse Support** - Click and scroll interactions for modern terminal emulators
 - Planned **Waveform Progress Bar** - Replace the plain progress bar with an ASCII waveform representation
 - Planned **Configurable Layout** - User-adjustable panel sizes and component arrangement
-- Partial **Terminal Title Integration** - Web companion sets document.title; TUI does not set terminal window title
+- Implemented **Terminal Title Integration** - TUI sets window title with track/artist/playback state; web companion sets document.title; immersive uses native title
 - Suggested **TUI Audio Visualizer** - ASCII/blessed audio visualizer for the Ink TUI (in addition to immersive)
 - Suggested **Spectrum Analyzer** - Real-time frequency spectrum display in immersive mode
 
@@ -145,11 +148,13 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **Queue Panel** - Side panel with queue management
 - Implemented **Token-based Auth** - WebSocket authentication
 - Implemented **CORS Support** - Configurable allowed origins
+- Planned **Media Session API** - System media controls from the web client (lock screen / media keys via navigator.mediaSession)
 
 ### Medium Priority
 
 - Implemented **Interactive Seek** - Click-to-seek progress bar (not available in TUI)
 - Suggested **Web Remote Control** - Control TUI playback from phone/tablet browser
+- Planned **Mini-Player Route** - Compact low-footprint /mini browser route for ambient control
 
 ## 📻 Radio Browser & Live Streams
 
@@ -162,7 +167,7 @@ This document tracks potential features, enhancements, and improvements for yout
 
 ### Medium Priority
 
-- Suggested **Station Favorites** - Save favorite radio stations
+- Implemented **Station Favorites** - Save favorite radio stations (persisted to radio-favorites.json, toggle in TUI + immersive)
 - Suggested **Station History** - Track recently played radio stations
 
 ## 📜 Queue & History
@@ -194,6 +199,7 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **Last.fm & ListenBrainz Scrobbling** - Scrobble tracks to Last.fm and/or ListenBrainz
 - Implemented **Desktop Notifications** - Track change notifications via node-notifier
 - Implemented **MPRIS (Linux Media Keys)** - D-Bus media control integration for Linux
+- Planned **Windows SMTC Integration** - System Media Transport Controls support mirroring MPRIS on Windows
 - Implemented **AI Chat (Gemini)** - Natural language music discovery and playback control via LLM
 - Implemented **Synchronized Lyrics** - Word-level karaoke timing via native Musixmatch richsync client (persisted token, captcha retry, cookie handling) with LRCLIB line-synced fallback
 - Implemented **Adblock Plugin** - Block ads and sponsored content via audio URL transformation
@@ -201,6 +207,7 @@ This document tracks potential features, enhancements, and improvements for yout
 - Planned **Token Refresh** - Automatically refresh expired YouTube session tokens without requiring re-login
 - Partial **Global Keyboard Shortcuts** - Immersive mode has global hotkeys; system-wide media keys on all platforms not implemented
 - Planned **tmux Status Line** - Show currently playing track in the tmux status bar
+- Planned **MCP Server Mode** - Expose search/playback/queue as Model Context Protocol tools for AI assistants (reuses LLM tool executor)
 - Planned **Alfred/Raycast Extension** - macOS launcher integration for quick search and playback
 - Suggested **Discord/Telegram Bot** - Control playback and queue from chat apps
 
@@ -229,12 +236,12 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **Web Server Auth** - Token-based authentication for web server
 - Implemented **Config/Settings UI** - Full settings panel in TUI with all configuration options
 - Implemented **Custom Keybindings** - Remappable keyboard shortcuts persisted to config
-- Implemented **Sleep Timer** - Auto-pause after configurable duration (5/10/15/30/60 min presets)
+- Implemented **Sleep Timer** - Auto-pause after configurable duration (5/10/15/30/60 min presets) with volume fade-out before pause
 - Implemented **Subtitle Support** - MPV subtitle rendering with --slang=en and --sub-scale=1.3
 - Implemented **Proxy Support** - HTTP proxy via mpv --http-proxy flag and HTTPS_PROXY env
 - Implemented **Debug Logs** - Daily rotating log files (debug-YYYY-MM-DD.log) with 14-day retention and 5 MB mid-session rotation
 - Implemented **Search Result Cache** - LRU cache with configurable TTL for API responses
-- Partial **Configurable Cache TTL** - cache.service.ts supports TTL but is hardcoded (5 min default, 100 max entries)
+- Implemented **Configurable Cache TTL** - cacheTtlMinutes/cacheMaxEntries settings drive shared search/suggestions caches
 - Planned **Multi-instance Sync** - Sync playback state across multiple terminal sessions
 - Planned **Battery Saver Mode** - Reduce IPC polling frequency when running on battery power
 - Planned **CLI Pipe Mode** - Accept track URLs or IDs via stdin for scripting use cases
@@ -263,6 +270,7 @@ This document tracks potential features, enhancements, and improvements for yout
 - Partial **Download Queue** - Batch download support exists; no dedicated download queue management UI
 - Partial **Format Options** - MP3 and M4A supported; FLAC, OGG, OPUS not implemented
 - Planned **Download Resume** - Resume interrupted downloads
+- Planned **Live Stream Recording** - Record live streams and radio stations to file via the yt-dlp pipeline
 
 ### Low Priority
 
@@ -359,6 +367,9 @@ Want to work on any of these? Check our [Contributing Guide](CONTRIBUTING.md) an
 - **[Stable] Invidious health** - Done. Persisted instance health with 24h discovery TTL.
 - **[Stable] Karaoke lyrics** - Done. Native Musixmatch richsync + LRCLIB fallback; per-character gradient sweep in the lyrics view (v0.1.5).
 - **[Stable] Playlist radio mode** - Done. m on a saved playlist (playlists view) starts shuffled radio; autoplay extends endlessly with related tracks.
+- **[Stable] Quick wins batch** - Done. TUI terminal title, configurable cache TTL (cacheTtlMinutes/cacheMaxEntries), sleep-timer fade-out.
+- **[Next] Web v1.1** - Media Session API system media controls + mini-player route in the web companion.
+- **[Next] Auto-update command** - `ymc update` self-update across install channels (standalone/npm/brew/scoop).
 - **[Next] Smart recommendations** - Extend suggestions with AI-powered or similarity-based discovery beyond YouTube's built-in algorithm.
 - **[Next] Offline mode** - Cache downloaded tracks for playback without network.
 - **[Next] YouTube Music login** - OAuth login for library access and premium features.

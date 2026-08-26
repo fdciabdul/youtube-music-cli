@@ -32,6 +32,8 @@ const EQUALIZER_PRESETS: EqualizerPreset[] = [
 	'warm',
 ];
 const VOLUME_FADE_PRESETS = [0, 1, 2, 3, 5];
+const CACHE_TTL_PRESETS = [1, 5, 10, 15, 30];
+const CACHE_ENTRIES_PRESETS = [50, 100, 200, 500];
 
 const SETTINGS_ITEMS = [
 	'Stream Quality',
@@ -60,6 +62,8 @@ const SETTINGS_ITEMS = [
 	'Export Playlists',
 	'Custom Keybindings',
 	'Manage Plugins',
+	'Cache TTL',
+	'Cache Max Entries',
 ] as const;
 
 export default function Settings() {
@@ -127,6 +131,12 @@ export default function Settings() {
 	);
 	const [isEditingDownloadDirectory, setIsEditingDownloadDirectory] =
 		useState(false);
+	const [cacheTtlMinutes, setCacheTtlMinutes] = useState(
+		config.get('cacheTtlMinutes') ?? 5,
+	);
+	const [cacheMaxEntries, setCacheMaxEntries] = useState(
+		config.get('cacheMaxEntries') ?? 100,
+	);
 	const [downloadFolderFeedback, setDownloadFolderFeedback] = useState<
 		string | null
 	>(null);
@@ -260,6 +270,24 @@ export default function Settings() {
 		config.set('cookiesFromBrowser', next);
 	};
 
+	const cycleCacheTtl = () => {
+		const currentIndex = CACHE_TTL_PRESETS.indexOf(cacheTtlMinutes);
+		const next =
+			CACHE_TTL_PRESETS[(currentIndex + 1) % CACHE_TTL_PRESETS.length] ?? 5;
+		setCacheTtlMinutes(next);
+		config.set('cacheTtlMinutes', next);
+	};
+
+	const cycleCacheEntries = () => {
+		const currentIndex = CACHE_ENTRIES_PRESETS.indexOf(cacheMaxEntries);
+		const next =
+			CACHE_ENTRIES_PRESETS[
+				(currentIndex + 1) % CACHE_ENTRIES_PRESETS.length
+			] ?? 100;
+		setCacheMaxEntries(next);
+		config.set('cacheMaxEntries', next);
+	};
+
 	const toggleLLMEnabled = () => {
 		const next = !llmEnabled;
 		setLLMEnabled(next);
@@ -366,6 +394,10 @@ export default function Settings() {
 			dispatch({category: 'NAVIGATE', view: VIEW.KEYBINDINGS});
 		} else if (selectedIndex === 25) {
 			dispatch({category: 'NAVIGATE', view: VIEW.PLUGINS});
+		} else if (selectedIndex === 26) {
+			cycleCacheTtl();
+		} else if (selectedIndex === 27) {
+			cycleCacheEntries();
 		}
 	};
 
@@ -873,6 +905,36 @@ export default function Settings() {
 					bold={selectedIndex === 25}
 				>
 					Manage Plugins →
+				</Text>
+			</Box>
+
+			{/* Cache TTL */}
+			<Box paddingX={1}>
+				<Text
+					backgroundColor={
+						selectedIndex === 26 ? theme.colors.primary : undefined
+					}
+					color={
+						selectedIndex === 26 ? theme.colors.background : theme.colors.text
+					}
+					bold={selectedIndex === 26}
+				>
+					Cache TTL: {cacheTtlMinutes}m
+				</Text>
+			</Box>
+
+			{/* Cache Max Entries */}
+			<Box paddingX={1}>
+				<Text
+					backgroundColor={
+						selectedIndex === 27 ? theme.colors.primary : undefined
+					}
+					color={
+						selectedIndex === 27 ? theme.colors.background : theme.colors.text
+					}
+					bold={selectedIndex === 27}
+				>
+					Cache Max Entries: {cacheMaxEntries}
 				</Text>
 			</Box>
 

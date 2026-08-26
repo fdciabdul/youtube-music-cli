@@ -2,6 +2,7 @@ import {getConfigService} from '../../services/config/config.service.ts';
 import {
 	getSleepTimerService,
 	SLEEP_TIMER_PRESETS,
+	type SleepTimerFadeOptions,
 	type SleepTimerPreset,
 } from '../../services/sleep-timer/sleep-timer.service.ts';
 import type {
@@ -18,12 +19,14 @@ import type {SettingsRow} from '../ui/settings-overlay.ts';
 
 type ConfigService = ReturnType<typeof getConfigService>;
 
-export const IMMERSIVE_SETTINGS_COUNT = 26;
+export const IMMERSIVE_SETTINGS_COUNT = 28;
 
 const QUALITIES: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high'];
 const DOWNLOAD_FORMATS: DownloadFormat[] = ['mp3', 'm4a'];
 const CROSSFADE_PRESETS = [0, 1, 2, 3, 5];
 const VOLUME_FADE_PRESETS = [0, 1, 2, 3, 5];
+const CACHE_TTL_PRESETS = [1, 5, 10, 15, 30];
+const CACHE_ENTRIES_PRESETS = [50, 100, 200, 500];
 const EQUALIZER_PRESETS: EqualizerPreset[] = [
 	'flat',
 	'bass_boost',
@@ -62,7 +65,7 @@ export function getSettingsRowKind(index: number): SettingsRowKind {
 	if (index === 10 || index === 14 || index === 16 || index === 20) {
 		return 'text';
 	}
-	if (index >= 22) {
+	if (index >= 22 && index <= 25) {
 		return 'navigate';
 	}
 	return 'cycle';
@@ -217,6 +220,14 @@ export function buildImmersiveSettingsRows(
 		{label: 'Export Playlists', value: '→'},
 		{label: 'Custom Keybindings', value: '→'},
 		{label: 'Manage Plugins', value: '→'},
+		{
+			label: 'Cache TTL',
+			value: `${config.get('cacheTtlMinutes') ?? 5}m`,
+		},
+		{
+			label: 'Cache Entries',
+			value: String(config.get('cacheMaxEntries') ?? 100),
+		},
 	];
 }
 
@@ -265,6 +276,7 @@ export function saveSettingsTextField(
 export interface CycleSettingsOptions {
 	onSleepTimerExpire: () => void;
 	sleepTimer: SleepTimerState;
+	fadeHooks?: SleepTimerFadeOptions;
 }
 
 export function cycleImmersiveSetting(
@@ -410,7 +422,11 @@ export function cycleImmersiveSetting(
 					(currentPresetIndex + 1) % SLEEP_TIMER_PRESETS.length
 				] ?? SLEEP_TIMER_PRESETS[0];
 			options.sleepTimer.lastPreset = nextPreset;
-			timerService.start(nextPreset, options.onSleepTimerExpire);
+			timerService.start(
+				nextPreset,
+				options.onSleepTimerExpire,
+				options.fadeHooks,
+			);
 			return `Sleep timer: ${nextPreset} min`;
 		}
 		case 22:
@@ -421,6 +437,28 @@ export function cycleImmersiveSetting(
 			return 'Custom Keybindings: run youtube-music-cli (standard TUI) for this feature';
 		case 25:
 			return 'Manage Plugins: run youtube-music-cli (standard TUI) for this feature';
+		case 26: {
+			const current = config.get('cacheTtlMinutes') ?? 5;
+			const currentIndex = CACHE_TTL_PRESETS.indexOf(current);
+			const next =
+				CACHE_TTL_PRESETS[
+					(currentIndex === -1 ? 0 : currentIndex + 1) %
+						CACHE_TTL_PRESETS.length
+				] ?? 5;
+			config.set('cacheTtlMinutes', next);
+			return `Cache TTL: ${next}m`;
+		}
+		case 27: {
+			const current = config.get('cacheMaxEntries') ?? 100;
+			const currentIndex = CACHE_ENTRIES_PRESETS.indexOf(current);
+			const next =
+				CACHE_ENTRIES_PRESETS[
+					(currentIndex === -1 ? 0 : currentIndex + 1) %
+						CACHE_ENTRIES_PRESETS.length
+				] ?? 100;
+			config.set('cacheMaxEntries', next);
+			return `Cache entries: ${next}`;
+		}
 		default:
 			return null;
 	}

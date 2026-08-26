@@ -1,45 +1,60 @@
 // Hook for managing the sleep timer
-import {useState, useEffect, useCallback} from 'react';
+import {useState, useEffect, useCallback, useRef} from 'react';
 import {
 	getSleepTimerService,
 	SLEEP_TIMER_PRESETS,
 	type SleepTimerPreset,
 } from '../services/sleep-timer/sleep-timer.service.ts';
+import {getPlayerService} from '../services/player/player.service.ts';
 import {usePlayer} from './usePlayer.ts';
 
 export function useSleepTimer() {
-	const {pause} = usePlayer();
+	const {pause, state} = usePlayer();
 	const timerService = getSleepTimerService();
 	const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
 	const [activeMinutes, setActiveMinutes] = useState<number | null>(null);
+	const volumeRef = useRef(state.volume);
 
-	// Poll remaining time every second when active
 	useEffect(() => {
-		if (!timerService.isActive()) return;
+		volumeRef.current = state.volume;
+	}, [state.volume]);
 
+	// Poll remaining time every second while mounted
+	useEffect(() => {
 		const interval = setInterval(() => {
-			const remaining = timerService.getRemainingSeconds();
-			setRemainingSeconds(remaining);
-			if (remaining === 0) {
+			if (!timerService.isActive()) {
+				setRemainingSeconds(null);
 				setActiveMinutes(null);
-				clearInterval(interval);
+				return;
 			}
+			setRemainingSeconds(timerService.getRemainingSeconds());
 		}, 1000);
-
 		return () => {
 			clearInterval(interval);
 		};
-	}, [activeMinutes, timerService]);
+	}, [timerService]);
 
 	const startTimer = useCallback(
 		(minutes: SleepTimerPreset) => {
 			setActiveMinutes(minutes);
 			setRemainingSeconds(minutes * 60);
-			timerService.start(minutes, () => {
-				pause();
-				setActiveMinutes(null);
-				setRemainingSeconds(null);
-			});
+			timerService.start(
+				minutes,
+				() => {
+					pause();
+					setActiveMinutes(null);
+					setRemainingSeconds(null);
+				},
+				{
+					onFadeStart: () => volumeRef.current,
+					onFadeTick: volume => {
+						getPlayerService().setVolume(volume);
+					},
+					onFadeEnd: () => {
+						getPlayerService().setVolume(volumeRef.current);
+					},
+				},
+			);
 		},
 		[timerService, pause],
 	);

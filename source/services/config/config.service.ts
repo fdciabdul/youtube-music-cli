@@ -79,6 +79,8 @@ class ConfigService {
 			volumeFadeDuration: 0,
 			equalizerPreset: 'flat',
 			maxHistoryEntries: 2000,
+			cacheTtlMinutes: 5,
+			cacheMaxEntries: 100,
 		};
 	}
 

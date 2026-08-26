@@ -378,7 +378,7 @@ test(
 		const overlay = createSettingsOverlayState();
 		openSettingsOverlay(overlay);
 		expect(overlay.active).toBe(true);
-		expect(SETTINGS_ROW_COUNT).toBe(26);
+		expect(SETTINGS_ROW_COUNT).toBe(28);
 
 		expect(handleSettingsInput(overlay, 'down', SETTINGS_ROW_COUNT)).toBe(
 			'none',
@@ -394,6 +394,10 @@ test(
 		overlay.selectedIndex = 22;
 		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
 			'navigate',
+		);
+		overlay.selectedIndex = 26;
+		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
+			'cycle',
 		);
 		expect(handleSettingsInput(overlay, 'escape', SETTINGS_ROW_COUNT)).toBe(
 			'close',
@@ -420,17 +424,33 @@ test(
 		const sleepTimer = createSleepTimerState();
 		const rows = buildImmersiveSettingsRows(config);
 
-		expect(rows.length).toBe(26);
+		expect(rows.length).toBe(28);
 		expect(rows[0]?.label.includes('Stream Quality')).toBe(true);
 		expect(rows[18]?.label.includes('Prefer Local')).toBe(true);
 		expect(rows[21]?.label.includes('Sleep Timer')).toBe(true);
 		expect(rows[25]?.label.includes('Manage Plugins')).toBe(true);
+		expect(rows[26]?.label.includes('Cache TTL')).toBe(true);
+		expect(rows[27]?.label.includes('Cache Entries')).toBe(true);
 
 		const message = cycleImmersiveSetting(config, 6, {
 			sleepTimer,
 			onSleepTimerExpire: () => {},
 		});
 		expect(message?.includes('Subtitles')).toBe(true);
+
+		const cacheTtlMessage = cycleImmersiveSetting(config, 26, {
+			sleepTimer,
+			onSleepTimerExpire: () => {},
+		});
+		expect(cacheTtlMessage?.includes('Cache TTL')).toBe(true);
+		expect([1, 5, 10, 15, 30]).toContain(config.get('cacheTtlMinutes'));
+
+		const cacheEntriesMessage = cycleImmersiveSetting(config, 27, {
+			sleepTimer,
+			onSleepTimerExpire: () => {},
+		});
+		expect(cacheEntriesMessage?.includes('Cache entries')).toBe(true);
+		expect([50, 100, 200, 500]).toContain(config.get('cacheMaxEntries'));
 	},
 	{timeout: 60000},
 );

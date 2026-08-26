@@ -1,5 +1,48 @@
 // In-memory LRU cache with optional TTL for API responses
+import {getConfigService} from '../config/config.service.ts';
 import {logger} from '../logger/logger.service.ts';
+
+export const DEFAULT_CACHE_TTL_MINUTES = 5;
+export const DEFAULT_CACHE_MAX_ENTRIES = 100;
+
+const MIN_CACHE_TTL_MINUTES = 1;
+const MIN_CACHE_MAX_ENTRIES = 10;
+
+export interface ResolvedCacheConfig {
+	ttlMs: number;
+	maxSize: number;
+}
+
+export function resolveCacheConfig(
+	ttlMinutes: unknown,
+	maxEntries: unknown,
+): ResolvedCacheConfig {
+	const minutes =
+		typeof ttlMinutes === 'number' &&
+		Number.isFinite(ttlMinutes) &&
+		ttlMinutes >= MIN_CACHE_TTL_MINUTES
+			? Math.floor(ttlMinutes)
+			: DEFAULT_CACHE_TTL_MINUTES;
+	const entries =
+		typeof maxEntries === 'number' &&
+		Number.isFinite(maxEntries) &&
+		maxEntries >= MIN_CACHE_MAX_ENTRIES
+			? Math.floor(maxEntries)
+			: DEFAULT_CACHE_MAX_ENTRIES;
+	return {ttlMs: minutes * 60_000, maxSize: entries};
+}
+
+function loadResolvedCacheConfig(): ResolvedCacheConfig {
+	try {
+		const config = getConfigService();
+		return resolveCacheConfig(
+			config.get('cacheTtlMinutes'),
+			config.get('cacheMaxEntries'),
+		);
+	} catch {
+		return resolveCacheConfig(undefined, undefined);
+	}
+}
 
 interface CacheEntry<T> {
 	value: T;
@@ -9,24 +52,30 @@ interface CacheEntry<T> {
 
 export class CacheService<T = unknown> {
 	private cache = new Map<string, CacheEntry<T>>();
-	private readonly maxSize: number;
-	private readonly defaultTtlMs: number;
+	private maxSize: number;
+	private defaultTtlMs: number;
+	private readonly now: () => number;
 
-	constructor(maxSize = 100, defaultTtlMs = 5 * 60 * 1000) {
+	constructor(
+		maxSize = DEFAULT_CACHE_MAX_ENTRIES,
+		defaultTtlMs = DEFAULT_CACHE_TTL_MINUTES * 60_000,
+		now: () => number = Date.now,
+	) {
 		this.maxSize = maxSize;
 		this.defaultTtlMs = defaultTtlMs;
+		this.now = now;
 	}
 
 	get(key: string): T | null {
 		const entry = this.cache.get(key);
 		if (!entry) return null;
 
-		if (Date.now() > entry.expiresAt) {
+		if (this.now() > entry.expiresAt) {
 			this.cache.delete(key);
 			return null;
 		}
 
-		entry.lastAccessed = Date.now();
+		entry.lastAccessed = this.now();
 		return entry.value;
 	}
 
@@ -38,8 +87,8 @@ export class CacheService<T = unknown> {
 
 		this.cache.set(key, {
 			value,
-			expiresAt: Date.now() + (ttlMs ?? this.defaultTtlMs),
-			lastAccessed: Date.now(),
+			expiresAt: this.now() + (ttlMs ?? this.defaultTtlMs),
+			lastAccessed: this.now(),
 		});
 	}
 
@@ -57,6 +106,14 @@ export class CacheService<T = unknown> {
 
 	get size(): number {
 		return this.cache.size;
+	}
+
+	configure(maxSize: number, defaultTtlMs: number): void {
+		this.maxSize = maxSize;
+		this.defaultTtlMs = defaultTtlMs;
+		while (this.cache.size > this.maxSize) {
+			this.evictLru();
+		}
 	}
 
 	private evictLru(): void {
@@ -77,20 +134,24 @@ export class CacheService<T = unknown> {
 	}
 }
 
-// Shared search result cache (100 entries, 5min TTL)
+// Shared search result cache, sized from config (cacheTtlMinutes/cacheMaxEntries)
 let searchCacheInstance: CacheService | null = null;
 export const getSearchCache = (): CacheService => {
 	if (!searchCacheInstance) {
-		searchCacheInstance = new CacheService(100, 5 * 60 * 1000);
+		searchCacheInstance = new CacheService();
 	}
+	const resolved = loadResolvedCacheConfig();
+	searchCacheInstance.configure(resolved.maxSize, resolved.ttlMs);
 	return searchCacheInstance;
 };
 
-// Shared suggestions cache (100 entries, 5min TTL)
+// Shared suggestions cache, sized from config (cacheTtlMinutes/cacheMaxEntries)
 let suggestionsCacheInstance: CacheService | null = null;
 export const getSuggestionsCache = (): CacheService => {
 	if (!suggestionsCacheInstance) {
-		suggestionsCacheInstance = new CacheService(100, 5 * 60 * 1000);
+		suggestionsCacheInstance = new CacheService();
 	}
+	const resolved = loadResolvedCacheConfig();
+	suggestionsCacheInstance.configure(resolved.maxSize, resolved.ttlMs);
 	return suggestionsCacheInstance;
 };

@@ -42,12 +42,14 @@ import {useTerminalSize} from '../../hooks/useTerminalSize.ts';
 import {getPlayerService} from '../../services/player/player.service.ts';
 import {getConfigService} from '../../services/config/config.service.ts';
 import {usePlayer} from '../../hooks/usePlayer.ts';
+import {useTerminalTitle} from '../../hooks/useTerminalTitle.ts';
 
 function MainLayout() {
 	const {theme} = useTheme();
 	const {state: navState, dispatch} = useNavigation();
 	const {resume} = usePlayer();
 	const {columns} = useTerminalSize();
+	useTerminalTitle();
 
 	// Responsive padding based on terminal size
 	const getPadding = () => (columns < 100 ? 0 : 1);

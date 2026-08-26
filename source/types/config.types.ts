@@ -58,6 +58,10 @@ export interface Config {
 	cookiesFromBrowser?: CookiesFromBrowser;
 	/** Cap for persisted listening history entries (default 2000). */
 	maxHistoryEntries?: number;
+	/** Search/suggestions API cache TTL in minutes (default 5). */
+	cacheTtlMinutes?: number;
+	/** Max entries per shared API cache (default 100). */
+	cacheMaxEntries?: number;
 	downloadsEnabled?: boolean;
 	downloadDirectory?: string;
 	downloadFormat?: DownloadFormat;
