@@ -1,4 +1,4 @@
-import {Moon, Sun} from 'lucide-react';
+import {Maximize2, Moon, Sun} from 'lucide-react';
 import {useTheme} from '../../hooks/useTheme';
 
 interface TopBarProps {
@@ -65,6 +65,17 @@ export default function TopBar({
 					) : (
 						<Moon size={18} aria-hidden />
 					)}
+				</button>
+				<button
+					type="button"
+					className="icon-btn"
+					onClick={() =>
+						window.open('/mini', 'ymc-mini', 'width=360,height=560')
+					}
+					aria-label="Open mini player"
+					title="Open mini player (/mini)"
+				>
+					<Maximize2 size={18} aria-hidden />
 				</button>
 			</div>
 		</header>

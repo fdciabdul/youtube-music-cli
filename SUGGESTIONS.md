@@ -118,7 +118,7 @@ This document tracks potential features, enhancements, and improvements for yout
 ### High Priority
 
 - Implemented **Immersive Engine** - Full native Win32 rendering via @bun-win32/user32 + @bun-win32/kernel32
-- Implemented **Settings Overlay** - 26-row settings panel mirroring Ink TUI (IMMERSIVE_SETTINGS_COUNT)
+- Implemented **Settings Overlay** - 28-row settings panel mirroring Ink TUI (IMMERSIVE_SETTINGS_COUNT)
 - Implemented **Search Overlay** - Full search UI with type filters and result limits
 - Implemented **Library Overlays** - Favorites, saved playlists, queue/history
 - Implemented **Radio Overlays** - Radio Browser search, live streams, mood radio
@@ -148,13 +148,13 @@ This document tracks potential features, enhancements, and improvements for yout
 - Implemented **Queue Panel** - Side panel with queue management
 - Implemented **Token-based Auth** - WebSocket authentication
 - Implemented **CORS Support** - Configurable allowed origins
-- Planned **Media Session API** - System media controls from the web client (lock screen / media keys via navigator.mediaSession)
+- Implemented **Media Session API** - System media controls from the web client (lock screen / media keys via navigator.mediaSession, artwork, position state)
 
 ### Medium Priority
 
 - Implemented **Interactive Seek** - Click-to-seek progress bar (not available in TUI)
 - Suggested **Web Remote Control** - Control TUI playback from phone/tablet browser
-- Planned **Mini-Player Route** - Compact low-footprint /mini browser route for ambient control
+- Implemented **Mini-Player Route** - Compact low-footprint /mini browser route for ambient control (open via /mini?mini query, pop-out button; mini.css + MiniPlayerView)
 
 ## 📻 Radio Browser & Live Streams
 
@@ -368,7 +368,7 @@ Want to work on any of these? Check our [Contributing Guide](CONTRIBUTING.md) an
 - **[Stable] Karaoke lyrics** - Done. Native Musixmatch richsync + LRCLIB fallback; per-character gradient sweep in the lyrics view (v0.1.5).
 - **[Stable] Playlist radio mode** - Done. m on a saved playlist (playlists view) starts shuffled radio; autoplay extends endlessly with related tracks.
 - **[Stable] Quick wins batch** - Done. TUI terminal title, configurable cache TTL (cacheTtlMinutes/cacheMaxEntries), sleep-timer fade-out.
-- **[Next] Web v1.1** - Media Session API system media controls + mini-player route in the web companion.
+- **[Stable] Web v1.1 (Media Session + mini-player)** - Done. `useMediaSession` hook for lock-screen / media keys, `MiniPlayerView` + `/mini` route with compact controls.
 - **[Next] Auto-update command** - `ymc update` self-update across install channels (standalone/npm/brew/scoop).
 - **[Next] Smart recommendations** - Extend suggestions with AI-powered or similarity-based discovery beyond YouTube's built-in algorithm.
 - **[Next] Offline mode** - Cache downloaded tracks for playback without network.

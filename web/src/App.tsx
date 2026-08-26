@@ -1,6 +1,7 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {Heart} from 'lucide-react';
 import {useWebSocket} from './hooks/useWebSocket';
+import {useMediaSession} from './hooks/useMediaSession';
 import {
 	usePlayerStore,
 	type PlayerStore,
@@ -12,6 +13,7 @@ import NowPlaying from './components/player/NowPlaying';
 import LiveView from './components/live/LiveView';
 import FavoritesView from './components/favorites/FavoritesView';
 import ProgressBar from './components/ProgressBar';
+import MiniPlayerView from './components/mini/MiniPlayerView';
 import type {
 	ServerMessage,
 	ClientMessage,
@@ -112,11 +114,41 @@ function App() {
 		}
 	}, [currentTrack, isPlaying, playbackMode, currentStation, streamNowPlaying]);
 
-	const sendCommand = (action: ClientMessage['action']) => {
-		if (action) {
-			send({type: 'command', action});
-		}
-	};
+	const sendCommand = useCallback(
+		(action: ClientMessage['action']) => {
+			if (action) {
+				send({type: 'command', action});
+			}
+		},
+		[send],
+	);
+
+	const isMiniRoute =
+		typeof window !== 'undefined' &&
+		(window.location.pathname === '/mini' ||
+			window.location.pathname === '/mini/' ||
+			new URLSearchParams(window.location.search).has('mini'));
+
+	useMediaSession({
+		currentTrack,
+		isPlaying,
+		playbackMode,
+		duration,
+		progress,
+		currentStation,
+		streamNowPlaying,
+		onPlay: useCallback(() => sendCommand({category: 'RESUME'}), [sendCommand]),
+		onPause: useCallback(() => sendCommand({category: 'PAUSE'}), [sendCommand]),
+		onNext: useCallback(() => sendCommand({category: 'NEXT'}), [sendCommand]),
+		onPrevious: useCallback(
+			() => sendCommand({category: 'PREVIOUS'}),
+			[sendCommand],
+		),
+		onSeek: useCallback(
+			(position: number) => sendCommand({category: 'SEEK', position}),
+			[sendCommand],
+		),
+	});
 
 	const handleSearch = (
 		query: string,
@@ -175,13 +207,51 @@ function App() {
 		shuffle,
 		repeat,
 		autoplay,
-		onPlayPause: () => sendCommand({category: isPlaying ? 'PAUSE' : 'RESUME'}),
-		onNext: () => sendCommand({category: 'NEXT'}),
-		onPrevious: () => sendCommand({category: 'PREVIOUS'}),
-		onToggleShuffle: () => sendCommand({category: 'TOGGLE_SHUFFLE'}),
-		onToggleRepeat: () => sendCommand({category: 'TOGGLE_REPEAT'}),
-		onToggleAutoplay: () => sendCommand({category: 'TOGGLE_AUTOPLAY'}),
+		onPlayPause: useCallback(
+			() => sendCommand({category: isPlaying ? 'PAUSE' : 'RESUME'}),
+			[isPlaying, sendCommand],
+		),
+		onNext: useCallback(() => sendCommand({category: 'NEXT'}), [sendCommand]),
+		onPrevious: useCallback(
+			() => sendCommand({category: 'PREVIOUS'}),
+			[sendCommand],
+		),
+		onToggleShuffle: useCallback(
+			() => sendCommand({category: 'TOGGLE_SHUFFLE'}),
+			[sendCommand],
+		),
+		onToggleRepeat: useCallback(
+			() => sendCommand({category: 'TOGGLE_REPEAT'}),
+			[sendCommand],
+		),
+		onToggleAutoplay: useCallback(
+			() => sendCommand({category: 'TOGGLE_AUTOPLAY'}),
+			[sendCommand],
+		),
 	};
+
+	if (isMiniRoute) {
+		return (
+			<MiniPlayerView
+				track={currentTrack}
+				isPlaying={isPlaying}
+				isLoading={isLoading}
+				autoplay={autoplay}
+				progress={progress}
+				duration={duration}
+				playbackMode={playbackMode}
+				station={currentStation}
+				streamNowPlaying={streamNowPlaying}
+				isFavorite={isCurrentFavorite}
+				isConnected={isConnected}
+				transport={transport}
+				onSeek={position => sendCommand({category: 'SEEK', position})}
+				onToggleFavorite={
+					currentTrack ? () => handleToggleFavorite(currentTrack) : undefined
+				}
+			/>
+		);
+	}
 
 	return (
 		<AppShell
