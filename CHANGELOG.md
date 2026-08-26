@@ -1,3 +1,14 @@
+## [0.1.7](https://github.com/involvex/youtube-music-cli/compare/v0.1.6...v0.1.7) (2026-08-26)
+
+### Bug Fixes
+
+- **cli:** prevent ink boot screen from opening on ymc update --check commands ([f1eb848](https://github.com/involvex/youtube-music-cli/commit/f1eb8485feff08c048b31393310f506b0676b995))
+- **update,completions:** register update command in shell completions and fix ymc update command execution ([5c8834c](https://github.com/involvex/youtube-music-cli/commit/5c8834c8ce0f7430862fecb10280d3f04a2b941b))
+
+### Features
+
+- **update:** add --check and --dry-run flags to ymc update command ([b65f27f](https://github.com/involvex/youtube-music-cli/commit/b65f27f9fe3778544246e7be59381c9b9828d94a))
+
 ## [0.1.6](https://github.com/involvex/youtube-music-cli/compare/v0.1.5...v0.1.6) (2026-08-26)
 
 ### Features
