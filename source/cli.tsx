@@ -568,31 +568,29 @@ if (command === 'plugins') {
 		console.log(generateCompletion(shell));
 		process.exit(0);
 	} else if (command === 'update') {
-		void (async () => {
-			const targetVersion = args[0];
-			const autoUpdate = getAutoUpdateService();
-			const channel = autoUpdate.detectChannel();
-			const dryRun = Boolean(cli.flags.dryRun);
-			const checkOnly = Boolean(cli.flags.check);
+		const targetVersion = args[0];
+		const autoUpdate = getAutoUpdateService();
+		const channel = autoUpdate.detectChannel();
+		const dryRun = Boolean(cli.flags.dryRun);
+		const checkOnly = Boolean(cli.flags.check);
 
-			console.log(`Detected install channel: ${channel}`);
-			console.log(
-				checkOnly ? 'Checking for updates...' : 'Checking and updating...',
-			);
+		console.log(`Detected install channel: ${channel}`);
+		console.log(
+			checkOnly ? 'Checking for updates...' : 'Checking and updating...',
+		);
 
-			const result = await autoUpdate.update(targetVersion, {
-				dryRun,
-				checkOnly,
-			});
+		const result = await autoUpdate.update(targetVersion, {
+			dryRun,
+			checkOnly,
+		});
 
-			if (result.success) {
-				console.log(`\n✓ ${result.message}`);
-				process.exit(0);
-			} else {
-				console.error(`\n✗ ${result.message}`);
-				process.exit(1);
-			}
-		})();
+		if (result.success) {
+			console.log(`\n✓ ${result.message}`);
+			process.exit(0);
+		} else {
+			console.error(`\n✗ ${result.message}`);
+			process.exit(1);
+		}
 	} else if (command === 'play' && args[0]) {
 		// Play specific track
 		(cli.flags as Flags).playTrack = args[0];
