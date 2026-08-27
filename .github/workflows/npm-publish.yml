@@ -16,12 +16,28 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v7
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
+
+      - name: Formatting
+        run: bun run format:check
+
+      - name: Linting
+        run: bun run lint
+
+      - name: Type checking
+        run: bun run typecheck
+
+      - name: Tests
+        run: bun test
+
       - name: Build
-        run: bun run build
+        run: bun run ci:build
+
       # Publish the JS/web package first — never include compiled Bun binaries
       # in the npm tarball (they blow past registry size limits / E413).
       - name: Check npm package contents
@@ -34,6 +50,7 @@ jobs:
           fi
           PACKAGE_SIZE="$(awk '/package size:/ {print $4, $5}' pack-dry-run.txt | tail -1)"
           echo "npm pack dry-run package size: ${PACKAGE_SIZE}"
+
       - uses: JS-DevTools/npm-publish@v4
         with:
           token: ${{ secrets.NPM_TOKEN }}
@@ -51,6 +68,7 @@ jobs:
           bun build source/cli.tsx --compile --target=bun-darwin-arm64 --outfile dist/youtube-music-cli-darwin-arm64
           # Legacy names for older install scripts / docs
           cp dist/youtube-music-cli-windows-x64.exe dist/youtube-music-cli.exe
+
       - name: Prepare release notes
         run: |
           TAG="${GITHUB_REF_NAME#v}"
@@ -62,6 +80,7 @@ jobs:
             awk '/^#+ \[?[0-9]/ { if (p) exit; p=1 } p' CHANGELOG.md > latest-release.md
             echo "Using CHANGELOG slice"
           fi
+
       - name: Release to GitHub
         uses: softprops/action-gh-release@v3
         if: github.ref_type == 'tag'
