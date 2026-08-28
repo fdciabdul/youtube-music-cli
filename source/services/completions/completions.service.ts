@@ -16,6 +16,9 @@ const COMMANDS = [
 	'logs',
 	'config',
 	'update',
+	'login',
+	'logout',
+	'whoami',
 ];
 
 const PLUGINS_SUBCOMMANDS = [
@@ -114,6 +117,8 @@ _ymc_completions() {
         config)
             COMPREPLY=($(compgen -W "${configSubs}" -- "$cur"))
             return ;;
+        login|logout|whoami)
+            return ;;
         --theme|-t)
             COMPREPLY=($(compgen -W "dark light midnight matrix" -- "$cur"))
             return ;;
@@ -162,6 +167,9 @@ _ymc() {
         'logs:View and manage debug logs'
         'config:Manage configuration'
         'update:Check for updates and auto-update'
+        'login:Sign in to YouTube Music'
+        'logout:Sign out and remove credentials'
+        'whoami:Show current account status'
     )
 
     flags=(
@@ -300,6 +308,15 @@ $ymcCompleterBlock = {
                 ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
             return
         }
+        'login' {
+            return
+        }
+        'logout' {
+            return
+        }
+        'whoami' {
+            return
+        }
         { $_ -in '--theme', '-t' } {
             $themes | Where-Object { $_ -like "$wordToComplete*" } |
                 ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
@@ -422,6 +439,9 @@ function getFishDescription(cmd: string): string {
 		logs: 'View and manage debug logs',
 		config: 'Manage configuration',
 		update: 'Check for updates and auto-update',
+		login: 'Sign in to YouTube Music',
+		logout: 'Sign out and remove credentials',
+		whoami: 'Show current account status',
 	};
 	return descriptions[cmd] ?? cmd;
 }
