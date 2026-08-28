@@ -6,7 +6,6 @@ import {useKeyBinding} from '../../hooks/useKeyboard.ts';
 import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {useState, useEffect, useCallback, useRef} from 'react';
 import {getAuthService} from '../../services/auth/auth.service.ts';
-import {resetClient} from '../../services/youtube-music/api.ts';
 
 type LoginState = 'idle' | 'pending' | 'authenticating' | 'success' | 'error';
 
@@ -84,15 +83,6 @@ export default function LoginView() {
 			setError(err instanceof Error ? err.message : 'Login failed');
 		}
 	}, [status.loggedIn]);
-
-	const handleLogout = useCallback(async () => {
-		const success = await authService.signOut();
-		if (success) {
-			resetClient();
-			setLoginState('idle');
-			setDeviceCode(null);
-		}
-	}, [authService]);
 
 	const loginInitiated = useRef<boolean>(false);
 
