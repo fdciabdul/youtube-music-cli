@@ -199,7 +199,25 @@ youtube-music-cli skip
 youtube-music-cli back
 ```
 
-### Immersive Mode (Windows)
+### Authentication
+
+Authenticate with your YouTube Music account to access personalized features (library, playlists, and ad-free playback for Premium users) via the OAuth2 Device Flow:
+
+```bash
+# Sign in (displays device code and verification URL)
+ymc login
+
+# Check current account status
+ymc whoami
+
+# Sign out and remove stored credentials
+ymc logout
+```
+
+**Security & Credential Storage:**
+
+- Credentials are stored securely in `~/.youtube-music-cli/credentials.json` with strict file permissions (`0600` on Unix-like systems) so only the owner can read/write them.
+- You can also navigate to the **Account** section in the settings view (`Settings → Account`) inside the TUI or immersive mode to view status or sign out.
 
 Launch a fullscreen visual player with real playback, queue controls, and audio visualization. Requires `mpv` and `yt-dlp` (same as normal playback).
 

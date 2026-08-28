@@ -185,7 +185,7 @@ export interface ImmersiveOptions {
 	onToggleAutoplay?: () => void;
 	getSettingsRows?: () => SettingsRow[];
 	getSettingsTextDraft?: (field: SettingsTextField) => string;
-	onSettingsCycle?: (index: number) => string | null;
+	onSettingsCycle?: (index: number) => string | null | Promise<string | null>;
 	onSettingsTextSave?: (
 		field: SettingsTextField,
 		value: string,
@@ -606,7 +606,7 @@ export class ImmersiveEngine {
 		}
 
 		if (this.settingsOverlay.active) {
-			this.handleSettingsKey(keyName);
+			void this.handleSettingsKey(keyName);
 			return;
 		}
 
@@ -1065,7 +1065,7 @@ export class ImmersiveEngine {
 		}
 	}
 
-	private handleSettingsKey(key: string): void {
+	private async handleSettingsKey(key: string): Promise<void> {
 		if (this.settingsOverlay.textEdit) {
 			const editAction = handleSettingsTextEditInput(this.settingsOverlay, key);
 			if (editAction === 'save') {
@@ -1092,7 +1092,7 @@ export class ImmersiveEngine {
 		const action = handleSettingsInput(this.settingsOverlay, key, rows.length);
 
 		if (action === 'cycle' || action === 'navigate') {
-			const message = this.options.onSettingsCycle?.(
+			const message = await this.options.onSettingsCycle?.(
 				this.settingsOverlay.selectedIndex,
 			);
 			if (message) {

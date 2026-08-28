@@ -104,6 +104,11 @@ const cli = meow(
 	  $ youtube-music-cli config doctor           Check config for issues
 	  $ youtube-music-cli config doctor --fix     Auto-fix config issues
 
+	🔐 Auth Commands
+	  $ youtube-music-cli login                Sign in to YouTube Music
+	  $ youtube-music-cli logout               Sign out and remove credentials
+	  $ youtube-music-cli whoami               Show current account status
+
 	⚙️  Options
 	  --theme, -t          Theme to use (dark, light, midnight, matrix, etc.)
 	  --volume, -v         Initial volume (0-100)
@@ -303,6 +308,76 @@ if (command === 'stats') {
 // Handle config doctor command
 if (command === 'config' && args[0] === 'doctor') {
 	runConfigDoctor(cli.flags.fix);
+}
+
+// Handle auth commands
+if (command === 'login') {
+	const {getAuthService} = await import('./services/auth/auth.service.ts');
+	const authService = getAuthService();
+	const status = authService.getStatus();
+
+	if (status.loggedIn) {
+		const accountLabel = status.accountName ?? 'YouTube account';
+		console.log(`Already signed in as: ${accountLabel}`);
+		if (!status.tokenValid) {
+			console.log('(Token expired — will refresh on next API call)');
+		}
+		process.exit(0);
+	}
+
+	console.log('Starting YouTube Music login...');
+	console.log('');
+	console.log('A device code will be displayed below.');
+	console.log('Open the verification URL and enter the code to authorize.');
+	console.log('');
+
+	const result = await authService.signIn();
+
+	if (result.success) {
+		console.log('');
+		console.log('✓ Successfully signed in to YouTube Music!');
+		process.exit(0);
+	} else {
+		console.error(`\n✗ Login failed: ${result.error ?? 'Unknown error'}`);
+		process.exit(1);
+	}
+}
+
+if (command === 'logout') {
+	const {getAuthService} = await import('./services/auth/auth.service.ts');
+	const authService = getAuthService();
+	const status = authService.getStatus();
+
+	if (!status.loggedIn) {
+		console.log('Not signed in.');
+		process.exit(0);
+	}
+
+	const success = await authService.signOut();
+	if (success) {
+		console.log('✓ Signed out successfully.');
+	} else {
+		console.error('✗ Failed to sign out.');
+		process.exit(1);
+	}
+}
+
+if (command === 'whoami') {
+	const {getAuthService} = await import('./services/auth/auth.service.ts');
+	const authService = getAuthService();
+	const status = authService.getStatus();
+
+	if (!status.loggedIn) {
+		console.log('Not signed in. Run `ymc login` to authenticate.');
+		process.exit(0);
+	}
+
+	console.log(`Account: ${status.accountName ?? 'YouTube account'}`);
+	console.log(`Signed in: ${status.signedInAt ?? 'Unknown'}`);
+	console.log(
+		`Token valid: ${status.tokenValid ? 'Yes' : 'Expired (will refresh)'}`,
+	);
+	process.exit(0);
 }
 
 const isInteractiveTerminal = Boolean(

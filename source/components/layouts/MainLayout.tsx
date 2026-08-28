@@ -35,6 +35,7 @@ import StatsDashboard from '../stats/StatsDashboard.tsx';
 import RadioStreamsLayout from './RadioStreamsLayout.tsx';
 import LiveStreamsLayout from './LiveStreamsLayout.tsx';
 import MoodRadioLayout from './MoodRadioLayout.tsx';
+import LoginView from '../auth/LoginView.tsx';
 import {VIEW} from '../../utils/constants.ts';
 import {resolveKeybinding} from '../../utils/keybinding-resolver.ts';
 import {Box} from 'ink';
@@ -337,6 +338,9 @@ function MainLayout() {
 
 			case 'mood_radio':
 				return <MoodRadioLayout key="mood_radio" />;
+
+			case 'login':
+				return <LoginView key="login" />;
 
 			default:
 				return <PlayerLayout key="player-default" />;

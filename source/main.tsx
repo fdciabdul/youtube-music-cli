@@ -64,6 +64,21 @@ function Initializer({flags}: {flags?: Flags}) {
 	});
 
 	useEffect(() => {
+		void (async () => {
+			try {
+				const {getAuthService} =
+					await import('./services/auth/auth.service.ts');
+				const authService = getAuthService();
+				if (authService.getStatus().loggedIn) {
+					// Client will be created with auth when first used
+				}
+			} catch {
+				// Non-fatal
+			}
+		})();
+	}, []);
+
+	useEffect(() => {
 		// Check for background playback state on startup
 		const config = getConfigService();
 		const backgroundState = config.getBackgroundPlaybackState();

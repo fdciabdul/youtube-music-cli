@@ -36,6 +36,7 @@ const CACHE_TTL_PRESETS = [1, 5, 10, 15, 30];
 const CACHE_ENTRIES_PRESETS = [50, 100, 200, 500];
 
 const SETTINGS_ITEMS = [
+	'Account',
 	'Stream Quality',
 	'Audio Normalization',
 	'Gapless Playback',
@@ -343,60 +344,62 @@ export default function Settings() {
 
 	const handleSelect = () => {
 		if (selectedIndex === 0) {
-			toggleQuality();
+			dispatch({category: 'NAVIGATE', view: VIEW.LOGIN});
 		} else if (selectedIndex === 1) {
-			toggleNormalization();
+			toggleQuality();
 		} else if (selectedIndex === 2) {
-			toggleGaplessPlayback();
+			toggleNormalization();
 		} else if (selectedIndex === 3) {
-			cycleCrossfadeDuration();
+			toggleGaplessPlayback();
 		} else if (selectedIndex === 4) {
-			cycleVolumeFadeDuration();
+			cycleCrossfadeDuration();
 		} else if (selectedIndex === 5) {
-			cycleEqualizerPreset();
+			cycleVolumeFadeDuration();
 		} else if (selectedIndex === 6) {
-			toggleSubtitles();
+			cycleEqualizerPreset();
 		} else if (selectedIndex === 7) {
-			toggleNotifications();
+			toggleSubtitles();
 		} else if (selectedIndex === 8) {
-			toggleDiscordRpc();
+			toggleNotifications();
 		} else if (selectedIndex === 9) {
-			toggleLLMEnabled();
+			toggleDiscordRpc();
 		} else if (selectedIndex === 10) {
-			setIsEditingApiKey(true);
+			toggleLLMEnabled();
 		} else if (selectedIndex === 11) {
-			cycleLLMModel();
+			setIsEditingApiKey(true);
 		} else if (selectedIndex === 12) {
-			cycleLLMTemperature();
+			cycleLLMModel();
 		} else if (selectedIndex === 13) {
-			cycleLLMEndpoint();
+			cycleLLMTemperature();
 		} else if (selectedIndex === 14) {
-			setIsEditingBaseUrl(true);
+			cycleLLMEndpoint();
 		} else if (selectedIndex === 15) {
-			toggleDownloadsEnabled();
+			setIsEditingBaseUrl(true);
 		} else if (selectedIndex === 16) {
-			setIsEditingDownloadDirectory(true);
+			toggleDownloadsEnabled();
 		} else if (selectedIndex === 17) {
-			cycleDownloadFormat();
+			setIsEditingDownloadDirectory(true);
 		} else if (selectedIndex === 18) {
-			togglePreferLocalPlayback();
+			cycleDownloadFormat();
 		} else if (selectedIndex === 19) {
-			cycleCookiesFromBrowser();
+			togglePreferLocalPlayback();
 		} else if (selectedIndex === 20) {
-			setIsEditingCookiesFile(true);
+			cycleCookiesFromBrowser();
 		} else if (selectedIndex === 21) {
-			cycleSleepTimer();
+			setIsEditingCookiesFile(true);
 		} else if (selectedIndex === 22) {
-			dispatch({category: 'NAVIGATE', view: VIEW.IMPORT});
+			cycleSleepTimer();
 		} else if (selectedIndex === 23) {
-			dispatch({category: 'NAVIGATE', view: VIEW.EXPORT_PLAYLISTS});
+			dispatch({category: 'NAVIGATE', view: VIEW.IMPORT});
 		} else if (selectedIndex === 24) {
-			dispatch({category: 'NAVIGATE', view: VIEW.KEYBINDINGS});
+			dispatch({category: 'NAVIGATE', view: VIEW.EXPORT_PLAYLISTS});
 		} else if (selectedIndex === 25) {
-			dispatch({category: 'NAVIGATE', view: VIEW.PLUGINS});
+			dispatch({category: 'NAVIGATE', view: VIEW.KEYBINDINGS});
 		} else if (selectedIndex === 26) {
-			cycleCacheTtl();
+			dispatch({category: 'NAVIGATE', view: VIEW.PLUGINS});
 		} else if (selectedIndex === 27) {
+			cycleCacheTtl();
+		} else if (selectedIndex === 28) {
 			cycleCacheEntries();
 		}
 	};
@@ -423,7 +426,7 @@ export default function Settings() {
 				</Text>
 			</Box>
 
-			{/* Stream Quality */}
+			{/* Account */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -434,11 +437,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 0}
 				>
-					Stream Quality: {quality.toUpperCase()}
+					Account →
 				</Text>
 			</Box>
 
-			{/* Audio Normalization */}
+			{/* Stream Quality */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -449,11 +452,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 1}
 				>
-					Audio Normalization: {audioNormalization ? 'ON' : 'OFF'}
+					Stream Quality: {quality.toUpperCase()}
 				</Text>
 			</Box>
 
-			{/* Gapless Playback */}
+			{/* Audio Normalization */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -464,11 +467,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 2}
 				>
-					Gapless Playback: {gaplessPlayback ? 'ON' : 'OFF'}
+					Audio Normalization: {audioNormalization ? 'ON' : 'OFF'}
 				</Text>
 			</Box>
 
-			{/* Crossfade Duration */}
+			{/* Gapless Playback */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -479,11 +482,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 3}
 				>
-					Crossfade: {crossfadeDuration === 0 ? 'Off' : `${crossfadeDuration}s`}
+					Gapless Playback: {gaplessPlayback ? 'ON' : 'OFF'}
 				</Text>
 			</Box>
 
-			{/* Volume Fade Duration */}
+			{/* Crossfade Duration */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -494,12 +497,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 4}
 				>
-					Volume Fade:{' '}
-					{volumeFadeDuration === 0 ? 'Off' : `${volumeFadeDuration}s`}
+					Crossfade: {crossfadeDuration === 0 ? 'Off' : `${crossfadeDuration}s`}
 				</Text>
 			</Box>
 
-			{/* Equalizer Preset */}
+			{/* Volume Fade Duration */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -510,11 +512,12 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 5}
 				>
-					Equalizer: {formatEqualizerLabel(equalizerPreset)}
+					Volume Fade:{' '}
+					{volumeFadeDuration === 0 ? 'Off' : `${volumeFadeDuration}s`}
 				</Text>
 			</Box>
 
-			{/* Subtitles */}
+			{/* Equalizer Preset */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -525,11 +528,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 6}
 				>
-					Subtitles: {subtitlesEnabled ? 'ON' : 'OFF'}
+					Equalizer: {formatEqualizerLabel(equalizerPreset)}
 				</Text>
 			</Box>
 
-			{/* Notifications */}
+			{/* Subtitles */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -540,11 +543,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 7}
 				>
-					Desktop Notifications: {notifications ? 'ON' : 'OFF'}
+					Subtitles: {subtitlesEnabled ? 'ON' : 'OFF'}
 				</Text>
 			</Box>
 
-			{/* Discord Rich Presence */}
+			{/* Notifications */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -555,11 +558,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 8}
 				>
-					Discord Rich Presence: {discordRpc ? 'ON' : 'OFF'}
+					Desktop Notifications: {notifications ? 'ON' : 'OFF'}
 				</Text>
 			</Box>
 
-			{/* LLM Enabled */}
+			{/* Discord Rich Presence */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -570,13 +573,28 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 9}
 				>
+					Discord Rich Presence: {discordRpc ? 'ON' : 'OFF'}
+				</Text>
+			</Box>
+
+			{/* LLM Enabled */}
+			<Box paddingX={1}>
+				<Text
+					backgroundColor={
+						selectedIndex === 10 ? theme.colors.primary : undefined
+					}
+					color={
+						selectedIndex === 10 ? theme.colors.background : theme.colors.text
+					}
+					bold={selectedIndex === 10}
+				>
 					AI Assistant: {llmEnabled ? 'ON' : 'OFF'}
 				</Text>
 			</Box>
 
 			{/* LLM API Key */}
 			<Box paddingX={1}>
-				{isEditingApiKey && selectedIndex === 10 ? (
+				{isEditingApiKey && selectedIndex === 11 ? (
 					<TextInput
 						value={llmApiKey}
 						onChange={setLLMApiKey}
@@ -592,12 +610,12 @@ export default function Settings() {
 				) : (
 					<Text
 						backgroundColor={
-							selectedIndex === 10 ? theme.colors.primary : undefined
+							selectedIndex === 11 ? theme.colors.primary : undefined
 						}
 						color={
-							selectedIndex === 10 ? theme.colors.background : theme.colors.text
+							selectedIndex === 11 ? theme.colors.background : theme.colors.text
 						}
-						bold={selectedIndex === 10}
+						bold={selectedIndex === 11}
 					>
 						API Key:{' '}
 						{llmApiKey
@@ -611,21 +629,6 @@ export default function Settings() {
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
-						selectedIndex === 11 ? theme.colors.primary : undefined
-					}
-					color={
-						selectedIndex === 11 ? theme.colors.background : theme.colors.text
-					}
-					bold={selectedIndex === 11}
-				>
-					Model: {llmModel}
-				</Text>
-			</Box>
-
-			{/* LLM Temperature */}
-			<Box paddingX={1}>
-				<Text
-					backgroundColor={
 						selectedIndex === 12 ? theme.colors.primary : undefined
 					}
 					color={
@@ -633,11 +636,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 12}
 				>
-					Temperature: {llmTemperature.toFixed(1)}
+					Model: {llmModel}
 				</Text>
 			</Box>
 
-			{/* LLM Endpoint */}
+			{/* LLM Temperature */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -648,6 +651,21 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 13}
 				>
+					Temperature: {llmTemperature.toFixed(1)}
+				</Text>
+			</Box>
+
+			{/* LLM Endpoint */}
+			<Box paddingX={1}>
+				<Text
+					backgroundColor={
+						selectedIndex === 14 ? theme.colors.primary : undefined
+					}
+					color={
+						selectedIndex === 14 ? theme.colors.background : theme.colors.text
+					}
+					bold={selectedIndex === 14}
+				>
 					Endpoint:{' '}
 					{llmEndpoint
 						? llmEndpoint.replace('https://', '').substring(0, 30)
@@ -657,7 +675,7 @@ export default function Settings() {
 
 			{/* LLM Base URL */}
 			<Box paddingX={1}>
-				{isEditingBaseUrl && selectedIndex === 14 ? (
+				{isEditingBaseUrl && selectedIndex === 15 ? (
 					<TextInput
 						value={llmBaseUrl}
 						onChange={setLLMBaseUrl}
@@ -673,12 +691,12 @@ export default function Settings() {
 				) : (
 					<Text
 						backgroundColor={
-							selectedIndex === 14 ? theme.colors.primary : undefined
+							selectedIndex === 15 ? theme.colors.primary : undefined
 						}
 						color={
-							selectedIndex === 14 ? theme.colors.background : theme.colors.text
+							selectedIndex === 15 ? theme.colors.background : theme.colors.text
 						}
-						bold={selectedIndex === 14}
+						bold={selectedIndex === 15}
 					>
 						Base URL:{' '}
 						{llmBaseUrl
@@ -692,12 +710,12 @@ export default function Settings() {
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
-						selectedIndex === 15 ? theme.colors.primary : undefined
+						selectedIndex === 16 ? theme.colors.primary : undefined
 					}
 					color={
-						selectedIndex === 15 ? theme.colors.background : theme.colors.text
+						selectedIndex === 16 ? theme.colors.background : theme.colors.text
 					}
-					bold={selectedIndex === 15}
+					bold={selectedIndex === 16}
 				>
 					Download Feature: {downloadsEnabled ? 'ON' : 'OFF'}
 				</Text>
@@ -705,7 +723,7 @@ export default function Settings() {
 
 			{/* Download Folder */}
 			<Box paddingX={1}>
-				{isEditingDownloadDirectory && selectedIndex === 16 ? (
+				{isEditingDownloadDirectory && selectedIndex === 17 ? (
 					<TextInput
 						value={downloadDirectory}
 						onChange={setDownloadDirectory}
@@ -736,12 +754,12 @@ export default function Settings() {
 				) : (
 					<Text
 						backgroundColor={
-							selectedIndex === 16 ? theme.colors.primary : undefined
+							selectedIndex === 17 ? theme.colors.primary : undefined
 						}
 						color={
-							selectedIndex === 16 ? theme.colors.background : theme.colors.text
+							selectedIndex === 17 ? theme.colors.background : theme.colors.text
 						}
-						bold={selectedIndex === 16}
+						bold={selectedIndex === 17}
 					>
 						Download Folder: {downloadDirectory}
 					</Text>
@@ -757,21 +775,6 @@ export default function Settings() {
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
-						selectedIndex === 17 ? theme.colors.primary : undefined
-					}
-					color={
-						selectedIndex === 17 ? theme.colors.background : theme.colors.text
-					}
-					bold={selectedIndex === 17}
-				>
-					Download Format: {downloadFormat.toUpperCase()}
-				</Text>
-			</Box>
-
-			{/* Prefer Local Playback */}
-			<Box paddingX={1}>
-				<Text
-					backgroundColor={
 						selectedIndex === 18 ? theme.colors.primary : undefined
 					}
 					color={
@@ -779,11 +782,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 18}
 				>
-					Prefer Local Playback: {preferLocalPlayback ? 'ON' : 'OFF'}
+					Download Format: {downloadFormat.toUpperCase()}
 				</Text>
 			</Box>
 
-			{/* Cookies From Browser */}
+			{/* Prefer Local Playback */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -794,6 +797,21 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 19}
 				>
+					Prefer Local Playback: {preferLocalPlayback ? 'ON' : 'OFF'}
+				</Text>
+			</Box>
+
+			{/* Cookies From Browser */}
+			<Box paddingX={1}>
+				<Text
+					backgroundColor={
+						selectedIndex === 20 ? theme.colors.primary : undefined
+					}
+					color={
+						selectedIndex === 20 ? theme.colors.background : theme.colors.text
+					}
+					bold={selectedIndex === 20}
+				>
 					Cookies From Browser:{' '}
 					{formatCookiesFromBrowserLabel(cookiesFromBrowser)}
 				</Text>
@@ -801,7 +819,7 @@ export default function Settings() {
 
 			{/* Cookies File */}
 			<Box paddingX={1}>
-				{isEditingCookiesFile && selectedIndex === 20 ? (
+				{isEditingCookiesFile && selectedIndex === 21 ? (
 					<TextInput
 						value={cookiesFile}
 						onChange={setCookiesFile}
@@ -817,12 +835,12 @@ export default function Settings() {
 				) : (
 					<Text
 						backgroundColor={
-							selectedIndex === 20 ? theme.colors.primary : undefined
+							selectedIndex === 21 ? theme.colors.primary : undefined
 						}
 						color={
-							selectedIndex === 20 ? theme.colors.background : theme.colors.text
+							selectedIndex === 21 ? theme.colors.background : theme.colors.text
 						}
-						bold={selectedIndex === 20}
+						bold={selectedIndex === 21}
 					>
 						Cookies File: {cookiesFile.trim() || '(not set)'}
 					</Text>
@@ -833,37 +851,22 @@ export default function Settings() {
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
-						selectedIndex === 21 ? theme.colors.primary : undefined
+						selectedIndex === 22 ? theme.colors.primary : undefined
 					}
 					color={
-						selectedIndex === 21
+						selectedIndex === 22
 							? theme.colors.background
 							: isActive
 								? theme.colors.accent
 								: theme.colors.text
 					}
-					bold={selectedIndex === 21}
+					bold={selectedIndex === 22}
 				>
 					{sleepTimerLabel}
 				</Text>
 			</Box>
 
 			{/* Import Playlists */}
-			<Box paddingX={1}>
-				<Text
-					backgroundColor={
-						selectedIndex === 22 ? theme.colors.primary : undefined
-					}
-					color={
-						selectedIndex === 22 ? theme.colors.background : theme.colors.text
-					}
-					bold={selectedIndex === 22}
-				>
-					Import Playlists →
-				</Text>
-			</Box>
-
-			{/* Export Playlists */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -874,11 +877,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 23}
 				>
-					Export Playlists →
+					Import Playlists →
 				</Text>
 			</Box>
 
-			{/* Custom Keybindings */}
+			{/* Export Playlists */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -889,11 +892,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 24}
 				>
-					Custom Keybindings →
+					Export Playlists →
 				</Text>
 			</Box>
 
-			{/* Manage Plugins */}
+			{/* Custom Keybindings */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -904,11 +907,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 25}
 				>
-					Manage Plugins →
+					Custom Keybindings →
 				</Text>
 			</Box>
 
-			{/* Cache TTL */}
+			{/* Manage Plugins */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -919,11 +922,11 @@ export default function Settings() {
 					}
 					bold={selectedIndex === 26}
 				>
-					Cache TTL: {cacheTtlMinutes}m
+					Manage Plugins →
 				</Text>
 			</Box>
 
-			{/* Cache Max Entries */}
+			{/* Cache TTL */}
 			<Box paddingX={1}>
 				<Text
 					backgroundColor={
@@ -933,6 +936,21 @@ export default function Settings() {
 						selectedIndex === 27 ? theme.colors.background : theme.colors.text
 					}
 					bold={selectedIndex === 27}
+				>
+					Cache TTL: {cacheTtlMinutes}m
+				</Text>
+			</Box>
+
+			{/* Cache Max Entries */}
+			<Box paddingX={1}>
+				<Text
+					backgroundColor={
+						selectedIndex === 28 ? theme.colors.primary : undefined
+					}
+					color={
+						selectedIndex === 28 ? theme.colors.background : theme.colors.text
+					}
+					bold={selectedIndex === 28}
 				>
 					Cache Max Entries: {cacheMaxEntries}
 				</Text>

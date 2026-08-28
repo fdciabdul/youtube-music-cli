@@ -16,3 +16,5 @@ firebase-debug.log
 .opencode/plans/
 .agents/**/node_modules/
 .cursor/hooks/state/
+
+.superpowers/

@@ -58,6 +58,7 @@ export const VIEW = {
 	PLUGINS: 'plugins',
 	LYRICS: 'lyrics',
 	KEYBINDINGS: 'keybindings',
+	LOGIN: 'login',
 	TRENDING: 'trending',
 	EXPLORE: 'explore',
 	IMPORT: 'import',

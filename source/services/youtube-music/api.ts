@@ -171,8 +171,25 @@ async function getClient() {
 		}
 
 		ytClient = await Innertube.create();
+
+		// Restore authenticated session if credentials exist
+		try {
+			const {getAuthService} = await import('../auth/auth.service.ts');
+			const authService = getAuthService();
+			await authService.restoreSession(ytClient);
+		} catch {
+			// Auth restoration is non-fatal — continue unauthenticated
+		}
 	}
 	return ytClient;
+}
+
+/**
+ * Reset the Innertube client so the next call to getClient()
+ * creates a fresh session (with or without auth).
+ */
+export function resetClient(): void {
+	ytClient = null;
 }
 
 class MusicService {
