@@ -1,3 +1,17 @@
+## [0.1.8](https://github.com/involvex/youtube-music-cli/compare/v0.1.7...v0.1.8) (2026-08-28)
+
+### Bug Fixes
+
+- **auth:** address review items [#2](https://github.com/involvex/youtube-music-cli/issues/2) [#4](https://github.com/involvex/youtube-music-cli/issues/4) [#9](https://github.com/involvex/youtube-music-cli/issues/9) ([b4c2f99](https://github.com/involvex/youtube-music-cli/commit/b4c2f99ea8fedf52f8570fa8394d5ca1bd3b96ab))
+- **auth:** harden credential storage, refactor LoginView, add auth service tests ([99bb8ac](https://github.com/involvex/youtube-music-cli/commit/99bb8aca99da416463a023b2685f830113371cd0))
+- **ci:** rebase before pushing homebrew formula update ([db9a416](https://github.com/involvex/youtube-music-cli/commit/db9a4163b2609b9adb90a8376e0a60252d02765d))
+- **lint:** remove unused handleLogout and resetClient from LoginView ([0e36135](https://github.com/involvex/youtube-music-cli/commit/0e36135981409f3f5b422f1e593c18e251d88e2c))
+- **test:** sync immersive settings row counts and indices with current 29-row layout ([6a5120e](https://github.com/involvex/youtube-music-cli/commit/6a5120ed18a38f4c5dc4b528489f20719b56b33b))
+
+### Features
+
+- **completions:** add login, logout, whoami to shell completions ([8de5ee0](https://github.com/involvex/youtube-music-cli/commit/8de5ee0fb7f14ee1d4b8eaf46630d84d3101fc0c))
+
 ## [0.1.7](https://github.com/involvex/youtube-music-cli/compare/v0.1.6...v0.1.7) (2026-08-26)
 
 ### Bug Fixes
