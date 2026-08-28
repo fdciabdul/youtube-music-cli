@@ -94,7 +94,7 @@ export default function LoginView() {
 		}
 	}, [authService]);
 
-	const loginInitiated = useRef(false);
+	const loginInitiated = useRef<boolean>(false);
 
 	useEffect(() => {
 		if (!status.loggedIn && loginState === 'idle' && !loginInitiated.current) {
@@ -102,12 +102,6 @@ export default function LoginView() {
 			void handleLogin();
 		}
 	}, [status.loggedIn, loginState, handleLogin]);
-
-	useKeyBinding(['l'], () => {
-		if (status.loggedIn && loginState === 'idle') {
-			void handleLogout();
-		}
-	});
 
 	return (
 		<Box flexDirection="column" paddingX={1} paddingY={1}>
@@ -135,13 +129,7 @@ export default function LoginView() {
 						</Box>
 					)}
 					<Box>
-						<Text color={theme.colors.dim}>
-							Press{' '}
-							<Text bold color={theme.colors.primary}>
-								L
-							</Text>{' '}
-							to sign out, Esc to go back
-						</Text>
+						<Text color={theme.colors.dim}>Esc to go back</Text>
 					</Box>
 				</Box>
 			) : loginState === 'authenticating' && deviceCode ? (

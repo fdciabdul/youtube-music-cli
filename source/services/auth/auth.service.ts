@@ -209,12 +209,17 @@ class AuthService {
 		}
 	}
 
-	async signOut(): Promise<boolean> {
+	async signOut(innertube?: Innertube): Promise<boolean> {
 		try {
 			if (this.credentials?.tokens) {
-				const innertube = await Innertube.create();
-				await innertube.session.signIn(this.credentials.tokens);
-				await innertube.session.signOut();
+				if (innertube) {
+					await innertube.session.signIn(this.credentials.tokens);
+					await innertube.session.signOut();
+				} else {
+					const client = await Innertube.create();
+					await client.session.signIn(this.credentials.tokens);
+					await client.session.signOut();
+				}
 			}
 		} catch (error) {
 			logger.warn('AuthService', 'Token revocation failed (non-fatal)', {
@@ -274,7 +279,7 @@ class AuthService {
 				error: formatError(error),
 			});
 			try {
-				await this.signOut();
+				await this.signOut(innertube);
 			} catch (signOutError) {
 				logger.warn('AuthService', 'Cleanup sign-out also failed', {
 					error: formatError(signOutError),
