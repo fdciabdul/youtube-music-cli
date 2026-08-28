@@ -378,7 +378,7 @@ test(
 		const overlay = createSettingsOverlayState();
 		openSettingsOverlay(overlay);
 		expect(overlay.active).toBe(true);
-		expect(SETTINGS_ROW_COUNT).toBe(28);
+		expect(SETTINGS_ROW_COUNT).toBe(29);
 
 		expect(handleSettingsInput(overlay, 'down', SETTINGS_ROW_COUNT)).toBe(
 			'none',
@@ -387,15 +387,15 @@ test(
 		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
 			'cycle',
 		);
-		overlay.selectedIndex = 10;
+		overlay.selectedIndex = 11;
 		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
 			'begin_text',
 		);
-		overlay.selectedIndex = 22;
+		overlay.selectedIndex = 23;
 		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
 			'navigate',
 		);
-		overlay.selectedIndex = 26;
+		overlay.selectedIndex = 1;
 		expect(handleSettingsInput(overlay, 'enter', SETTINGS_ROW_COUNT)).toBe(
 			'cycle',
 		);
@@ -424,28 +424,28 @@ test(
 		const sleepTimer = createSleepTimerState();
 		const rows = buildImmersiveSettingsRows(config);
 
-		expect(rows.length).toBe(28);
-		expect(rows[0]?.label.includes('Stream Quality')).toBe(true);
-		expect(rows[18]?.label.includes('Prefer Local')).toBe(true);
-		expect(rows[21]?.label.includes('Sleep Timer')).toBe(true);
-		expect(rows[25]?.label.includes('Manage Plugins')).toBe(true);
-		expect(rows[26]?.label.includes('Cache TTL')).toBe(true);
-		expect(rows[27]?.label.includes('Cache Entries')).toBe(true);
+		expect(rows.length).toBe(29);
+		expect(rows[1]?.label.includes('Stream Quality')).toBe(true);
+		expect(rows[19]?.label.includes('Prefer Local')).toBe(true);
+		expect(rows[22]?.label.includes('Sleep Timer')).toBe(true);
+		expect(rows[26]?.label.includes('Manage Plugins')).toBe(true);
+		expect(rows[27]?.label.includes('Cache TTL')).toBe(true);
+		expect(rows[28]?.label.includes('Cache Entries')).toBe(true);
 
-		const message = cycleImmersiveSetting(config, 6, {
+		const message = await cycleImmersiveSetting(config, 7, {
 			sleepTimer,
 			onSleepTimerExpire: () => {},
 		});
 		expect(message?.includes('Subtitles')).toBe(true);
 
-		const cacheTtlMessage = cycleImmersiveSetting(config, 26, {
+		const cacheTtlMessage = await cycleImmersiveSetting(config, 27, {
 			sleepTimer,
 			onSleepTimerExpire: () => {},
 		});
 		expect(cacheTtlMessage?.includes('Cache TTL')).toBe(true);
 		expect([1, 5, 10, 15, 30]).toContain(config.get('cacheTtlMinutes'));
 
-		const cacheEntriesMessage = cycleImmersiveSetting(config, 27, {
+		const cacheEntriesMessage = await cycleImmersiveSetting(config, 28, {
 			sleepTimer,
 			onSleepTimerExpire: () => {},
 		});
