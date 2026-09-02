@@ -57,6 +57,7 @@ class AutoUpdateService {
 			const npmRoot = execSync('npm root -g', {
 				encoding: 'utf-8',
 				stdio: ['ignore', 'pipe', 'ignore'],
+				timeout: 2000,
 			}).trim();
 			if (
 				execPath.startsWith(npmRoot) ||
@@ -74,6 +75,7 @@ class AutoUpdateService {
 				const brewCheck = execSync('brew --prefix', {
 					encoding: 'utf-8',
 					stdio: ['ignore', 'pipe', 'ignore'],
+					timeout: 2000,
 				}).trim();
 				if (brewCheck && process.execPath.startsWith(brewCheck)) {
 					return 'brew';
@@ -94,7 +96,7 @@ class AutoUpdateService {
 		if (targetVersion && !semverRegex.test(targetVersion)) {
 			return {
 				success: false,
-				channel: this.detectChannel(),
+				channel: 'unknown',
 				currentVersion: APP_VERSION,
 				targetVersion,
 				message: `Invalid target version format: ${targetVersion}`,
