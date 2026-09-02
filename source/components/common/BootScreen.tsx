@@ -4,17 +4,15 @@ import {useKeyBinding} from '../../hooks/useKeyboard.ts';
 import {useTheme} from '../../hooks/useTheme.ts';
 import {useTerminalSize} from '../../hooks/useTerminalSize.ts';
 import {getSponsorLine} from '../../utils/funding.ts';
+import {APP_NAME, APP_VERSION, GITHUB_REPO_URL} from '../../utils/constants.ts';
 
 const YMC_ART = [
-	' __      __  __       __   ______',
-	'/  \\    /  |/  \\     /  | /      \\',
-	'$$  \\  /$$/ $$  \\   /$$ |/$$$$$$  |',
-	' $$  \\/$$/  $$$  \\ /$$$ |$$ |  $$/',
-	'  $$  $$/   $$$$  /$$$$ |$$ |',
-	'   $$$$/    $$ $$ $$/$$ |$$ |   __',
-	'    $$ |    $$ |$$$/ $$ |$$ \\__/  |',
-	'    $$ |    $$ | $/  $$ |$$    $$/',
-	'    $$/     $$/      $$/  $$$$$$/',
+	' __     ____  __  _____ ',
+	' \\ \\   / /  \\/  |/ ____|',
+	' \\ \\_/ /| \\  / | |     ',
+	'   \\   / | |\\/| | |     ',
+	'    | |  | |  | | |____ ',
+	'    |_|  |_|  |_|\\_____|',
 ];
 
 const DEFAULT_TIMEOUT_MS = 1500;
@@ -62,15 +60,27 @@ export default function BootScreen({onBooted}: {onBooted: () => void}) {
 			alignItems="center"
 			height={rows}
 		>
-			{artLines.map(line => (
-				<Box key={line}>
-					<Text color={theme.theme.colors.primary}>{line}</Text>
-				</Box>
-			))}
-			<Box marginTop={1}>
-				<Text color={theme.theme.colors.dim} dimColor>
-					{sponsor}
+			<Box
+				borderStyle="round"
+				borderColor={theme.theme.colors.secondary}
+				padding={1}
+			>
+				<Text color={theme.theme.colors.primary}>{artLines.join('\n')}</Text>
+			</Box>
+			<Box marginTop={1} flexDirection="column" alignItems="center">
+				<Text color={theme.theme.colors.text}>
+					{APP_NAME} v{APP_VERSION}
 				</Text>
+				<Box marginTop={1}>
+					<Text color={theme.theme.colors.dim} dimColor>
+						{GITHUB_REPO_URL}
+					</Text>
+				</Box>
+				<Box marginTop={1}>
+					<Text color={theme.theme.colors.dim} dimColor>
+						{sponsor}
+					</Text>
+				</Box>
 			</Box>
 		</Box>
 	);

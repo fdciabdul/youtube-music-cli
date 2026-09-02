@@ -1,22 +1,22 @@
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {parse} from 'yaml';
+import {APP_NAME, APP_VERSION, GITHUB_REPO_URL} from '../utils/constants.ts';
 
 const YMC_ART = [
-	' __      __  __       __   ______',
-	'/  \\    /  |/  \\     /  | /      \\',
-	'$$  \\  /$$/ $$  \\   /$$ |/$$$$$$  |',
-	' $$  \\/$$/  $$$  \\ /$$$ |$$ |  $$/',
-	'  $$  $$/   $$$$  /$$$$ |$$ |',
-	'   $$$$/    $$ $$ $$/$$ |$$ |   __',
-	'    $$ |    $$ |$$$/ $$ |$$ \\__/  |',
-	'    $$ |    $$ | $/  $$ |$$    $$/',
-	'    $$/     $$/      $$/  $$$$$$/',
+	' __     ____  __  _____ ',
+	' \\ \\   / /  \\/  |/ ____|',
+	' \\ \\_/ /| \\  / | |     ',
+	'   \\   / | |\\/| | |     ',
+	'    | |  | |  | | |____ ',
+	'    |_|  |_|  |_|\\_____|',
 ];
 
 const BOOT_TIMEOUT_MS = 1500;
 const ANSI_RESET = '\x1B[0m';
 const ANSI_GREEN = '\x1B[32m';
+const ANSI_GREEN_BRIGHT = '\x1B[92m';
+const ANSI_BOLD = '\x1B[1m';
 const ANSI_DIM = '\x1B[2m';
 const ANSI_HIDE_CURSOR = '\x1B[?25l';
 const ANSI_SHOW_CURSOR = '\x1B[?25h';
@@ -44,6 +44,38 @@ function getSponsorLine(): string {
 	return `Sponsor: ${githubUrl}`;
 }
 
+function padEnd(str: string, len: number): string {
+	while (str.length < len) {
+		str += ' ';
+	}
+	return str;
+}
+
+function drawBootScreen(artLines: string[], sponsor: string): void {
+	const maxWidth = Math.max(...artLines.map(line => line.length));
+	const frameWidth = maxWidth + 2;
+
+	process.stdout.write(
+		`${ANSI_BOLD}${ANSI_GREEN_BRIGHT}+${'-'.repeat(frameWidth)}+${ANSI_RESET}\n`,
+	);
+
+	for (const line of artLines) {
+		const padded = padEnd(line, maxWidth);
+		process.stdout.write(
+			`${ANSI_BOLD}${ANSI_GREEN}| ${padded} |${ANSI_RESET}\n`,
+		);
+	}
+
+	process.stdout.write(
+		`${ANSI_BOLD}${ANSI_GREEN_BRIGHT}+${'-'.repeat(frameWidth)}+${ANSI_RESET}\n`,
+	);
+
+	process.stdout.write(`\n`);
+	process.stdout.write(`${ANSI_DIM}${APP_NAME} v${APP_VERSION}${ANSI_RESET}\n`);
+	process.stdout.write(`${ANSI_DIM}${GITHUB_REPO_URL}${ANSI_RESET}\n`);
+	process.stdout.write(`${ANSI_DIM}${sponsor}${ANSI_RESET}\n`);
+}
+
 export async function showImmersiveBootScreen(): Promise<void> {
 	if (process.platform !== 'win32') {
 		return;
@@ -56,7 +88,7 @@ export async function showImmersiveBootScreen(): Promise<void> {
 	const width = process.stdout.columns || 120;
 	const artLines = width < 30 ? ['YMC'] : YMC_ART;
 	const sponsor = getSponsorLine();
-	const contentHeight = artLines.length + 2;
+	const contentHeight = artLines.length + 6;
 	const height = process.stdout.rows || 30;
 	const verticalPad = Math.max(0, Math.floor((height - contentHeight) / 2) - 1);
 
@@ -89,14 +121,10 @@ export async function showImmersiveBootScreen(): Promise<void> {
 		process.stdout.write(ANSI_CLEAR);
 
 		for (let i = 0; i < verticalPad; i++) {
-			process.stdout.write('\r\n');
+			process.stdout.write('\n');
 		}
 
-		for (const line of artLines) {
-			process.stdout.write(`${ANSI_GREEN}${line}${ANSI_RESET}\r\n`);
-		}
-
-		process.stdout.write(`${ANSI_DIM}${sponsor}${ANSI_RESET}\r\n`);
+		drawBootScreen(artLines, sponsor);
 
 		await new Promise<void>(res => {
 			resolved = false;

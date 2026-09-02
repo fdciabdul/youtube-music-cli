@@ -34,6 +34,7 @@ function loadAppVersion(): string {
 // Application constants
 export const APP_NAME = '@involvex/youtube-music-cli';
 export const APP_VERSION = loadAppVersion();
+export const GITHUB_REPO_URL = 'https://github.com/involvex/youtube-music-cli';
 
 // Config directory
 export const CONFIG_DIR =
