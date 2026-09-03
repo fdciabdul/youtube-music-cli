@@ -21,6 +21,7 @@ import {logger} from '../logger/logger.service.ts';
 import {getSearchCache, getSuggestionsCache} from '../cache/cache.service.ts';
 import {getConfigService} from '../config/config.service.ts';
 import {getInvidiousHealthService} from '../invidious/invidious-health.service.ts';
+import {getAuthService} from '../auth/auth.service.ts';
 
 // Initialize YouTube client
 let ytClient: Innertube | null = null;
@@ -170,13 +171,17 @@ async function getClient() {
 			process.env.HTTP_PROXY = proxy;
 		}
 
-		ytClient = await Innertube.create();
+		ytClient = await Innertube.create({
+			cookie: getAuthService().getCookie() ?? undefined,
+		});
 
 		// Restore authenticated session if credentials exist
+		// (cookie auth doesn't need restoration — cookie is already passed above)
 		try {
-			const {getAuthService} = await import('../auth/auth.service.ts');
 			const authService = getAuthService();
-			await authService.restoreSession(ytClient);
+			if (authService.getCachedCredentials()) {
+				await authService.restoreSession(ytClient);
+			}
 		} catch {
 			// Auth restoration is non-fatal — continue unauthenticated
 		}

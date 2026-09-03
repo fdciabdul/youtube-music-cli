@@ -105,7 +105,9 @@ const cli = meow(
 	  $ youtube-music-cli config doctor --fix     Auto-fix config issues
 
 	🔐 Auth Commands
-	  $ youtube-music-cli login                Sign in to YouTube Music
+	  $ youtube-music-cli login                Sign in to YouTube Music (OAuth2 device flow)
+	  $ youtube-music-cli login --cookies-file <file>  Sign in using cookies from a Netscape cookies.txt file
+	  $ youtube-music-cli login --cookies-from-browser <browser>  Sign in using cookies from a browser (chrome, firefox, edge, brave)
 	  $ youtube-music-cli logout               Sign out and remove credentials
 	  $ youtube-music-cli whoami               Show current account status
 
@@ -233,6 +235,13 @@ const cli = meow(
 			export: {
 				type: 'string',
 			},
+			// Auth command flags
+			cookiesFile: {
+				type: 'string',
+			},
+			cookiesFromBrowser: {
+				type: 'string',
+			},
 		},
 		autoVersion: true,
 		autoHelp: false,
@@ -316,10 +325,44 @@ if (command === 'login') {
 	const authService = getAuthService();
 	const status = authService.getStatus();
 
+	const cookiesFile = cli.flags.cookiesFile as string | undefined;
+	const cookiesFromBrowser = cli.flags.cookiesFromBrowser as
+		'chrome' | 'firefox' | 'edge' | 'brave' | undefined;
+
+	if (cookiesFile) {
+		console.log('Starting YouTube Music login (cookie import from file)...');
+		const result = await authService.signInFromCookieFile(cookiesFile);
+		if (result.success) {
+			console.log('');
+			console.log('✓ Successfully signed in to YouTube Music (cookies)');
+			process.exit(0);
+		} else {
+			console.error(`\n✗ Login failed: ${result.error ?? 'Unknown error'}`);
+			process.exit(1);
+		}
+	}
+
+	if (cookiesFromBrowser) {
+		console.log(
+			`Starting YouTube Music login (cookie import from ${cookiesFromBrowser})...`,
+		);
+		const result = await authService.signInFromBrowser(cookiesFromBrowser);
+		if (result.success) {
+			console.log('');
+			console.log('✓ Successfully signed in to YouTube Music (cookies)');
+			process.exit(0);
+		} else {
+			console.error(`\n✗ Login failed: ${result.error ?? 'Unknown error'}`);
+			process.exit(1);
+		}
+	}
+
 	if (status.loggedIn) {
 		const accountLabel = status.accountName ?? 'YouTube account';
 		console.log(`Already signed in as: ${accountLabel}`);
-		if (!status.tokenValid) {
+		if (status.method === 'cookie') {
+			console.log('(Using cookie-based authentication)');
+		} else if (!status.tokenValid) {
 			console.log('(Token expired — will refresh on next API call)');
 		}
 		process.exit(0);
@@ -339,6 +382,11 @@ if (command === 'login') {
 		process.exit(0);
 	} else {
 		console.error(`\n✗ Login failed: ${result.error ?? 'Unknown error'}`);
+		console.error(
+			'\nTip: You can also sign in using cookies:\n' +
+				'  ymc login --cookies-file <path-to-cookies.txt>\n' +
+				'  ymc login --cookies-from-browser edge',
+		);
 		process.exit(1);
 	}
 }

@@ -21,6 +21,7 @@ export default function LoginView() {
 		userCode: string;
 	} | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [showCookieFallback, setShowCookieFallback] = useState(false);
 
 	useKeyBinding(resolveKeybinding('BACK'), () => {
 		dispatch({category: 'GO_BACK'});
@@ -33,6 +34,7 @@ export default function LoginView() {
 
 		setLoginState('pending');
 		setError(null);
+		setShowCookieFallback(false);
 
 		try {
 			const {Innertube} = await import('youtubei.js');
@@ -45,6 +47,7 @@ export default function LoginView() {
 				innertube.session.once('auth', ({credentials}) => {
 					getAuthService().saveCredentials({
 						schemaVersion: 1,
+						method: 'oauth2',
 						tokens: credentials,
 						signedInAt: new Date().toISOString(),
 					});
@@ -58,6 +61,7 @@ export default function LoginView() {
 					setError(
 						err instanceof Error ? err.message : 'Authentication failed',
 					);
+					setShowCookieFallback(true);
 					resolve({success: false, error: String(err)});
 				});
 			});
@@ -67,6 +71,7 @@ export default function LoginView() {
 			if (deviceCode.error_code) {
 				setLoginState('error');
 				setError(`OAuth error: ${deviceCode.error_code}`);
+				setShowCookieFallback(true);
 				return;
 			}
 
@@ -81,8 +86,19 @@ export default function LoginView() {
 		} catch (err) {
 			setLoginState('error');
 			setError(err instanceof Error ? err.message : 'Login failed');
+			setShowCookieFallback(true);
 		}
 	}, [status.loggedIn]);
+
+	// Allow R key to retry login
+	useKeyBinding(['R'], () => {
+		if (loginState === 'error' || showCookieFallback) {
+			setLoginState('idle');
+			setError(null);
+			setShowCookieFallback(false);
+			void handleLogin();
+		}
+	});
 
 	const loginInitiated = useRef<boolean>(false);
 
@@ -111,12 +127,22 @@ export default function LoginView() {
 							</Text>
 						</Text>
 					</Box>
-					{!status.tokenValid && (
+					{status.method === 'cookie' ? (
 						<Box>
-							<Text color="yellow">
-								Token expired (will refresh automatically)
+							<Text color={theme.colors.text}>
+								Using cookie-based authentication
 							</Text>
 						</Box>
+					) : (
+						<>
+							{!status.tokenValid && (
+								<Box>
+									<Text color="yellow">
+										Token expired (will refresh automatically)
+									</Text>
+								</Box>
+							)}
+						</>
 					)}
 					<Box>
 						<Text color={theme.colors.dim}>Esc to go back</Text>
@@ -174,6 +200,30 @@ export default function LoginView() {
 							<Text color={theme.colors.dim}>{error}</Text>
 						</Box>
 					)}
+					{showCookieFallback && (
+						<Box flexDirection="column" gap={1} marginTop={1}>
+							<Box>
+								<Text color={theme.colors.text}>
+									OAuth2 is currently broken (YouTube changed their TV page).
+								</Text>
+							</Box>
+							<Box>
+								<Text color={theme.colors.text}>
+									You can sign in using cookies instead:
+								</Text>
+							</Box>
+							<Box>
+								<Text color={theme.colors.dim}>
+									{'  '}ymc login --cookies-file &lt;path-to-cookies.txt&gt;
+								</Text>
+							</Box>
+							<Box>
+								<Text color={theme.colors.dim}>
+									{'  '}ymc login --cookies-from-browser edge
+								</Text>
+							</Box>
+						</Box>
+					)}
 					<Box>
 						<Text color={theme.colors.dim}>
 							Press{' '}
@@ -183,6 +233,10 @@ export default function LoginView() {
 							to retry, Esc to go back
 						</Text>
 					</Box>
+				</Box>
+			) : loginState === 'pending' ? (
+				<Box>
+					<Text color={theme.colors.dim}>Starting login...</Text>
 				</Box>
 			) : (
 				<Box>

@@ -1,7 +1,13 @@
-import type {AuthCredentials, AuthStatus} from '../../types/auth.types.ts';
+import type {
+	AuthCredentials,
+	AuthStatus,
+	AuthMethod,
+} from '../../types/auth.types.ts';
 import {CONFIG_DIR} from '../../utils/constants.ts';
 import {formatError} from '../../utils/error.ts';
 import {logger} from '../logger/logger.service.ts';
+import {parseCookiesFile, parseBrowserCookies} from './cookie-utils.ts';
+import type {CookiesFromBrowser} from '../player/ytdl-cookies.ts';
 import {
 	existsSync,
 	readFileSync,
@@ -28,22 +34,47 @@ export function parseCredentialsFileContent(
 		return null;
 	}
 
+	const method = obj['method'] as AuthMethod | undefined;
+
+	// Handle legacy credentials without method field (assume oauth2)
+	const resolvedMethod: AuthMethod = method ?? 'oauth2';
+
+	if (resolvedMethod === 'cookie') {
+		const cookie =
+			typeof obj['cookie'] === 'string' ? obj['cookie'] : undefined;
+		if (!cookie) {
+			return null;
+		}
+
+		return {
+			schemaVersion: SCHEMA_VERSION,
+			method: 'cookie',
+			cookie,
+			signedInAt:
+				typeof obj['signedInAt'] === 'string' ? obj['signedInAt'] : '',
+			accountName:
+				typeof obj['accountName'] === 'string' ? obj['accountName'] : undefined,
+		};
+	}
+
+	// OAuth2 method (default/legacy)
 	const tokens = obj['tokens'];
+
 	if (!tokens || typeof tokens !== 'object') {
+		// Allow credentials without tokens for cookie-based auth
 		return null;
 	}
 
 	const t = tokens as Record<string, unknown>;
-	if (typeof t['access_token'] !== 'string' || !t['access_token']) {
-		return null;
-	}
 
-	if (typeof t['refresh_token'] !== 'string' || !t['refresh_token']) {
+	// Minimal token validation (some tokens may be partial)
+	if (typeof t['access_token'] !== 'string' || !t['access_token']) {
 		return null;
 	}
 
 	return {
 		schemaVersion: SCHEMA_VERSION,
+		method: resolvedMethod,
 		tokens: tokens as unknown as OAuth2Tokens,
 		signedInAt: typeof obj['signedInAt'] === 'string' ? obj['signedInAt'] : '',
 		accountName:
@@ -123,7 +154,24 @@ class AuthService {
 	}
 
 	getCachedCredentials(): OAuth2Tokens | null {
-		return this.credentials?.tokens ?? null;
+		if (!this.credentials || this.credentials.method !== 'oauth2') {
+			return null;
+		}
+		return this.credentials.tokens ?? null;
+	}
+
+	getCookie(): string | null {
+		if (!this.credentials || this.credentials.method !== 'cookie') {
+			return null;
+		}
+		return this.credentials.cookie ?? null;
+	}
+
+	getAuthMethod(): AuthMethod | null {
+		if (!this.credentials) {
+			return null;
+		}
+		return this.credentials.method;
 	}
 
 	getStatus(): AuthStatus {
@@ -131,20 +179,38 @@ class AuthService {
 			return {loggedIn: false, tokenValid: false};
 		}
 
-		const hasTokens =
-			this.credentials.tokens.access_token &&
-			this.credentials.tokens.refresh_token;
+		const method = this.credentials.method;
+
+		if (method === 'cookie') {
+			return {
+				loggedIn: true,
+				method: 'cookie',
+				cookie: this.credentials.cookie,
+				signedInAt: this.credentials.signedInAt,
+				tokenValid: true,
+				accountName: this.credentials.accountName,
+			};
+		}
+
+		const tokens = this.credentials.tokens;
+
+		if (!tokens) {
+			return {loggedIn: false, tokenValid: false};
+		}
+
+		const hasTokens = tokens.access_token && tokens.refresh_token;
 
 		if (!hasTokens) {
 			return {loggedIn: false, tokenValid: false};
 		}
 
-		const expiryDate = this.credentials.tokens.expiry_date;
+		const expiryDate = tokens.expiry_date;
 		const expiryMs = expiryDate ? new Date(expiryDate).getTime() : 0;
 		const isExpired = !isNaN(expiryMs) && expiryMs > 0 && expiryMs < Date.now();
 
 		return {
 			loggedIn: true,
+			method: 'oauth2',
 			accountName: this.credentials.accountName,
 			signedInAt: this.credentials.signedInAt,
 			tokenValid: !isExpired,
@@ -173,6 +239,7 @@ class AuthService {
 				innertube.session.once('auth', ({credentials}) => {
 					this.saveCredentials({
 						schemaVersion: SCHEMA_VERSION,
+						method: 'oauth2',
 						tokens: credentials,
 						signedInAt: new Date().toISOString(),
 					});
@@ -211,7 +278,7 @@ class AuthService {
 
 	async signOut(innertube?: Innertube): Promise<boolean> {
 		try {
-			if (this.credentials?.tokens) {
+			if (this.credentials?.method === 'oauth2' && this.credentials.tokens) {
 				if (innertube) {
 					await innertube.session.signIn(this.credentials.tokens);
 					await innertube.session.signOut();
@@ -243,6 +310,13 @@ class AuthService {
 	}
 
 	async restoreSession(innertube: Innertube): Promise<boolean> {
+		// Cookie auth doesn't need session restoration — cookie is passed
+		// directly to Innertube.create() elsewhere
+		if (this.credentials?.method === 'cookie') {
+			logger.info('AuthService', 'Cookie auth — no session restoration needed');
+			return true;
+		}
+
 		const tokens = this.getCachedCredentials();
 		if (!tokens) {
 			return false;
@@ -263,6 +337,7 @@ class AuthService {
 				if (newTokens) {
 					this.saveCredentials({
 						schemaVersion: SCHEMA_VERSION,
+						method: 'oauth2',
 						tokens: newTokens,
 						signedInAt: this.credentials?.signedInAt ?? '',
 						accountName: this.credentials?.accountName,
@@ -287,6 +362,65 @@ class AuthService {
 			}
 			return false;
 		}
+	}
+
+	async signInWithCookie(cookie: string): Promise<{
+		success: boolean;
+		accountName?: string;
+		error?: string;
+	}> {
+		const trimmed = cookie.trim();
+		if (!trimmed) {
+			return {success: false, error: 'Cookie string is empty'};
+		}
+
+		try {
+			this.saveCredentials({
+				schemaVersion: SCHEMA_VERSION,
+				method: 'cookie',
+				cookie: trimmed,
+				signedInAt: new Date().toISOString(),
+			});
+
+			logger.info('AuthService', 'Cookie-based sign-in successful');
+			return {success: true};
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			logger.error('AuthService', 'Cookie sign-in failed', {error: message});
+			return {success: false, error: message};
+		}
+	}
+
+	async signInFromCookieFile(filePath: string): Promise<{
+		success: boolean;
+		accountName?: string;
+		error?: string;
+	}> {
+		const cookie = parseCookiesFile(filePath);
+		if (!cookie) {
+			return {
+				success: false,
+				error: `Failed to parse cookies from ${filePath}. File may not exist or may not contain YouTube cookies.`,
+			};
+		}
+
+		return this.signInWithCookie(cookie);
+	}
+
+	async signInFromBrowser(browser: CookiesFromBrowser): Promise<{
+		success: boolean;
+		accountName?: string;
+		error?: string;
+	}> {
+		const cookie = await parseBrowserCookies(browser);
+		if (!cookie) {
+			return {
+				success: false,
+				error: `Failed to extract YouTube cookies from ${browser}. Browser may not be installed or cookies are not accessible.`,
+			};
+		}
+
+		return this.signInWithCookie(cookie);
 	}
 }
 

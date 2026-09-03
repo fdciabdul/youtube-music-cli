@@ -1,4 +1,7 @@
 import {afterEach, expect, test} from 'bun:test';
+import {mkdtempSync, writeFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
 const __fileTeardowns = [];
 afterEach(() => {
@@ -28,12 +31,70 @@ test(
 
 		const result = parseCredentialsFileContent({
 			schemaVersion: 1,
+			method: 'oauth2',
 			tokens: sampleTokens,
 			signedInAt: '2026-01-01T00:00:00.000Z',
 		});
 
 		expect(result).not.toBeNull();
-		expect(result?.tokens.access_token).toBe('test-access-token');
+		expect(result?.tokens?.access_token).toBe('test-access-token');
+		expect(result?.method).toBe('oauth2');
+	},
+	{timeout: 60_000},
+);
+
+test(
+	'auth: parseCredentialsFileContent accepts legacy payload without method',
+	async () => {
+		const {parseCredentialsFileContent} =
+			await import('../source/services/auth/auth.service.ts');
+
+		const result = parseCredentialsFileContent({
+			schemaVersion: 1,
+			tokens: sampleTokens,
+			signedInAt: '2026-01-01T00:00:00.000Z',
+		});
+
+		expect(result).not.toBeNull();
+		expect(result?.method).toBe('oauth2');
+	},
+	{timeout: 60_000},
+);
+
+test(
+	'auth: parseCredentialsFileContent accepts cookie-based credentials',
+	async () => {
+		const {parseCredentialsFileContent} =
+			await import('../source/services/auth/auth.service.ts');
+
+		const result = parseCredentialsFileContent({
+			schemaVersion: 1,
+			method: 'cookie',
+			cookie: 'SID=test-sid; HSID=test-hsid; SSID=test-ssid',
+			signedInAt: '2026-01-01T00:00:00.000Z',
+		});
+
+		expect(result).not.toBeNull();
+		expect(result?.method).toBe('cookie');
+		expect(result?.cookie).toBe('SID=test-sid; HSID=test-hsid; SSID=test-ssid');
+		expect(result?.tokens).toBeUndefined();
+	},
+	{timeout: 60_000},
+);
+
+test(
+	'auth: parseCredentialsFileContent rejects cookie credentials without cookie',
+	async () => {
+		const {parseCredentialsFileContent} =
+			await import('../source/services/auth/auth.service.ts');
+
+		const result = parseCredentialsFileContent({
+			schemaVersion: 1,
+			method: 'cookie',
+			signedInAt: '2026-01-01T00:00:00.000Z',
+		});
+
+		expect(result).toBeNull();
 	},
 	{timeout: 60_000},
 );
@@ -55,7 +116,7 @@ test(
 );
 
 test(
-	'auth: parseCredentialsFileContent rejects tokens without access_token',
+	'auth: parseCredentialsFileContent rejects token credentials without access_token',
 	async () => {
 		const {parseCredentialsFileContent} =
 			await import('../source/services/auth/auth.service.ts');
@@ -93,6 +154,7 @@ test(
 		// Save test credentials
 		authService.saveCredentials({
 			schemaVersion: 1,
+			method: 'oauth2',
 			tokens: sampleTokens,
 			signedInAt: new Date().toISOString(),
 			accountName: 'Test Account',
@@ -102,11 +164,149 @@ test(
 		expect(status.loggedIn).toBe(true);
 		expect(status.accountName).toBe('Test Account');
 		expect(status.tokenValid).toBe(true);
+		expect(status.method).toBe('oauth2');
 
 		// Sign out should clear credentials
 		await authService.signOut();
 		const loggedOutStatus = authService.getStatus();
 		expect(loggedOutStatus.loggedIn).toBe(false);
+	},
+	{timeout: 60_000},
+);
+
+test(
+	'auth: AuthService getStatus with cookie-based auth',
+	async () => {
+		const {getAuthService} =
+			await import('../source/services/auth/auth.service.ts');
+		const authService = getAuthService();
+
+		// Save cookie credentials
+		authService.saveCredentials({
+			schemaVersion: 1,
+			method: 'cookie',
+			cookie: 'SID=test-sid; HSID=test-hsid',
+			signedInAt: new Date().toISOString(),
+			accountName: 'Cookie User',
+		});
+
+		const status = authService.getStatus();
+		expect(status.loggedIn).toBe(true);
+		expect(status.method).toBe('cookie');
+		expect(status.cookie).toBe('SID=test-sid; HSID=test-hsid');
+		expect(status.tokenValid).toBe(true);
+
+		// getCookie should return the cookie
+		expect(authService.getCookie()).toBe('SID=test-sid; HSID=test-hsid');
+
+		// getAuthMethod should return 'cookie'
+		expect(authService.getAuthMethod()).toBe('cookie');
+
+		// getCachedCredentials should return null for cookie auth
+		expect(authService.getCachedCredentials()).toBeNull();
+
+		// Sign out should clear credentials
+		await authService.signOut();
+		const loggedOutStatus = authService.getStatus();
+		expect(loggedOutStatus.loggedIn).toBe(false);
+		expect(authService.getCookie()).toBeNull();
+	},
+	{timeout: 60_000},
+);
+
+test(
+	'auth: AuthService signInWithCookie stores and retrieves cookie',
+	async () => {
+		const {getAuthService} =
+			await import('../source/services/auth/auth.service.ts');
+		const authService = getAuthService();
+
+		const cookie = 'SID=abc123; HSID=def456; SSID=ghi789';
+		const result = await authService.signInWithCookie(cookie);
+
+		expect(result.success).toBe(true);
+
+		const status = authService.getStatus();
+		expect(status.loggedIn).toBe(true);
+		expect(status.method).toBe('cookie');
+		expect(authService.getCookie()).toBe(cookie);
+
+		// Cleanup
+		await authService.signOut();
+	},
+	{timeout: 60_000},
+);
+
+test(
+	'auth: AuthService signInWithCookie rejects empty cookie',
+	async () => {
+		const {getAuthService} =
+			await import('../source/services/auth/auth.service.ts');
+		const authService = getAuthService();
+
+		const result = await authService.signInWithCookie('');
+
+		expect(result.success).toBe(false);
+		expect(result.error).toBe('Cookie string is empty');
+	},
+	{timeout: 60_000},
+);
+
+test(
+	'auth: parseCookiesFile parses Netscape cookies.txt format',
+	async () => {
+		const {parseCookiesFile} =
+			await import('../source/services/auth/cookie-utils.ts');
+
+		// Create a temp Netscape cookies.txt file
+		const tmpDir = mkdtempSync(join(tmpdir(), 'ymc-test-'));
+		__fileTeardowns.push(() => rmSync(tmpDir, {recursive: true, force: true}));
+
+		const cookiesPath = join(tmpDir, 'cookies.txt');
+		const netscapeContent = [
+			'# Netscape HTTP Cookie File',
+			'.youtube.com\tTRUE\t/\tTRUE\t1735689600\tSID\tabc123',
+			'.youtube.com\tTRUE\t/\tTRUE\t1735689600\tHSID\tdef456',
+			'.youtube.com\tTRUE\t/\tTRUE\t1735689600\tSSID\tghi789',
+		].join('\n');
+
+		writeFileSync(cookiesPath, netscapeContent);
+
+		const result = parseCookiesFile(cookiesPath);
+		expect(result).not.toBeNull();
+		expect(result).toContain('SID=abc123');
+		expect(result).toContain('HSID=def456');
+		expect(result).toContain('SSID=ghi789');
+	},
+	{timeout: 60_000},
+);
+
+test(
+	'auth: parseCookiesFile returns null for non-existent file',
+	async () => {
+		const {parseCookiesFile} =
+			await import('../source/services/auth/cookie-utils.ts');
+
+		const result = parseCookiesFile('/nonexistent/path/cookies.txt');
+		expect(result).toBeNull();
+	},
+	{timeout: 60_000},
+);
+
+test(
+	'auth: parseCookiesFile parses raw cookie header',
+	async () => {
+		const {parseCookiesFile} =
+			await import('../source/services/auth/cookie-utils.ts');
+
+		const tmpDir = mkdtempSync(join(tmpdir(), 'ymc-test-'));
+		__fileTeardowns.push(() => rmSync(tmpDir, {recursive: true, force: true}));
+
+		const cookiesPath = join(tmpDir, 'cookies.txt');
+		writeFileSync(cookiesPath, 'SID=raw-cookie; HSID=another-cookie');
+
+		const result = parseCookiesFile(cookiesPath);
+		expect(result).toBe('SID=raw-cookie; HSID=another-cookie');
 	},
 	{timeout: 60_000},
 );

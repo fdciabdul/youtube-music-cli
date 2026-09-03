@@ -56,6 +56,8 @@ const FLAGS = [
 	'--web-port',
 	'--web-only',
 	'--web-auth',
+	'--cookies-file',
+	'--cookies-from-browser',
 	'--name',
 	'--help',
 	'--version',
@@ -118,6 +120,12 @@ _ymc_completions() {
             COMPREPLY=($(compgen -W "${configSubs}" -- "$cur"))
             return ;;
         login|logout|whoami)
+            return ;;
+        --cookies-file)
+            COMPREPLY=($(compgen -f -- "$cur"))
+            return ;;
+        --cookies-from-browser)
+            COMPREPLY=($(compgen -W "chrome firefox edge brave" -- "$cur"))
             return ;;
         --theme|-t)
             COMPREPLY=($(compgen -W "dark light midnight matrix" -- "$cur"))
@@ -183,6 +191,8 @@ _ymc() {
         '--web-port[Web server port]:port:'
         '--web-only[Run web server without CLI UI]'
         '--web-auth[Authentication token for web server]:token:'
+        '--cookies-file[Cookie file path for cookie-based auth]:path:_files'
+        '--cookies-from-browser[Browser to extract cookies from]:browser:(chrome firefox edge brave)'
         '--name[Custom name for imported playlist]:name:'
         '--help[Show help]'
         '--version[Show version]'
@@ -309,6 +319,19 @@ $ymcCompleterBlock = {
             return
         }
         'login' {
+            $cookieBrowsers = @('chrome', 'firefox', 'edge', 'brave')
+            switch ($prevToken) {
+                '--cookies-file' {
+                    # File completion for cookie file path
+                    $cookieBrowsers | ForEach-Object {}
+                    return
+                }
+                '--cookies-from-browser' {
+                    $cookieBrowsers | Where-Object { $_ -like "$wordToComplete*" } |
+                        ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
+                    return
+                }
+            }
             return
         }
         'logout' {
@@ -409,6 +432,8 @@ complete -c ymc -l web-host -d 'Web server host' -r
 complete -c ymc -l web-port -d 'Web server port' -r
 complete -c ymc -l web-only -d 'Run web server without CLI UI'
 complete -c ymc -l web-auth -d 'Authentication token for web server' -r
+complete -c ymc -l cookies-file -d 'Cookie file path for cookie-based auth' -r -F
+complete -c ymc -l cookies-from-browser -d 'Browser to extract cookies from' -r -a 'chrome firefox edge brave'
 complete -c ymc -l name -d 'Custom name for imported playlist' -r
 complete -c ymc -l help -s h -d 'Show help'
 complete -c ymc -l version -d 'Show version'
