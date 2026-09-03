@@ -1,3 +1,14 @@
+## [0.1.9](https://github.com/involvex/youtube-music-cli/compare/v0.1.8...v0.1.9) (2026-09-03)
+
+### Bug Fixes
+
+- **player:** suppress spurious pause events during track loading (fixes [#39](https://github.com/involvex/youtube-music-cli/issues/39)) ([bba7c57](https://github.com/involvex/youtube-music-cli/commit/bba7c57d9960d3b02aba70d0ddd875a7b2b9e00a))
+- **test:** prevent auto-update version validation from timing out on CI ([91274bb](https://github.com/involvex/youtube-music-cli/commit/91274bbc0de9791a5dbaf2088c55683fdb82084b))
+
+### Features
+
+- **boot:** use larger figlet logo and show app metadata ([f8fdae9](https://github.com/involvex/youtube-music-cli/commit/f8fdae9aa6c4274393604e0cc164461a9349b165))
+
 ## [0.1.8](https://github.com/involvex/youtube-music-cli/compare/v0.1.7...v0.1.8) (2026-08-28)
 
 ### Bug Fixes
