@@ -41,6 +41,8 @@ youtube-music-cli/
 │   │   ├── config/          # Configuration
 │   │   ├── lyrics/          # Musixmatch richsync + LRCLIB fallback
 │   │   └── logger/          # Logging
+│   │   ├── sync/             # Playlist sync (`sync.service.ts`)
+│   │   ├── auth/             # Authentication (`auth.service.ts`, `cookie-utils.ts`)
 │   │
 │   ├── stores/              # State management
 │   │   ├── player.store.tsx

@@ -31,6 +31,7 @@ A powerful Terminal User Interface (TUI) music player for YouTube Music
 - ⌨️ **Keyboard-Driven** - Efficient vim-style navigation
 - 🖥️ **Immersive Mode** - Fullscreen Windows TUI with audio visualizer and disco effects
 - 🌐 **Web Companion** - Browser UI with synced playback controls (`--web`); included in every production build
+- 🔗 **Playlist Sync** - Sync YouTube Music playlists to local config with `ymc sync`; search and list saved playlists
 - 💾 **Downloads** - Save tracks/playlists/artists with `Shift+D`
 - 📊 **Listening Stats** - Press `o` for totals, top tracks/artists, streaks; share with `S` / `E` or `ymc stats --share`
 - 🏷️ **Metadata Tagging** - Auto-tag title/artist/album with optional cover art
@@ -197,15 +198,30 @@ youtube-music-cli pause
 youtube-music-cli resume
 youtube-music-cli skip
 youtube-music-cli back
+
+# Sync a YouTube Music playlist to local config
+ymc sync <playlist-id|ytm-url>
+
+# Search your synced playlists
+ymc sync search "query"
+
+# List your synced playlists
+ymc sync list
 ```
 
 ### Authentication
 
-Authenticate with your YouTube Music account to access personalized features (library, playlists, and ad-free playback for Premium users) via the OAuth2 Device Flow:
+Authenticate with your YouTube Music account to access personalized features (library, playlists, and ad-free playback for Premium users) via the OAuth2 Device Flow or cookie-based auth:
 
 ```bash
 # Sign in (displays device code and verification URL)
 ymc login
+
+# Sign in with a cookies.txt file (useful if OAuth2 is blocked)
+ymc login --cookies-file "/path/to/cookies.txt"
+
+# Sign in by extracting cookies from a browser
+ymc login --cookies-from-browser edge
 
 # Check current account status
 ymc whoami
@@ -213,6 +229,8 @@ ymc whoami
 # Sign out and remove stored credentials
 ymc logout
 ```
+
+**Cookie-based auth** is a fallback for when OAuth2 Device Flow is blocked by YouTube. You can either pass a `cookies.txt` file exported from your browser, or let the CLI extract cookies automatically from Chrome, Edge, Brave, or Firefox. On Windows, browser cookie extraction uses a Python fallback because browsers lock the SQLite database; if you hit that limitation, use `--cookies-file` instead (export from `edge://settings/cookies` or a browser extension).
 
 **Security & Credential Storage:**
 

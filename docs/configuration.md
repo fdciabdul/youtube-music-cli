@@ -158,6 +158,7 @@ Output format for downloads.
 ~/.youtube-music-cli/
 ├── config.json           # Main configuration
 ├── favorites.json        # Favorite tracks collection
+├── playlists.json        # Synced YouTube Music playlists
 ├── downloads/            # Default download folder
 ├── plugins/              # Installed plugins
 │   ├── adblock/
@@ -171,6 +172,49 @@ Output format for downloads.
 | -------------------------- | -------------------------------- |
 | `YOUTUBE_MUSIC_CLI_CONFIG` | Override config directory        |
 | `DEBUG`                    | Enable debug logging (`DEBUG=*`) |
+
+## Authentication
+
+youtube-music-cli supports two authentication methods:
+
+### OAuth2 Device Flow (default)
+
+The standard sign-in flow. Run `ymc login` and follow the device code prompt.
+
+### Cookie-based Auth (fallback)
+
+When OAuth2 is blocked, you can authenticate using a YouTube Music cookies file:
+
+```bash
+# From a cookies.txt export
+ymc login --cookies-file "/path/to/cookies.txt"
+
+# Extract directly from a browser
+ymc login --cookies-from-browser edge
+# or chrome, brave, firefox
+```
+
+On Windows, browser cookie extraction uses a Python `sqlite3` fallback because browsers lock the SQLite database. If this fails, close the browser and retry, or use `--cookies-file` with an exported `cookies.txt`.
+
+Cookies are parsed locally and passed to the YouTube Music API client; they are never sent to any server other than YouTube Music.
+
+## Playlist Sync
+
+Sync YouTube Music playlists to your local config for offline access within the CLI:
+
+```bash
+# Sync a playlist by ID or URL
+ymc sync VLPLm90DCMQmtlk26B3JPo9E1cJULsgeUNrP
+ymc sync "https://music.youtube.com/playlist?list=VLPLm90DCMQmtlk26B3JPo9E1cJULsgeUNrP"
+
+# Search playlists
+ymc sync search "lofi"
+
+# List saved playlists
+ymc sync list
+```
+
+Synced playlists are stored in `~/.youtube-music-cli/config.json` under a `playlists` array. Each entry contains the playlist ID, name, and track list. Sync requires an authenticated YouTube Music session (see Authentication above).
 
 ## Resetting Configuration
 

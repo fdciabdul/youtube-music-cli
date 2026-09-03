@@ -180,9 +180,32 @@ youtube-music-cli search "lofi beats"
 # Play a specific video
 youtube-music-cli play dQw4w9WgXcQ
 
+# Play a playlist
+youtube-music-cli playlist <playlist-id>
+
+# Sync a YouTube Music playlist
+ymc sync <playlist-id|ytm-url>
+
 # Headless mode (no TUI)
 youtube-music-cli search "music" --headless
 ```
+
+## Authentication
+
+Sign in to access your library, playlists, and ad-free playback:
+
+```bash
+ymc login
+```
+
+If OAuth2 is blocked, use cookie-based auth:
+
+```bash
+ymc login --cookies-file "/path/to/cookies.txt"
+ymc login --cookies-from-browser edge
+```
+
+See [Configuration](./configuration) for details.
 
 ## Next Steps
 
