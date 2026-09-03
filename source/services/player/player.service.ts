@@ -75,7 +75,6 @@ export function buildMpvArgs(
 		'--really-quiet',
 		'--msg-level=all=error',
 		`--input-ipc-server=${ipcPath}`,
-		'--idle=yes',
 		'--cache=yes',
 		'--cache-secs=30',
 		'--network-timeout=10',

@@ -112,6 +112,17 @@ test('ytdl-cookies: formatPlaybackErrorMessage maps bot check to settings hint',
 	).toBe(true);
 });
 
+test('player-service-mpv-args: buildMpvArgs does not include --idle=yes (IPC implies idle)', async () => {
+	const {buildMpvArgs} =
+		await import('../source/services/player/player.service.ts');
+	const args = buildMpvArgs(IPC_PATH, {
+		volume: 55,
+	});
+
+	expect(args.includes('--idle=yes')).toBe(false);
+	expect(args.some(arg => arg.startsWith('--input-ipc-server'))).toBe(true);
+});
+
 test('player-service-mpv-args: connectToMpvIpc throws on invalid path instead of passing null', async () => {
 	const {connectToMpvIpc} =
 		await import('../source/services/player/player.service.ts');

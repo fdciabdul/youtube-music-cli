@@ -497,6 +497,7 @@ function PlayerManager() {
 	const isPlayingRef = useRef(state.isPlaying);
 	const lastProgressAtRef = useRef(0);
 	const ipcReconnectAttemptRef = useRef(0);
+	const loadingStartedAtRef = useRef(0);
 
 	useEffect(() => {
 		playbackModeRef.current = state.playbackMode;
@@ -614,6 +615,7 @@ function PlayerManager() {
 					!shouldApplyMpvPauseSync({
 						paused: event.paused,
 						eofTimestamp: eofTimestampRef.current,
+						loadingStartedAt: loadingStartedAtRef.current,
 					})
 				) {
 					logger.debug('PlayerManager', 'Pause suppressed (EOF or advancing)', {
@@ -798,6 +800,7 @@ function PlayerManager() {
 			}
 
 			dispatch({category: 'SET_LOADING', loading: true});
+			loadingStartedAtRef.current = Date.now();
 
 			const MAX_RETRIES = 3;
 			const RETRY_DELAY_MS = 1500;
@@ -870,6 +873,7 @@ function PlayerManager() {
 						source: resolved.source,
 					});
 					dispatch({category: 'SET_LOADING', loading: false});
+					loadingStartedAtRef.current = 0;
 					return; // Success
 				} catch (error) {
 					logger.error('PlayerManager', 'Failed to load track', {
@@ -937,6 +941,7 @@ function PlayerManager() {
 						});
 						await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
 					} else {
+						loadingStartedAtRef.current = 0;
 						dispatch({
 							category: 'SET_ERROR',
 							error: `${formatPlaybackErrorMessage(error)} (after ${MAX_RETRIES} attempts)`,

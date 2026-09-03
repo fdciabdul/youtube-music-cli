@@ -7,6 +7,9 @@ export const ADVANCE_DEBOUNCE_MS = 1500;
 /** Immersive: suppress pause sync while loading the next track after EOF. */
 export const ADVANCE_GRACE_MS = 15_000;
 
+/** Suppress pause events during this window after play starts. */
+export const LOADING_GRACE_MS = 3000;
+
 /** Immersive: time-pos unchanged this long while "playing" → sync UI to paused. */
 export const PLAYBACK_STALL_MS = 8000;
 
@@ -21,6 +24,7 @@ export type MpvPauseSyncInput = {
 	isFetchingAutoplay?: boolean;
 	waitingForAutoplayAtQueueEnd?: boolean;
 	now?: number;
+	loadingStartedAt?: number;
 };
 
 /**
@@ -30,6 +34,18 @@ export type MpvPauseSyncInput = {
 export function shouldApplyMpvPauseSync(input: MpvPauseSyncInput): boolean {
 	if (!input.paused) {
 		return true;
+	}
+
+	// Suppress pause events during the initial loading window.
+	// When mpv resolves a YouTube URL via yt-dlp, it briefly fires pause=true
+	// during buffering. Suppressing this prevents the store from dispatching
+	// PAUSE and calling playerService.pause() which sends a redundant
+	// set_property pause true to mpv.
+	if (input.loadingStartedAt !== undefined && input.loadingStartedAt > 0) {
+		const now = input.now ?? Date.now();
+		if (now - input.loadingStartedAt < LOADING_GRACE_MS) {
+			return false;
+		}
 	}
 
 	if (input.isAdvancing) {

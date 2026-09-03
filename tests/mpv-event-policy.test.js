@@ -49,6 +49,43 @@ test('mpv-event-policy: suppresses pause only when advancing or after EOF', asyn
 	);
 });
 
+test('mpv-event-policy: suppresses pause during initial loading grace period', async () => {
+	const {shouldApplyMpvPauseSync} =
+		await import('../source/services/player/mpv-event-policy.ts');
+
+	const now = 10_000;
+
+	// Pause events within the loading grace period should be suppressed
+	expect(
+		shouldApplyMpvPauseSync({
+			paused: true,
+			eofTimestamp: 0,
+			loadingStartedAt: now - 500, // 500ms into loading
+			now,
+		}),
+	).toBe(false);
+
+	// Pause events after the grace period should be applied
+	expect(
+		shouldApplyMpvPauseSync({
+			paused: true,
+			eofTimestamp: 0,
+			loadingStartedAt: now - 5000, // 5s into loading (grace = 3s)
+			now,
+		}),
+	).toBe(true);
+
+	// Unpause events should always be applied regardless of grace period
+	expect(
+		shouldApplyMpvPauseSync({
+			paused: false,
+			eofTimestamp: 0,
+			loadingStartedAt: now - 500,
+			now,
+		}),
+	).toBe(true);
+});
+
 test('mpv-event-policy: debounces EOF advance', async () => {
 	const {ADVANCE_DEBOUNCE_MS, shouldDebounceAdvance} =
 		await import('../source/services/player/mpv-event-policy.ts');
