@@ -1,7 +1,9 @@
-import {existsSync, readFileSync} from 'node:fs';
+import {existsSync, readFileSync, unlinkSync} from 'node:fs';
+import {join} from 'node:path';
 import {logger} from '../logger/logger.service.ts';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
+import {tmpdir} from 'node:os';
 import type {CookiesFromBrowser} from '../player/ytdl-cookies.ts';
 
 const execFileAsync = promisify(execFile);
@@ -72,6 +74,144 @@ export function parseCookiesFile(filePath: string): string | null {
 }
 
 /**
+ * Get the Windows path to a Chromium-based browser's cookie database.
+ */
+function getWindowsBrowserCookieDbPath(
+	browser: CookiesFromBrowser,
+): string | null {
+	if (process.platform !== 'win32') {
+		return null;
+	}
+
+	const appData = process.env.LOCALAPPDATA;
+	if (!appData) return null;
+
+	switch (browser) {
+		case 'edge':
+			return join(
+				appData,
+				'Microsoft\\Edge\\User Data\\Default\\Network\\Cookies',
+			);
+		case 'chrome':
+			return join(
+				appData,
+				'Google\\Chrome\\User Data\\Default\\Network\\Cookies',
+			);
+		case 'brave':
+			return join(
+				appData,
+				'BraveSoftware\\Brave-Browser\\User Data\\Default\\Network\\Cookies',
+			);
+		default:
+			return null;
+	}
+}
+
+/**
+ * Use Python (if available) to read cookies from a Chromium browser's SQLite
+ * database on Windows. This works around yt-dlp's "Could not copy Chrome
+ * cookie database" error caused by the browser locking the SQLite file.
+ *
+ * Python's sqlite3 module can sometimes open locked databases in read-only
+ * URI mode, which avoids triggering the copy mechanism entirely.
+ */
+async function extractBrowserCookiesViaPython(
+	browser: CookiesFromBrowser,
+): Promise<string | null> {
+	const dbPath = getWindowsBrowserCookieDbPath(browser);
+	if (!dbPath || !existsSync(dbPath)) {
+		logger.warn(
+			'CookieUtils',
+			`Could not locate ${browser} cookie database at ${dbPath ?? 'unknown'}`,
+		);
+		return null;
+	}
+
+	// Python script that reads cookies from the SQLite database and outputs
+	// them in Netscape cookies.txt format.
+	// Uses mode=ro (read-only URI) which can sometimes open files that are
+	// locked for writing by another process.
+	const pythonScript = `
+import sqlite3
+import sys
+import os
+
+db_path = sys.argv[1]
+# Try read-only mode first
+try:
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+except Exception:
+    # Fallback: try to copy the file while it's locked (will fail on Windows)
+    import shutil
+    tmp_path = db_path + ".tmp_" + str(os.getpid())
+    try:
+        shutil.copy2(db_path, tmp_path)
+        conn = sqlite3.connect(tmp_path)
+    except Exception as e:
+        print(f"ERROR:{e}", file=sys.stderr)
+        sys.exit(1)
+
+cursor = conn.cursor()
+cursor.execute("""
+    SELECT name, value, host_key, path, is_secure, expires_utc
+    FROM cookies
+    WHERE host_key LIKE '%youtube%' OR host_key LIKE '%google%'
+""")
+
+for name, value, host_key, path, is_secure, expires_utc in cursor.fetchall():
+    # Convert Windows FILETIME to Unix timestamp
+    if expires_utc and expires_utc > 0:
+        unix_ts = (expires_utc - 116444736000000000) // 1000000
+    else:
+        unix_ts = 0
+    secure = 'TRUE' if is_secure else 'FALSE'
+    # Netscape cookies.txt format: domain, flag, path, secure, expiry, name, value
+    print(f"{host_key}\\tTRUE\\t{path}\\t{secure}\\t{unix_ts}\\t{name}\\t{value}")
+
+conn.close()
+# Clean up temp file if created
+tmp_path = db_path + ".tmp_" + str(os.getpid())
+if os.path.exists(tmp_path):
+    try:
+        os.unlink(tmp_path)
+    except Exception:
+        pass
+`.trim();
+
+	// Determine the Python executable
+	const pythonExe =
+		process.platform === 'win32'
+			? process.env.PY_PYTHON || 'python'
+			: 'python3';
+
+	try {
+		const {stdout, stderr} = await execFileAsync(
+			pythonExe,
+			['-c', pythonScript, dbPath],
+			{timeout: 15000},
+		);
+
+		if (stderr && stderr.includes('ERROR:')) {
+			logger.warn(
+				'CookieUtils',
+				`Python SQLite read failed: ${stderr.split('ERROR:')[1]?.trim() ?? 'unknown error'}`,
+			);
+			return null;
+		}
+
+		if (stdout) {
+			return stdout;
+		}
+
+		return null;
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		logger.warn('CookieUtils', `Python cookie extraction failed: ${message}`);
+		return null;
+	}
+}
+
+/**
  * Use yt-dlp to extract cookies from a browser.
  * yt-dlp supports: chrome, firefox, edge, brave, opera, vivaldi, safari, chromium
  * Returns a Netscape cookies.txt content or null.
@@ -82,7 +222,10 @@ async function extractBrowserCookiesViaYtdlp(
 	try {
 		// Use yt-dlp to extract cookies from browser to a temp file
 		// yt-dlp supports: chrome, firefox, edge, brave, opera, vivaldi, safari, chromium
-		const tmpFile = `/tmp/ymc-yt-cookies-${Date.now()}.txt`;
+		const tmpFile = join(
+			tmpdir(),
+			`ymc-yt-cookies-${browser}-${Date.now()}.txt`,
+		);
 
 		// Try with --cookies-from-browser first
 		const {stderr} = await execFileAsync(
@@ -104,7 +247,6 @@ async function extractBrowserCookiesViaYtdlp(
 			const content = readFileSync(tmpFile, 'utf8');
 			// Clean up
 			try {
-				const {unlinkSync} = await import('node:fs');
 				unlinkSync(tmpFile);
 			} catch {
 				// Ignore cleanup errors
@@ -130,7 +272,11 @@ async function extractBrowserCookiesViaYtdlp(
 
 /**
  * Parse browser cookies from a browser's cookie storage.
- * Uses yt-dlp for cross-browser cookie extraction.
+ * Uses yt-dlp as the primary method, with a Python SQLite fallback on Windows
+ * when yt-dlp fails due to browser file locks.
+ *
+ * @returns The cookie header string, or null if extraction failed.
+ *          On Windows with browser lock issues, returns a special error indicator.
  */
 export async function parseBrowserCookies(
 	browser: CookiesFromBrowser,
@@ -160,9 +306,26 @@ export async function parseBrowserCookies(
 		}
 	}
 
+	// On Windows, try Python SQLite fallback when yt-dlp fails with the
+	// "Could not copy Chrome cookie database" error
+	if (process.platform === 'win32') {
+		logger.info(
+			'CookieUtils',
+			`yt-dlp failed for ${browser}, trying Python SQLite fallback...`,
+		);
+		const fallbackContent = await extractBrowserCookiesViaPython(browser);
+		if (fallbackContent) {
+			const result = parseNetscapeCookies(fallbackContent);
+			if (result) {
+				return result;
+			}
+		}
+	}
+
 	logger.warn(
 		'CookieUtils',
-		`Failed to extract cookies from ${browser} via yt-dlp`,
+		`Failed to extract cookies from ${browser}. On Windows, the browser may have a lock on its cookie database. ` +
+			`Try closing your browser completely, or use \`ymc login --cookies-file <path-to-cookies.txt>\`.`,
 	);
 	return null;
 }

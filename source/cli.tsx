@@ -64,6 +64,7 @@ const cli = meow(
 	  $ youtube-music-cli play <track-id|youtube-url>
 	  $ youtube-music-cli search <query>
 	  $ youtube-music-cli playlist <playlist-id>
+	  $ youtube-music-cli sync <playlist-id|ytm-url>
 	  $ youtube-music-cli suggestions
 	  $ youtube-music-cli radio <track-id>
 	  $ youtube-music-cli pause
@@ -82,6 +83,11 @@ const cli = meow(
 	📥 Import Commands
 	  $ youtube-music-cli import spotify <url-or-id>
 	  $ youtube-music-cli import youtube <url-or-id>
+
+	📥 Sync Commands
+	  $ youtube-music-cli sync <playlist-id|ytm-url>    Sync a YTM playlist to local config
+	  $ youtube-music-cli sync search <query>         Search YTM playlists to sync
+	  $ youtube-music-cli sync list                   List locally synced playlists
 
 	📋 Logs Commands
 	  $ youtube-music-cli logs                    Show recent debug logs
@@ -353,6 +359,23 @@ if (command === 'login') {
 			process.exit(0);
 		} else {
 			console.error(`\n✗ Login failed: ${result.error ?? 'Unknown error'}`);
+			if (process.platform === 'win32') {
+				console.error(
+					'\nOn Windows, browser cookie extraction may fail if the browser is running.\n' +
+						'Try closing your browser completely, then retry.\n' +
+						'Or export cookies manually and use:\n' +
+						'  ymc login --cookies-file <path-to-cookies.txt>\n' +
+						'\nTip: Export cookies from Edge via:\n' +
+						'  Settings → Cookies → Manage → Export\n' +
+						'Then use: ymc login --cookies-file exported-cookies.txt',
+				);
+			} else {
+				console.error(
+					'\nTip: You can also sign in using a cookie file:\n' +
+						'  ymc login --cookies-file <path-to-cookies.txt>',
+				);
+			}
+
 			process.exit(1);
 		}
 	}
@@ -385,7 +408,10 @@ if (command === 'login') {
 		console.error(
 			'\nTip: You can also sign in using cookies:\n' +
 				'  ymc login --cookies-file <path-to-cookies.txt>\n' +
-				'  ymc login --cookies-from-browser edge',
+				(process.platform === 'win32'
+					? '  Close your browser first, then try:\n' +
+						'  ymc login --cookies-from-browser edge\n'
+					: '  ymc login --cookies-from-browser edge\n'),
 		);
 		process.exit(1);
 	}
@@ -787,6 +813,117 @@ if (command === 'plugins') {
 					process.exit(1);
 				}
 			})();
+		} else if (command === 'sync') {
+			// Handle sync command
+			void (async () => {
+				const {getSyncService} =
+					await import('./services/sync/sync.service.ts');
+				const syncService = getSyncService();
+
+				// Check authentication
+				if (!syncService.isAuthenticated()) {
+					console.error(
+						'You must be signed in to sync playlists.\n' +
+							'Run: ymc login\n' +
+							'Or sign in with cookies: ymc login --cookies-file <path>',
+					);
+					process.exit(1);
+				}
+
+				const subcommand = args[0];
+
+				if (!subcommand || subcommand === 'help') {
+					console.log(`youtube-music-cli sync
+
+Usage:
+  ymc sync <playlist-id|ytm-url>   Sync a YTM playlist to local config
+  ymc sync search <query>          Search YTM playlists to sync
+  ymc sync list                    List locally synced playlists
+
+Examples:
+  ymc sync "https://music.youtube.com/playlist?list=VLPLm90DCMQmtlk26B3JPo9E1cJULsgeUNrP"
+  ymc sync VLPLm90DCMQmtlk26B3JPo9E1cJULsgeUNrP --name "My Chill Mix"
+  ymc sync search "lofi hip hop"
+  ymc sync list
+`);
+					process.exit(0);
+				}
+
+				if (subcommand === 'list') {
+					const playlists = syncService.listPlaylists();
+					if (playlists.length === 0) {
+						console.log('No synced playlists found. Sync one with:');
+						console.log(
+							'  ymc sync "https://music.youtube.com/playlist?list=..."',
+						);
+						process.exit(0);
+					}
+					console.log('Synced playlists:\n');
+					for (let i = 0; i < playlists.length; i++) {
+						const p = playlists[i]!;
+						console.log(
+							`${i + 1}. ${p.name} (${p.tracks.length} tracks) [${p.playlistId}]`,
+						);
+					}
+					process.exit(0);
+				}
+
+				if (subcommand === 'search') {
+					const query = args.slice(1).join(' ');
+					if (!query) {
+						console.error('Usage: ymc sync search <query>');
+						process.exit(1);
+					}
+
+					console.log(`Searching YouTube Music playlists for "${query}"...`);
+					const results = await syncService.searchPlaylists(query, 10);
+
+					if (results.length === 0) {
+						console.log('No playlists found.');
+						process.exit(0);
+					}
+
+					console.log(`\nFound ${results.length} playlists:\n`);
+					for (let i = 0; i < results.length; i++) {
+						const p = results[i]!;
+						console.log(
+							`${i + 1}. ${p.name} (${p.tracks.length ?? 0} tracks) [${p.playlistId}]`,
+						);
+					}
+
+					console.log('\nTo sync one of these, run: ymc sync <playlist-id>');
+					process.exit(0);
+				}
+
+				// Default: sync by ID/URL
+				const playlistId = subcommand;
+				const customName = cli.flags.name;
+
+				const result = await syncService.syncPlaylist(
+					playlistId,
+					customName,
+					progress => {
+						console.log(`  ${progress.message}`);
+					},
+				);
+
+				if (result.wasUpdated) {
+					console.log(
+						`\n✓ Updated playlist "${result.playlistName}" (${result.trackCount} tracks)`,
+					);
+				} else {
+					console.log(
+						`\n✓ Synced playlist "${result.playlistName}" (${result.trackCount} tracks)`,
+					);
+				}
+				console.log('Saved to local config.');
+				process.exit(0);
+			})().catch(error => {
+				console.error(
+					`\n✗ Sync failed: ${error instanceof Error ? error.message : String(error)}`,
+				);
+				process.exit(1);
+			});
 		} else if (command === 'import') {
 			// Handle import commands
 			void (async () => {

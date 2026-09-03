@@ -4,6 +4,7 @@ const COMMANDS = [
 	'play',
 	'search',
 	'playlist',
+	'sync',
 	'suggestions',
 	'radio',
 	'pause',
@@ -20,6 +21,8 @@ const COMMANDS = [
 	'logout',
 	'whoami',
 ];
+
+const SYNC_SUBCOMMANDS = ['list', 'search'];
 
 const PLUGINS_SUBCOMMANDS = [
 	'list',
@@ -85,6 +88,7 @@ function generateBashCompletion(): string {
 	const cmds = COMMANDS.join(' ');
 	const pluginsSubs = PLUGINS_SUBCOMMANDS.join(' ');
 	const importSubs = IMPORT_SUBCOMMANDS.join(' ');
+	const syncSubs = SYNC_SUBCOMMANDS.join(' ');
 	const completionsSubs = COMPLETIONS_SUBCOMMANDS.join(' ');
 	const logsSubs = LOGS_SUBCOMMANDS.join(' ');
 	const configSubs = CONFIG_SUBCOMMANDS.join(' ');
@@ -109,6 +113,9 @@ _ymc_completions() {
             return ;;
         import)
             COMPREPLY=($(compgen -W "${importSubs}" -- "$cur"))
+            return ;;
+        sync)
+            COMPREPLY=($(compgen -W "${syncSubs}" -- "$cur"))
             return ;;
         completions)
             COMPREPLY=($(compgen -W "${completionsSubs}" -- "$cur"))
@@ -164,6 +171,7 @@ _ymc() {
         'play:Play a track by ID or YouTube URL'
         'search:Search for tracks'
         'playlist:Play a playlist by ID'
+        'sync:Sync a YouTube Music playlist to local config'
         'suggestions:Show music suggestions'
         'pause:Pause playback'
         'resume:Resume playback'
@@ -221,6 +229,14 @@ _ymc() {
             import_sources=('spotify:Import from Spotify' 'youtube:Import from YouTube')
             _describe 'import sources' import_sources
             return ;;
+        sync)
+            local -a sync_cmds
+            sync_cmds=(
+                'list:List locally synced playlists'
+                'search:Search YouTube Music playlists to sync'
+            )
+            _describe 'sync commands' sync_cmds
+            return ;;
         completions)
             local -a shells
             shells=('bash:Bash completion' 'zsh:Zsh completion' 'powershell:PowerShell completion' 'fish:Fish completion')
@@ -265,6 +281,7 @@ function generatePowerShellCompletion(): string {
 	const cmds = COMMANDS.map(c => `'${c}'`).join(', ');
 	const pluginsSubs = PLUGINS_SUBCOMMANDS.map(c => `'${c}'`).join(', ');
 	const importSubs = IMPORT_SUBCOMMANDS.map(c => `'${c}'`).join(', ');
+	const syncSubs = SYNC_SUBCOMMANDS.map(c => `'${c}'`).join(', ');
 	const completionsSubs = COMPLETIONS_SUBCOMMANDS.map(c => `'${c}'`).join(', ');
 	const logsSubs = LOGS_SUBCOMMANDS.map(c => `'${c}'`).join(', ');
 	const configSubs = CONFIG_SUBCOMMANDS.map(c => `'${c}'`).join(', ');
@@ -280,6 +297,7 @@ $ymcCompleterBlock = {
     $commands = @(${cmds})
     $pluginsSubCommands = @(${pluginsSubs})
     $importSubCommands = @(${importSubs})
+    $syncSubCommands = @(${syncSubs})
     $completionsSubCommands = @(${completionsSubs})
     $logsSubCommands = @(${logsSubs})
     $configSubCommands = @(${configSubs})
@@ -300,6 +318,11 @@ $ymcCompleterBlock = {
         }
         'import' {
             $importSubCommands | Where-Object { $_ -like "$wordToComplete*" } |
+                ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
+            return
+        }
+        'sync' {
+            $syncSubCommands | Where-Object { $_ -like "$wordToComplete*" } |
                 ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
             return
         }
@@ -381,6 +404,11 @@ function generateFishCompletion(): string {
 			`complete -c ymc -n '__fish_seen_subcommand_from import' -f -a '${sub}'`,
 	).join('\n');
 
+	const syncCompletions = SYNC_SUBCOMMANDS.map(
+		sub =>
+			`complete -c ymc -n '__fish_seen_subcommand_from sync' -f -a '${sub}'`,
+	).join('\n');
+
 	const completionsCompletions = COMPLETIONS_SUBCOMMANDS.map(
 		sub =>
 			`complete -c ymc -n '__fish_seen_subcommand_from completions' -f -a '${sub}'`,
@@ -411,6 +439,9 @@ ${pluginsCompletions}
 
 # Import subcommands
 ${importCompletions}
+
+# Sync subcommands
+${syncCompletions}
 
 # Completions subcommands
 ${completionsCompletions}
@@ -453,6 +484,7 @@ function getFishDescription(cmd: string): string {
 		play: 'Play a track by ID or YouTube URL',
 		search: 'Search for tracks',
 		playlist: 'Play a playlist by ID',
+		sync: 'Sync a YouTube Music playlist to local config',
 		suggestions: 'Show music suggestions',
 		pause: 'Pause playback',
 		resume: 'Resume playback',
