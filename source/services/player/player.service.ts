@@ -1,5 +1,7 @@
 // Audio playback service using mpv media player with IPC control
 import {spawn, type ChildProcess} from 'node:child_process';
+import os from 'node:os';
+import path from 'node:path';
 import {connect, type Socket} from 'node:net';
 import {logger} from '../logger/logger.service.ts';
 import {formatError, formatErrorData} from '../../utils/error.ts';
@@ -80,6 +82,13 @@ export function buildMpvArgs(
 		'--network-timeout=10',
 		`--gapless-audio=${gapless ? 'yes' : 'no'}`,
 	];
+
+	// Keep mpv in idle mode so it holds the IPC socket open waiting for
+	// loadfile commands. Without this, mpv may exit immediately on some
+	// platforms (notably Fedora) before the IPC connection is established.
+	if (process.platform !== 'win32') {
+		mpvArgs.push('--idle=yes');
+	}
 
 	if (audioFilters.length > 0) {
 		mpvArgs.push(`--af=${audioFilters.join(',')}`);
@@ -170,11 +179,7 @@ export function normalizeIpcPipePath(pipePath: string): string {
 export function connectToMpvIpc(pipePath: string): Socket {
 	const normalized = normalizeIpcPipePath(pipePath);
 
-	if (process.platform === 'win32') {
-		return connect({path: normalized});
-	}
-
-	return connect(normalized);
+	return connect({path: normalized});
 }
 
 class PlayerService {
@@ -226,10 +231,14 @@ class PlayerService {
 		if (process.platform === 'win32') {
 			// Windows named pipe
 			return `\\\\.\\pipe\\mpvsocket-${process.pid}-${this.playSessionId}`;
-		} else {
-			// Unix domain socket
-			return `/tmp/mpvsocket-${process.pid}-${this.playSessionId}`;
 		}
+
+		// Unix domain socket — use os.tmpdir() for portability (Fedora,
+		// snap/flatpak, and systemd PrivateTmp all honour this).
+		return path.join(
+			os.tmpdir(),
+			`mpvsocket-${process.pid}-${this.playSessionId}`,
+		);
 	}
 
 	private getMpvCommand(): string {
@@ -328,14 +337,11 @@ class PlayerService {
 					return;
 				}
 
-				const maxRetries =
-					process.platform === 'win32'
-						? this.maxIpcRetries * 2
-						: this.maxIpcRetries;
+				const maxRetries = this.maxIpcRetries * 2;
 				if (this.ipcConnectRetries < maxRetries) {
 					this.ipcConnectRetries++;
 					this.scheduleIpcTimer(
-						process.platform === 'win32' ? 250 : 100,
+						process.platform === 'win32' ? 250 : 200,
 						generation,
 						attemptConnect,
 					);
@@ -728,6 +734,18 @@ class PlayerService {
 				this.ipcConnectPending = new Promise<void>((resolve, reject) => {
 					this.ipcConnectAbort = reject;
 					this.scheduleIpcTimer(ipcDelay, connectGeneration, () => {
+						// If mpv already exited (e.g. bad args, missing binary,
+						// platform-specific crash) reject immediately instead of
+						// burning through all IPC retries.
+						if (!this.mpvProcess || this.mpvProcess.killed) {
+							const detail = mpvStderr ? `: ${mpvStderr}` : '';
+							reject(
+								new Error(`mpv exited before IPC socket was created${detail}`),
+							);
+							this.stop();
+							return;
+						}
+
 						this.connectIpc(playUrl)
 							.then(() => {
 								this.ipcConnectAbort = null;
@@ -739,13 +757,22 @@ class PlayerService {
 								this.ipcConnectAbort = null;
 								this.ipcConnectPending = null;
 								reject(error);
+
+								const mpvAlive =
+									Boolean(this.mpvProcess) && !this.mpvProcess!.killed;
+								const exitHint = mpvAlive
+									? 'mpv is still running but IPC socket was not created'
+									: 'mpv exited before IPC socket was created';
 								logger.warn('PlayerService', 'Failed to connect IPC', {
 									error: formatError(error),
+									detail: exitHint,
 								});
 								// IPC failed - mpv is idle with no URL loaded, clean it up
 								this.stop();
 								handleError(
-									new Error(`IPC connection failed: ${error.message}`),
+									new Error(
+										`IPC connection failed: ${error.message} (${exitHint})`,
+									),
 								);
 							});
 					});
