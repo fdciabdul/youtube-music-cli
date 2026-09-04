@@ -84,11 +84,9 @@ export function buildMpvArgs(
 	];
 
 	// Keep mpv in idle mode so it holds the IPC socket open waiting for
-	// loadfile commands. Without this, mpv may exit immediately on some
-	// platforms (notably Fedora) before the IPC connection is established.
-	if (process.platform !== 'win32') {
-		mpvArgs.push('--idle=yes');
-	}
+	// loadfile commands. Without this, mpv may exit immediately before
+	// the IPC connection is established (affects all platforms).
+	mpvArgs.push('--idle=yes');
 
 	if (audioFilters.length > 0) {
 		mpvArgs.push(`--af=${audioFilters.join(',')}`);
