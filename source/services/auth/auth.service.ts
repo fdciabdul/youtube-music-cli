@@ -254,6 +254,7 @@ class AuthService {
 				});
 			});
 
+			await innertube.session.oauth.init();
 			const deviceCode = await innertube.session.oauth.getDeviceAndUserCode();
 
 			if (deviceCode.error_code) {

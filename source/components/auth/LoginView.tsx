@@ -66,6 +66,7 @@ export default function LoginView() {
 				});
 			});
 
+			await innertube.session.oauth.init();
 			const deviceCode = await innertube.session.oauth.getDeviceAndUserCode();
 
 			if (deviceCode.error_code) {
