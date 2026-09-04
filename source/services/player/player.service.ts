@@ -691,6 +691,14 @@ class PlayerService {
 					subtitlesEnabled: config.get('subtitlesEnabled'),
 				});
 
+				// Log the exact mpv command for debugging platform-specific issues
+				logger.debug('PlayerService', 'Spawning mpv', {
+					command: this.getMpvCommand(),
+					args: mpvArgs,
+					platform: process.platform,
+					pid: process.pid,
+				});
+
 				// Capture process in local var so stale exit handlers from a killed
 				// process don't overwrite state belonging to a newly-spawned process.
 				const spawnedProcess = spawn(this.getMpvCommand(), mpvArgs, {
@@ -801,6 +809,7 @@ class PlayerService {
 						signal,
 						wasPlaying: this.isPlaying,
 						stale: isStalePlay(),
+						stderr: mpvStderr || '(empty)',
 					});
 
 					if (isStalePlay()) {
@@ -817,6 +826,11 @@ class PlayerService {
 						// Normal exit (track finished)
 						handleSuccess();
 					} else if (code !== null && code > 0) {
+						logger.error('PlayerService', 'mpv exited with non-zero code', {
+							code,
+							signal,
+							stderr: mpvStderr,
+						});
 						const stderrHint = mpvStderr ? `: ${mpvStderr}` : '';
 						handleError(new Error(`mpv exited with code ${code}${stderrHint}`));
 					}
