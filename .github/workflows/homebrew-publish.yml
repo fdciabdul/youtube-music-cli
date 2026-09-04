@@ -36,19 +36,20 @@ jobs:
           VERSION="${TAG_NAME#v}"
           PACKAGE_URL=""
 
-          for attempt in $(seq 1 10); do
+          for attempt in $(seq 1 30); do
             PACKAGE_URL="$(npm view "@involvex/youtube-music-cli@${VERSION}" dist.tarball --silent 2>/dev/null || true)"
 
             if [ -n "${PACKAGE_URL}" ] && curl --fail --location --silent --show-error "${PACKAGE_URL}" --output package.tgz; then
+              echo "Downloaded npm tarball on attempt ${attempt}/30."
               break
             fi
 
-            echo "NPM tarball not ready yet (attempt ${attempt}/10)."
-            sleep 5
+            echo "NPM tarball not ready yet (attempt ${attempt}/30)."
+            sleep 10
           done
 
           if [ ! -s package.tgz ] || [ -z "${PACKAGE_URL}" ]; then
-            echo "Failed to resolve npm tarball for version ${VERSION}."
+            echo "Failed to resolve npm tarball for version ${VERSION} after 30 attempts."
             exit 1
           fi
 
