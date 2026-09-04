@@ -1,17 +1,16 @@
-## [0.2.0](https://github.com/involvex/youtube-music-cli/compare/v0.1.9...v0.2.0) (2026-09-03)
-
-See [release notes](./docs/releases/v0.2.0.md) for details.
-
-### Features
-
-- **sync:** add YouTube Music playlist sync via `ymc sync <id|url>`, `sync search`, `sync list` ([ca46acd](https://github.com/involvex/youtube-music-cli/commit/ca46acd))
-- **auth:** add cookie-based auth as fallback for broken OAuth2 ([b700fae](https://github.com/involvex/youtube-music-cli/commit/b700fae))
-- **completions:** add `sync` subcommands to shell completions
+## [0.2.1](https://github.com/involvex/youtube-music-cli/compare/v0.2.0...v0.2.1) (2026-09-04)
 
 ### Bug Fixes
 
-- **auth:** fix `/tmp/` hardcoded path to use `os.tmpdir()` for cross-platform support
-- **auth:** add Python `sqlite3` fallback for Windows browser cookie extraction
+- **player:** always pass --idle=yes to mpv to prevent immediate exit on Windows ([499a361](https://github.com/involvex/youtube-music-cli/commit/499a3611ebf52eb537bd4b000585a4b847da6848))
+- **player:** improve mpv IPC reliability on Linux/Fedora ([d199699](https://github.com/involvex/youtube-music-cli/commit/d199699dd83bde941a3a198577b32aa3a53ded47)), closes [#42](https://github.com/involvex/youtube-music-cli/issues/42)
+
+# [0.2.0](https://github.com/involvex/youtube-music-cli/compare/v0.1.9...v0.2.0) (2026-09-03)
+
+### Features
+
+- add YouTube Music playlist sync and fix Windows cookie extraction ([c311f06](https://github.com/involvex/youtube-music-cli/commit/c311f06fa98bfd1b4e79cdffa89aa0ea8d23d9de)), closes [#18](https://github.com/involvex/youtube-music-cli/issues/18)
+- **auth:** add cookie-based auth as fallback for broken OAuth2 ([9213fc5](https://github.com/involvex/youtube-music-cli/commit/9213fc5e9892a137da2fd938fc0a0e1558e5f38e))
 
 ## [0.1.9](https://github.com/involvex/youtube-music-cli/compare/v0.1.8...v0.1.9) (2026-09-03)
 
