@@ -4,9 +4,8 @@ import {useState, useCallback} from 'react';
 import React from 'react';
 import {SEARCH_TYPE} from '../../utils/constants.ts';
 import {useTheme} from '../../hooks/useTheme.ts';
-import {useKeyBinding} from '../../hooks/useKeyboard.ts';
 import {useKeyboardBlocker} from '../../hooks/useKeyboardBlocker.tsx';
-import {Box, Text} from 'ink';
+import {Box, Text, useInput} from 'ink';
 import TextInput from 'ink-text-input';
 import {getConfigService} from '../../services/config/config.service.ts';
 
@@ -57,8 +56,27 @@ function SearchBar({onInput, isActive = true}: Props) {
 		}
 	}, [isActive, onInput]);
 
-	useKeyBinding(['tab'], cycleType, {bypassBlock: true});
-	useKeyBinding(['escape'], clearSearch, {bypassBlock: true});
+	// Handle Tab to cycle search type via direct useInput to avoid
+	// registry/keyboard-blocker interaction issues (GitHub #43)
+	useInput(
+		(_input, key) => {
+			if (key.tab && isActive) {
+				cycleType();
+			}
+		},
+		{isActive},
+	);
+
+	// Handle Escape to clear search via direct useInput
+	useInput(
+		(_input, key) => {
+			if (key.escape && isActive) {
+				clearSearch();
+			}
+		},
+		{isActive},
+	);
+
 	useKeyboardBlocker(isActive);
 
 	return (
