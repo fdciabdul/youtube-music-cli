@@ -1,3 +1,18 @@
+## [0.2.2](https://github.com/involvex/youtube-music-cli/compare/v0.2.1...v0.2.2) (2026-09-13)
+
+### Bug Fixes
+
+- add mpv command logging and exit diagnostics for Fedora IPC issue ([01478f6](https://github.com/involvex/youtube-music-cli/commit/01478f62063de5695d751ef7458662082ab13a68))
+- **ci:** increase Homebrew publish retries for npm tarball propagation ([af89e7a](https://github.com/involvex/youtube-music-cli/commit/af89e7a9e609ecebe3e09df66bb1ba648a9ea891))
+- expose npm CLI binaries in Homebrew bin ([#44](https://github.com/involvex/youtube-music-cli/issues/44)) ([de1ac65](https://github.com/involvex/youtube-music-cli/commit/de1ac65b222586554b814790171ff718c48a1fc1))
+- guide users when YouTube streams fail to load ([#46](https://github.com/involvex/youtube-music-cli/issues/46)) ([425c69e](https://github.com/involvex/youtube-music-cli/commit/425c69e3a430de289517b7c57dfa01d45d95adc2))
+- initialize OAuth2 before getDeviceAndUserCode in auth service and LoginView ([c347685](https://github.com/involvex/youtube-music-cli/commit/c34768593241ea9cad8f5d530b25f9843ed370ad))
+- use direct useInput for Tab and Escape in SearchBar to fix keyboard cycling on Linux ([88cd458](https://github.com/involvex/youtube-music-cli/commit/88cd4589b36fce68152ce5ed3eaa9dc22ec8fb29))
+
+### Features
+
+- add config backup command with compression, restore, and retention ([b080686](https://github.com/involvex/youtube-music-cli/commit/b080686b17907e225068dd6d4a2b71de11079aa6))
+
 ## [0.2.1](https://github.com/involvex/youtube-music-cli/compare/v0.2.0...v0.2.1) (2026-09-04)
 
 ### Bug Fixes
