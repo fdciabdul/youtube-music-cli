@@ -39,4 +39,13 @@ export interface Flags {
 	// Stats command flags
 	share?: boolean;
 	export?: string | boolean;
+	// Config backup flags
+	backupCompress?: boolean;
+	backupList?: boolean;
+	backupRestore?: string;
+	backupClean?: boolean;
+	backupKeep?: number;
+	backupDryRun?: boolean;
+	backupIncludeLogs?: boolean;
+	backupForce?: boolean;
 }

@@ -25,6 +25,7 @@ import {
 } from './services/logs/logs-handler.ts';
 import {runConfigDoctor} from './services/config/config-doctor.ts';
 import {APP_VERSION} from './utils/constants.ts';
+import {formatBytes} from './utils/format.ts';
 import {ensurePlaybackDependencies} from './services/player/dependency-check.service.ts';
 import {getMusicService} from './services/youtube-music/api.ts';
 import type {Track} from './types/youtube-music.types.ts';
@@ -109,6 +110,11 @@ const cli = meow(
 	🔧 Config Commands
 	  $ youtube-music-cli config doctor           Check config for issues
 	  $ youtube-music-cli config doctor --fix     Auto-fix config issues
+	  $ youtube-music-cli config backup           Create backup of config and data
+	  $ youtube-music-cli config backup --backup-list    List available backups
+	  $ youtube-music-cli config backup --backup-restore <name>  Restore from backup
+	  $ youtube-music-cli config backup --backup-clean [--backup-keep=N]  Remove old backups
+	  $ youtube-music-cli config backup --backup-compress  Create compressed archive
 
 	🔐 Auth Commands
 	  $ youtube-music-cli login                Sign in to YouTube Music (OAuth2 device flow)
@@ -241,6 +247,37 @@ const cli = meow(
 			export: {
 				type: 'string',
 			},
+			// Config backup flags
+			backupCompress: {
+				type: 'boolean',
+				default: false,
+			},
+			backupList: {
+				type: 'boolean',
+				default: false,
+			},
+			backupRestore: {
+				type: 'string',
+			},
+			backupClean: {
+				type: 'boolean',
+				default: false,
+			},
+			backupKeep: {
+				type: 'number',
+			},
+			backupDryRun: {
+				type: 'boolean',
+				default: false,
+			},
+			backupIncludeLogs: {
+				type: 'boolean',
+				default: false,
+			},
+			backupForce: {
+				type: 'boolean',
+				default: false,
+			},
 			// Auth command flags
 			cookiesFile: {
 				type: 'string',
@@ -323,6 +360,72 @@ if (command === 'stats') {
 // Handle config doctor command
 if (command === 'config' && args[0] === 'doctor') {
 	runConfigDoctor(cli.flags.fix);
+}
+
+// Handle config backup command
+if (command === 'config' && args[0] === 'backup') {
+	const {getBackupService} =
+		await import('./services/config/backup.service.ts');
+	const backupService = getBackupService();
+
+	const flags = cli.flags as Flags;
+
+	if (flags.backupList) {
+		const backups = await backupService.listBackups();
+		if (backups.length === 0) {
+			console.log('No backups found.');
+		} else {
+			console.log('Available backups:\n');
+			for (const backup of backups) {
+				const date = new Date(backup.createdAt).toLocaleString();
+				const size = formatBytes(backup.size);
+				const type = backup.compressed ? ' (compressed)' : '';
+				console.log(`  ${backup.name}  ${date}  ${size}${type}`);
+			}
+		}
+		process.exit(0);
+	}
+
+	if (flags.backupRestore) {
+		await backupService.restoreBackup(flags.backupRestore, {
+			dryRun: flags.backupDryRun,
+			force: flags.backupForce,
+		});
+		process.exit(0);
+	}
+
+	if (flags.backupClean) {
+		const removed = await backupService.cleanBackups({
+			keepCount: flags.backupKeep ?? 10,
+			dryRun: flags.backupDryRun,
+		});
+		if (flags.backupDryRun) {
+			console.log(`Would remove ${removed} backup(s).`);
+		} else {
+			console.log(`Removed ${removed} backup(s).`);
+		}
+		process.exit(0);
+	}
+
+	// Default: create backup
+	const result = await backupService.createBackup({
+		compress: flags.backupCompress,
+		dryRun: flags.backupDryRun,
+		includeLogs: flags.backupIncludeLogs,
+	});
+	if (flags.backupDryRun) {
+		console.log(`Would create backup: ${result.name}`);
+		console.log(`  Files: ${result.fileCount}`);
+		console.log(`  Size: ${formatBytes(result.size)}`);
+	} else {
+		console.log(`✓ Created backup: ${result.name}`);
+		console.log(`  Files: ${result.fileCount}`);
+		console.log(`  Size: ${formatBytes(result.size)}`);
+		if (result.compressed) {
+			console.log(`  Compressed: ${result.compressedPath}`);
+		}
+	}
+	process.exit(0);
 }
 
 // Handle auth commands
