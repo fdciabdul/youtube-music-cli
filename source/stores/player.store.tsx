@@ -402,12 +402,20 @@ export function playerReducer(
 				streamNowPlaying: action.streamNowPlaying,
 			};
 
-		case 'RESTORE_STATE':
+		case 'RESTORE_STATE': {
+			const shouldAutoplay =
+				action.autoplay === true &&
+				((action.currentTrack !== null && action.currentTrack !== undefined) ||
+					(action.currentStation !== null &&
+						action.currentStation !== undefined));
+
 			logger.info('PlayerReducer', 'RESTORE_STATE', {
 				hasTrack: !!action.currentTrack,
 				queueLength: action.queue.length,
 				playbackMode: action.playbackMode ?? 'youtube',
 				hasStation: !!action.currentStation,
+				autoplay: action.autoplay,
+				shouldAutoplay,
 			});
 			return {
 				...state,
@@ -418,7 +426,7 @@ export function playerReducer(
 				repeat: action.repeat,
 				autoplay: action.autoplay ?? true,
 				explicitQueueLength: action.explicitQueueLength ?? action.queue.length,
-				isPlaying: false,
+				isPlaying: shouldAutoplay,
 				abLoop: {a: null, b: null},
 				playbackMode: action.playbackMode ?? 'youtube',
 				currentStation: action.currentStation ?? null,
@@ -426,6 +434,7 @@ export function playerReducer(
 				radioIsActive: action.radioIsActive ?? false,
 				radioSeed: action.radioSeed ?? null,
 			};
+		}
 
 		default:
 			return state;
