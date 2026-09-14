@@ -1,3 +1,10 @@
+## [0.2.3](https://github.com/involvex/youtube-music-cli/compare/v0.2.2...v0.2.3) (2026-09-14)
+
+### Bug Fixes
+
+- **player:** resume playback when using --continue flag ([3d4ff29](https://github.com/involvex/youtube-music-cli/commit/3d4ff29c16985c88f234f41f9a9a2928defe9b1e))
+- **player:** stop infinite mpv spawn on --continue ([b48e9b2](https://github.com/involvex/youtube-music-cli/commit/b48e9b209f0420f0ee0cd5386faca6762161297b))
+
 ## [0.2.2](https://github.com/involvex/youtube-music-cli/compare/v0.2.1...v0.2.2) (2026-09-13)
 
 ### Bug Fixes
