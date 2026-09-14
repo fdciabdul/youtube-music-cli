@@ -171,6 +171,57 @@ test('NEXT with shuffle=true wraps with repeat=all using random pick', async () 
 	}
 });
 
+// ── RESTORE_STATE / --continue tests ──────────────────────────────────────────
+
+function restoreAction(overrides = {}) {
+	const track = makeTrack('resume-1');
+	return {
+		category: 'RESTORE_STATE',
+		currentTrack: track,
+		queue: [track],
+		queuePosition: 0,
+		progress: 42,
+		volume: 70,
+		shuffle: false,
+		repeat: 'off',
+		autoplay: true,
+		...overrides,
+	};
+}
+
+test('RESTORE_STATE with autoplay true but no startPlayback stays paused', async () => {
+	const {playerReducer} = await import('../source/stores/player.store.tsx');
+	const next = playerReducer(makeState(), restoreAction({autoplay: true}));
+	expect(next.isPlaying).toBe(false);
+	expect(next.autoplay).toBe(true);
+	expect(next.currentTrack?.videoId).toBe('resume-1');
+});
+
+test('RESTORE_STATE with startPlayback true begins playback', async () => {
+	const {playerReducer} = await import('../source/stores/player.store.tsx');
+	const next = playerReducer(
+		makeState(),
+		restoreAction({startPlayback: true, autoplay: false}),
+	);
+	expect(next.isPlaying).toBe(true);
+	expect(next.autoplay).toBe(false);
+	expect(next.currentTrack?.videoId).toBe('resume-1');
+});
+
+test('RESTORE_STATE with startPlayback true but no media stays paused', async () => {
+	const {playerReducer} = await import('../source/stores/player.store.tsx');
+	const next = playerReducer(
+		makeState(),
+		restoreAction({
+			startPlayback: true,
+			currentTrack: null,
+			queue: [],
+			currentStation: null,
+		}),
+	);
+	expect(next.isPlaying).toBe(false);
+});
+
 test('discord rpc service no-ops when disabled', async () => {
 	const {getDiscordRpcService} =
 		await import('../source/services/discord/discord-rpc.service.ts');

@@ -403,11 +403,10 @@ export function playerReducer(
 			};
 
 		case 'RESTORE_STATE': {
-			const shouldAutoplay =
-				action.autoplay === true &&
-				((action.currentTrack !== null && action.currentTrack !== undefined) ||
-					(action.currentStation !== null &&
-						action.currentStation !== undefined));
+			const hasMedia =
+				(action.currentTrack !== null && action.currentTrack !== undefined) ||
+				(action.currentStation !== null && action.currentStation !== undefined);
+			const shouldStartPlayback = action.startPlayback === true && hasMedia;
 
 			logger.info('PlayerReducer', 'RESTORE_STATE', {
 				hasTrack: !!action.currentTrack,
@@ -415,7 +414,8 @@ export function playerReducer(
 				playbackMode: action.playbackMode ?? 'youtube',
 				hasStation: !!action.currentStation,
 				autoplay: action.autoplay,
-				shouldAutoplay,
+				startPlayback: action.startPlayback,
+				shouldStartPlayback,
 			});
 			return {
 				...state,
@@ -426,7 +426,7 @@ export function playerReducer(
 				repeat: action.repeat,
 				autoplay: action.autoplay ?? true,
 				explicitQueueLength: action.explicitQueueLength ?? action.queue.length,
-				isPlaying: shouldAutoplay,
+				isPlaying: shouldStartPlayback,
 				abLoop: {a: null, b: null},
 				playbackMode: action.playbackMode ?? 'youtube',
 				currentStation: action.currentStation ?? null,

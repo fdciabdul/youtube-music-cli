@@ -12,7 +12,7 @@ import {KeyboardManager} from './hooks/useKeyboard.ts';
 import {KeyboardBlockProvider} from './hooks/useKeyboardBlocker.tsx';
 import {Box, Text} from 'ink';
 import type {Flags} from './types/cli.types.ts';
-import {useEffect} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useNavigation} from './hooks/useNavigation.ts';
 import {usePlayer} from './hooks/usePlayer.ts';
 import {useYouTubeMusic} from './hooks/useYouTubeMusic.ts';
@@ -26,12 +26,12 @@ import {useKeyBinding} from './hooks/useKeyboard.ts';
 import {resolveKeybinding} from './utils/keybinding-resolver.ts';
 import {ChatProvider} from './stores/chat.store.tsx';
 import BootScreen from './components/common/BootScreen.tsx';
-import {useState} from 'react';
 
 function Initializer({flags}: {flags?: Flags}) {
 	const {dispatch} = useNavigation();
 	const {play, dispatch: playerDispatch, startRadio} = usePlayer();
 	const {getTrack, getPlaylist} = useYouTubeMusic();
+	const didResumeRef = useRef(false);
 
 	useKeyBinding(resolveKeybinding('FAVORITES_VIEW'), () => {
 		dispatch({category: 'NAVIGATE', view: VIEW.FAVORITES});
@@ -84,7 +84,6 @@ function Initializer({flags}: {flags?: Flags}) {
 		const backgroundState = config.getBackgroundPlaybackState();
 
 		if (backgroundState.enabled) {
-			// Show notification about background playback
 			const notification = getNotificationService();
 			notification.setEnabled(true);
 			void notification.notify(
@@ -107,65 +106,66 @@ function Initializer({flags}: {flags?: Flags}) {
 		} else if (flags?.playPlaylist) {
 			dispatch({category: 'NAVIGATE', view: VIEW.PLAYLISTS});
 			void getPlaylist(flags.playPlaylist).then(playlist => {
-				// For now just navigate, but we could auto-play
 				if (playlist) {
 					dispatch({category: 'SET_SELECTED_PLAYLIST', index: 0});
 				}
 			});
-		} else if (flags?.continue) {
-			void loadPlayerState().then(persistedState => {
-				const hasTrack = Boolean(persistedState?.currentTrack);
-				const hasStation = Boolean(persistedState?.currentStation);
-
-				if (!persistedState || (!hasTrack && !hasStation)) {
-					getNotificationService().notify(
-						'No previous playback to resume',
-						'Play a track, radio station, or live stream first',
-					);
-					return;
-				}
-
-				// Restore the queue/station and start playback
-				playerDispatch({
-					category: 'RESTORE_STATE',
-					currentTrack: persistedState.currentTrack,
-					queue: persistedState.queue,
-					queuePosition: persistedState.queuePosition,
-					progress: persistedState.progress,
-					volume: persistedState.volume,
-					shuffle: persistedState.shuffle,
-					repeat: persistedState.repeat,
-					autoplay: true,
-					playbackMode: persistedState.playbackMode ?? 'youtube',
-					currentStation: persistedState.currentStation ?? null,
-					radioIsActive: persistedState.radioIsActive ?? false,
-					radioSeed: persistedState.radioSeed ?? null,
-				});
-
-				getNotificationService().notify(
-					'Resuming playback',
-					hasTrack
-						? (persistedState.currentTrack?.title ?? 'Unknown')
-						: (persistedState.currentStation?.name ?? 'Unknown station'),
-				);
-			});
 		}
-	}, [
-		flags,
-		dispatch,
-		play,
-		playerDispatch,
-		getTrack,
-		getPlaylist,
-		startRadio,
-	]);
+	}, [flags, dispatch, play, getTrack, getPlaylist, startRadio]);
+
+	useEffect(() => {
+		if (!flags?.continue || didResumeRef.current) {
+			return;
+		}
+
+		didResumeRef.current = true;
+
+		void loadPlayerState().then(persistedState => {
+			const hasTrack = Boolean(persistedState?.currentTrack);
+			const hasStation = Boolean(persistedState?.currentStation);
+
+			if (!persistedState || (!hasTrack && !hasStation)) {
+				getNotificationService().notify(
+					'No previous playback to resume',
+					'Play a track, radio station, or live stream first',
+				);
+				return;
+			}
+
+			playerDispatch({
+				category: 'RESTORE_STATE',
+				currentTrack: persistedState.currentTrack,
+				queue: persistedState.queue,
+				queuePosition: persistedState.queuePosition,
+				progress: persistedState.progress,
+				volume: persistedState.volume,
+				shuffle: persistedState.shuffle,
+				repeat: persistedState.repeat,
+				autoplay: persistedState.autoplay ?? true,
+				startPlayback: true,
+				playbackMode: persistedState.playbackMode ?? 'youtube',
+				currentStation: persistedState.currentStation ?? null,
+				radioIsActive: persistedState.radioIsActive ?? false,
+				radioSeed: persistedState.radioSeed ?? null,
+			});
+
+			getNotificationService().notify(
+				'Resuming playback',
+				hasTrack
+					? (persistedState.currentTrack?.title ?? 'Unknown')
+					: (persistedState.currentStation?.name ?? 'Unknown station'),
+			);
+		});
+	}, [flags?.continue, playerDispatch]);
 
 	return null;
 }
 
 function HeadlessLayout({flags}: {flags?: Flags}) {
-	const {play, pause, resume, next, previous, playStream} = usePlayer();
+	const {play, pause, resume, next, previous, playStream, dispatch} =
+		usePlayer();
 	const {getTrack, getPlaylist, search} = useYouTubeMusic();
+	const didResumeRef = useRef(false);
 
 	useEffect(() => {
 		void (async () => {
@@ -224,6 +224,11 @@ function HeadlessLayout({flags}: {flags?: Flags}) {
 			if (flags?.action === 'previous') previous();
 
 			if (flags?.continue) {
+				if (didResumeRef.current) {
+					return;
+				}
+				didResumeRef.current = true;
+
 				const persistedState = await loadPlayerState();
 				if (persistedState?.currentStation) {
 					const station = persistedState.currentStation;
@@ -239,20 +244,28 @@ function HeadlessLayout({flags}: {flags?: Flags}) {
 				}
 
 				const track = persistedState.currentTrack;
-				play(track, {clearQueue: true});
+				const queue =
+					persistedState.queue.length > 0 ? persistedState.queue : [track];
 
-				// Restore queue after playing first track
-				if (persistedState.queue.length > 1) {
-					for (let i = 1; i < persistedState.queue.length; i++) {
-						const queueTrack = persistedState.queue[i];
-						if (queueTrack) {
-							play(queueTrack);
-						}
-					}
-				}
+				dispatch({
+					category: 'RESTORE_STATE',
+					currentTrack: track,
+					queue,
+					queuePosition: persistedState.queuePosition,
+					progress: persistedState.progress,
+					volume: persistedState.volume,
+					shuffle: persistedState.shuffle,
+					repeat: persistedState.repeat,
+					autoplay: persistedState.autoplay ?? true,
+					startPlayback: true,
+					explicitQueueLength: persistedState.explicitQueueLength,
+					playbackMode: persistedState.playbackMode ?? 'youtube',
+					currentStation: null,
+					radioIsActive: persistedState.radioIsActive ?? false,
+					radioSeed: persistedState.radioSeed ?? null,
+				});
 
 				console.log(`Resuming: ${track.title}`);
-				return;
 			}
 		})();
 	}, [
@@ -263,6 +276,7 @@ function HeadlessLayout({flags}: {flags?: Flags}) {
 		resume,
 		next,
 		previous,
+		dispatch,
 		getTrack,
 		getPlaylist,
 		search,

@@ -654,6 +654,9 @@ class PlayerService {
 		// Stop any existing playback
 		this.stop();
 
+		// stop() clears currentTrackId when killing a prior process — restore it
+		this.currentTrackId = playbackId ?? null;
+
 		this.currentUrl = url;
 		if (options?.volume !== undefined) {
 			this.currentVolume = options.volume;

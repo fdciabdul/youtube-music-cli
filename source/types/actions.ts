@@ -134,6 +134,8 @@ export interface RestoreStateAction {
 	shuffle: boolean;
 	repeat: 'off' | 'all' | 'one';
 	autoplay?: boolean;
+	/** When true, begin playback after restore (e.g. --continue). Distinct from autoplay preference. */
+	startPlayback?: boolean;
 	explicitQueueLength?: number;
 	/** Restores live/radio stream playback instead of a YouTube track. */
 	playbackMode?: PlaybackMode;

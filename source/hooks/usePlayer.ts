@@ -1,5 +1,5 @@
 // Player hook - audio playback orchestration
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {usePlayer as usePlayerStore} from '../stores/player.store.tsx';
 import {getConfigService} from '../services/config/config.service.ts';
 import {getRadioService} from '../services/radio/radio.service.ts';
@@ -9,6 +9,11 @@ import type {RadioStation} from '../types/radio-station.types.ts';
 
 export function usePlayer() {
 	const {state, dispatch, ...playerStore} = usePlayerStore();
+	const queueRef = useRef(state.queue);
+
+	useEffect(() => {
+		queueRef.current = state.queue;
+	}, [state.queue]);
 
 	const play = useCallback(
 		(track: Track, options?: {clearQueue?: boolean}) => {
@@ -17,15 +22,14 @@ export function usePlayer() {
 				dispatch({category: 'ADD_TO_QUEUE', track});
 				dispatch({category: 'PLAY', track});
 			} else {
-				const isInQueue = state.queue.some(t => t.videoId === track.videoId);
+				const queue = queueRef.current;
+				const isInQueue = queue.some(t => t.videoId === track.videoId);
 
 				if (!isInQueue) {
 					dispatch({category: 'ADD_TO_QUEUE', track});
 				}
 
-				const position = state.queue.findIndex(
-					t => t.videoId === track.videoId,
-				);
+				const position = queue.findIndex(t => t.videoId === track.videoId);
 				if (position >= 0) {
 					dispatch({category: 'SET_QUEUE_POSITION', position});
 				} else {
@@ -36,7 +40,7 @@ export function usePlayer() {
 			const config = getConfigService();
 			config.addToHistory(track.videoId);
 		},
-		[state.queue, dispatch],
+		[dispatch],
 	);
 
 	const startRadio = useCallback(
