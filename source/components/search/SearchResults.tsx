@@ -29,6 +29,125 @@ type Props = {
 	onDownloadStatus?: (message: string) => void;
 };
 
+// Memoized individual result item to prevent full list re-render on selection change
+interface SearchResultItemProps {
+	result: SearchResult;
+	index: number;
+	isSelected: boolean;
+	theme: ReturnType<typeof useTheme>['theme'];
+	maxTitleWidth: number;
+	ICONS: typeof ICONS;
+	isFavorite: (videoId: string) => boolean;
+	truncate: typeof truncate;
+	formatTime: typeof formatTime;
+}
+
+const SearchResultItem = React.memo(function SearchResultItem({
+	result,
+	index,
+	isSelected,
+	theme,
+	maxTitleWidth,
+	ICONS,
+	isFavorite,
+	truncate,
+	formatTime,
+}: SearchResultItemProps) {
+	const data = result.data;
+
+	const title =
+		'title' in data ? data.title : 'name' in data ? data.name : 'Unknown';
+
+	const isFav =
+		result.type === 'song' && 'videoId' in data
+			? isFavorite((data as Track).videoId)
+			: false;
+
+	const trackInfo =
+		result.type === 'song'
+			? (() => {
+					const track = data as Track;
+					const artistName =
+						track.artists.length > 0
+							? track.artists.map(a => a.name).join(', ')
+							: '';
+					const albumName = track.album?.name || '';
+					const duration = track.duration || 0;
+					return {artistName, albumName, duration};
+				})()
+			: null;
+
+	// Color by type
+	const typeColor =
+		result.type === 'song'
+			? theme.colors.primary
+			: result.type === 'artist'
+				? theme.colors.accent
+				: result.type === 'album'
+					? theme.colors.secondary
+					: theme.colors.dim;
+
+	return (
+		<Box
+			paddingX={1}
+			backgroundColor={isSelected ? theme.colors.secondary : undefined}
+		>
+			<Text
+				color={isSelected ? theme.colors.primary : theme.colors.dim}
+				bold={isSelected}
+			>
+				{(isSelected ? '> ' : '  ') + (index + 1).toString().padEnd(4)}
+			</Text>
+
+			<Text
+				color={isSelected ? theme.colors.primary : typeColor}
+				bold={isSelected}
+			>
+				{result.type.toUpperCase().padEnd(10)}
+			</Text>
+
+			<Text
+				color={isSelected ? theme.colors.primary : theme.colors.text}
+				bold={isSelected}
+			>
+				{isFav ? `${ICONS.HEART} ` : ''}
+				{truncate(title, maxTitleWidth)}
+			</Text>
+
+			{trackInfo && (
+				<>
+					{trackInfo.artistName && (
+						<Text
+							color={isSelected ? theme.colors.primary : theme.colors.accent}
+							bold={isSelected}
+						>
+							{' '}
+							{truncate(trackInfo.artistName, 18)}
+						</Text>
+					)}
+
+					{trackInfo.albumName && (
+						<Text color={isSelected ? theme.colors.primary : theme.colors.dim}>
+							{' '}
+							{truncate(trackInfo.albumName, 16)}
+						</Text>
+					)}
+
+					{trackInfo.duration > 0 && (
+						<Text
+							color={isSelected ? theme.colors.primary : theme.colors.secondary}
+							bold={isSelected}
+						>
+							{' '}
+							{formatTime(trackInfo.duration)}
+						</Text>
+					)}
+				</>
+			)}
+		</Box>
+	);
+});
+
 function SearchResults({
 	results,
 	selectedIndex,
@@ -369,110 +488,26 @@ function SearchResults({
 	const visibleResults = results.slice(start, start + maxVisible);
 	const maxTitleWidth = Math.max(20, Math.floor(columns * 0.35));
 
-	// Extract track info helper
-	const getTrackInfo = (result: SearchResult) => {
-		if (result.type !== 'song') return null;
-		const track = result.data as Track;
-		const artistName =
-			track.artists.length > 0 ? track.artists.map(a => a.name).join(', ') : '';
-		const albumName = track.album?.name || '';
-		const duration = track.duration || 0;
-		return {artistName, albumName, duration};
-	};
-
 	return (
 		<Box flexDirection="column">
 			{/* Results list */}
 			{visibleResults.map((result, offset) => {
 				const index = start + offset;
 				const isSelected = index === selectedIndex;
-				const data = result.data;
-
-				const title =
-					'title' in data ? data.title : 'name' in data ? data.name : 'Unknown';
-
-				const isFav =
-					result.type === 'song' && 'videoId' in data
-						? isFavorite((data as Track).videoId)
-						: false;
-
-				const trackInfo = getTrackInfo(result);
-
-				// Color by type
-				const typeColor =
-					result.type === 'song'
-						? theme.colors.primary
-						: result.type === 'artist'
-							? theme.colors.accent
-							: result.type === 'album'
-								? theme.colors.secondary
-								: theme.colors.dim;
 
 				return (
-					<Box
+					<SearchResultItem
 						key={index}
-						paddingX={1}
-						backgroundColor={isSelected ? theme.colors.secondary : undefined}
-					>
-						<Text
-							color={isSelected ? theme.colors.primary : theme.colors.dim}
-							bold={isSelected}
-						>
-							{(isSelected ? '> ' : '  ') + (index + 1).toString().padEnd(4)}
-						</Text>
-
-						<Text
-							color={isSelected ? theme.colors.primary : typeColor}
-							bold={isSelected}
-						>
-							{result.type.toUpperCase().padEnd(10)}
-						</Text>
-
-						<Text
-							color={isSelected ? theme.colors.primary : theme.colors.text}
-							bold={isSelected}
-						>
-							{isFav ? `${ICONS.HEART} ` : ''}
-							{truncate(title, maxTitleWidth)}
-						</Text>
-
-						{trackInfo && (
-							<>
-								{trackInfo.artistName && (
-									<Text
-										color={
-											isSelected ? theme.colors.primary : theme.colors.accent
-										}
-										bold={isSelected}
-									>
-										{' '}
-										{truncate(trackInfo.artistName, 18)}
-									</Text>
-								)}
-
-								{trackInfo.albumName && (
-									<Text
-										color={isSelected ? theme.colors.primary : theme.colors.dim}
-									>
-										{' '}
-										{truncate(trackInfo.albumName, 16)}
-									</Text>
-								)}
-
-								{trackInfo.duration > 0 && (
-									<Text
-										color={
-											isSelected ? theme.colors.primary : theme.colors.secondary
-										}
-										bold={isSelected}
-									>
-										{' '}
-										{formatTime(trackInfo.duration)}
-									</Text>
-								)}
-							</>
-						)}
-					</Box>
+						result={result}
+						index={index}
+						isSelected={isSelected}
+						theme={theme}
+						maxTitleWidth={maxTitleWidth}
+						ICONS={ICONS}
+						isFavorite={isFavorite}
+						truncate={truncate}
+						formatTime={formatTime}
+					/>
 				);
 			})}
 		</Box>

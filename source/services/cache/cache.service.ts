@@ -1,4 +1,5 @@
 // In-memory LRU cache with optional TTL for API responses
+// Uses a doubly-linked list for O(1) LRU eviction
 import {getConfigService} from '../config/config.service.ts';
 import {logger} from '../logger/logger.service.ts';
 
@@ -47,11 +48,14 @@ function loadResolvedCacheConfig(): ResolvedCacheConfig {
 interface CacheEntry<T> {
 	value: T;
 	expiresAt: number;
-	lastAccessed: number;
+	prev: CacheEntry<T> | null;
+	next: CacheEntry<T> | null;
 }
 
 export class CacheService<T = unknown> {
 	private cache = new Map<string, CacheEntry<T>>();
+	private head: CacheEntry<T> | null = null; // Most recently used
+	private tail: CacheEntry<T> | null = null; // Least recently used
 	private maxSize: number;
 	private defaultTtlMs: number;
 	private readonly now: () => number;
@@ -71,25 +75,38 @@ export class CacheService<T = unknown> {
 		if (!entry) return null;
 
 		if (this.now() > entry.expiresAt) {
-			this.cache.delete(key);
+			this.removeEntry(entry);
 			return null;
 		}
 
-		entry.lastAccessed = this.now();
+		this.moveToHead(entry);
 		return entry.value;
 	}
 
 	set(key: string, value: T, ttlMs?: number): void {
+		const existing = this.cache.get(key);
+		if (existing) {
+			// Update existing entry
+			existing.value = value;
+			existing.expiresAt = this.now() + (ttlMs ?? this.defaultTtlMs);
+			this.moveToHead(existing);
+			return;
+		}
+
 		// Evict LRU entry if at capacity
-		if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+		if (this.cache.size >= this.maxSize) {
 			this.evictLru();
 		}
 
-		this.cache.set(key, {
+		const entry: CacheEntry<T> = {
 			value,
 			expiresAt: this.now() + (ttlMs ?? this.defaultTtlMs),
-			lastAccessed: this.now(),
-		});
+			prev: null,
+			next: null,
+		};
+
+		this.cache.set(key, entry);
+		this.addToHead(entry);
 	}
 
 	has(key: string): boolean {
@@ -97,11 +114,16 @@ export class CacheService<T = unknown> {
 	}
 
 	delete(key: string): void {
-		this.cache.delete(key);
+		const entry = this.cache.get(key);
+		if (entry) {
+			this.removeEntry(entry);
+		}
 	}
 
 	clear(): void {
 		this.cache.clear();
+		this.head = null;
+		this.tail = null;
 	}
 
 	get size(): number {
@@ -117,19 +139,75 @@ export class CacheService<T = unknown> {
 	}
 
 	private evictLru(): void {
-		let lruKey: string | null = null;
-		let lruTime = Infinity;
+		if (!this.tail) return;
 
-		for (const [key, entry] of this.cache) {
-			if (entry.lastAccessed < lruTime) {
-				lruTime = entry.lastAccessed;
-				lruKey = key;
-			}
-		}
-
+		const lruKey = this.findKeyByEntry(this.tail);
 		if (lruKey) {
 			logger.debug('CacheService', 'Evicting LRU entry', {key: lruKey});
-			this.cache.delete(lruKey);
+			this.removeEntry(this.tail);
+		}
+	}
+
+	private findKeyByEntry(target: CacheEntry<T>): string | null {
+		for (const [key, entry] of this.cache) {
+			if (entry === target) return key;
+		}
+		return null;
+	}
+
+	private addToHead(entry: CacheEntry<T>): void {
+		entry.next = this.head;
+		entry.prev = null;
+
+		if (this.head) {
+			this.head.prev = entry;
+		}
+		this.head = entry;
+
+		if (!this.tail) {
+			this.tail = entry;
+		}
+	}
+
+	private moveToHead(entry: CacheEntry<T>): void {
+		if (entry === this.head) return;
+
+		// Remove from current position
+		if (entry.prev) {
+			entry.prev.next = entry.next;
+		}
+		if (entry.next) {
+			entry.next.prev = entry.prev;
+		}
+		if (entry === this.tail) {
+			this.tail = entry.prev;
+		}
+
+		// Add to head
+		entry.prev = null;
+		entry.next = this.head;
+		if (this.head) {
+			this.head.prev = entry;
+		}
+		this.head = entry;
+	}
+
+	private removeEntry(entry: CacheEntry<T>): void {
+		if (entry.prev) {
+			entry.prev.next = entry.next;
+		} else {
+			this.head = entry.next;
+		}
+
+		if (entry.next) {
+			entry.next.prev = entry.prev;
+		} else {
+			this.tail = entry.prev;
+		}
+
+		const key = this.findKeyByEntry(entry);
+		if (key) {
+			this.cache.delete(key);
 		}
 	}
 }
