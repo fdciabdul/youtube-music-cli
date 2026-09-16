@@ -46,6 +46,7 @@ function loadResolvedCacheConfig(): ResolvedCacheConfig {
 }
 
 interface CacheEntry<T> {
+	key: string;
 	value: T;
 	expiresAt: number;
 	prev: CacheEntry<T> | null;
@@ -99,6 +100,7 @@ export class CacheService<T = unknown> {
 		}
 
 		const entry: CacheEntry<T> = {
+			key,
 			value,
 			expiresAt: this.now() + (ttlMs ?? this.defaultTtlMs),
 			prev: null,
@@ -141,18 +143,10 @@ export class CacheService<T = unknown> {
 	private evictLru(): void {
 		if (!this.tail) return;
 
-		const lruKey = this.findKeyByEntry(this.tail);
-		if (lruKey) {
-			logger.debug('CacheService', 'Evicting LRU entry', {key: lruKey});
-			this.removeEntry(this.tail);
-		}
-	}
-
-	private findKeyByEntry(target: CacheEntry<T>): string | null {
-		for (const [key, entry] of this.cache) {
-			if (entry === target) return key;
-		}
-		return null;
+		const lruKey = this.tail.key;
+		logger.debug('CacheService', 'Evicting LRU entry', {key: lruKey});
+		this.removeEntry(this.tail);
+		this.cache.delete(lruKey);
 	}
 
 	private addToHead(entry: CacheEntry<T>): void {
@@ -203,11 +197,6 @@ export class CacheService<T = unknown> {
 			entry.next.prev = entry.prev;
 		} else {
 			this.tail = entry.prev;
-		}
-
-		const key = this.findKeyByEntry(entry);
-		if (key) {
-			this.cache.delete(key);
 		}
 	}
 }

@@ -245,8 +245,12 @@ test('lyrics: getCurrentLineIndex handles edge cases', async () => {
 });
 
 test('lyrics: buildWordSpans estimates timing from line sync', async () => {
-	const {buildWordSpans, buildKaraokeCells, resolveKaraokeColors} =
-		await import('../source/utils/karaoke.ts');
+	const {
+		buildWordSpans,
+		buildKaraokeCells,
+		precomputeLineTiming,
+		resolveKaraokeColors,
+	} = await import('../source/utils/karaoke.ts');
 
 	const colors = resolveKaraokeColors({
 		colors: {primary: 'cyan', accent: 'yellow', text: 'white'},
@@ -281,17 +285,17 @@ test('lyrics: buildWordSpans estimates timing from line sync', async () => {
 	expect(wordSynced[0]?.end).toBe(6);
 	expect(wordSynced[2]?.end).toBe(8); // last word falls back to endTime
 
-	// progress far ahead -> everything sung color; far behind -> upcoming
-	const cellsAhead = buildKaraokeCells(spans, 100, colors);
+	const precomputed = precomputeLineTiming(spans);
+	const cellsAhead = buildKaraokeCells(precomputed, 100, colors);
 	expect(new Set(cellsAhead.map(cell => cell.color)).size).toBe(1);
 	expect(cellsAhead[0]?.color).toBe(colors.sung);
 
-	const cellsBehind = buildKaraokeCells(spans, -100, colors);
+	const cellsBehind = buildKaraokeCells(precomputed, -100, colors);
 	expect(cellsBehind.every(cell => cell.color === colors.upcoming)).toBe(true);
 
 	// mid-sweep progress produces a mix of colors (line spans ~[10, 10.4])
 	const mixed = new Set(
-		buildKaraokeCells(spans, 10.05, colors).map(cell => cell.color),
+		buildKaraokeCells(precomputed, 10.05, colors).map(cell => cell.color),
 	);
 	expect(mixed.size).toBeGreaterThan(1);
 });
@@ -640,5 +644,8 @@ test('lyrics: resolveKaraokeColors rejects malformed custom hex', async () => {
 		sung: '#123456',
 		peak: '#abcdef',
 		upcoming: '#000000',
+		sungRgb: {r: 18, g: 52, b: 86},
+		peakRgb: {r: 171, g: 205, b: 239},
+		upcomingRgb: {r: 0, g: 0, b: 0},
 	});
 });

@@ -15,6 +15,8 @@ import {
 	KARAOKE_TICK_MS,
 	resolveKaraokeColors,
 	type CharCell,
+	type PrecomputedLine,
+	precomputeLineTiming,
 } from '../../utils/karaoke.ts';
 
 const CONTEXT_LINES = 2; // Lines shown before/after current line
@@ -32,7 +34,13 @@ export default function LyricsLayout() {
 	} | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [precomputedLines, setPrecomputedLines] = useState<
+		PrecomputedLine[] | null
+	>(null);
 	const lyricsService = getLyricsService();
+
+	// Resolve karaoke colors - computed directly to avoid effect setState
+	const resolvedColors = lyrics?.synced ? resolveKaraokeColors(theme) : null;
 
 	// Interpolate a smooth clock between once-a-second progress ticks so the
 	// karaoke sweep doesn't visibly stair-step.
@@ -96,6 +104,14 @@ export default function LyricsLayout() {
 				setLoading(false);
 				if (!result) {
 					setError('No lyrics found');
+				} else if (result.synced) {
+					// Precompute line timing once when lyrics are loaded
+					const synced = result.synced;
+					const precomputed = synced.map((line, index) => {
+						const spans = buildWordSpans(line, synced[index + 1]?.time);
+						return precomputeLineTiming(spans);
+					});
+					setPrecomputedLines(precomputed);
 				}
 			})
 			.catch(() => {
@@ -129,16 +145,10 @@ export default function LyricsLayout() {
 	// Karaoke cells for the active line: real word timestamps when available
 	// (Musixmatch richsync), otherwise a natural-pace estimate from line sync.
 	const karaokeCells: CharCell[] | null = (() => {
-		if (!currentLine) return null;
-		const spans = buildWordSpans(
-			currentLine,
-			syncedLines[currentLineIndex + 1]?.time,
-		);
-		return buildKaraokeCells(
-			spans,
-			smoothProgress,
-			resolveKaraokeColors(theme),
-		);
+		if (!currentLine || !precomputedLines) return null;
+		const precomputed = precomputedLines[currentLineIndex];
+		if (!precomputed) return null;
+		return buildKaraokeCells(precomputed, smoothProgress, resolvedColors!);
 	})();
 
 	// Calculate visible lines window sized to fit the terminal
