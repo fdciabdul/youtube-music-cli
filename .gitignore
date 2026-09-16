@@ -18,3 +18,7 @@ firebase-debug.log
 .cursor/hooks/state/
 
 .superpowers/
+
+*.st
+
+*.stl
