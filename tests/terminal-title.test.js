@@ -32,9 +32,7 @@ describe('sanitizeTitleText', () => {
 	});
 
 	test('removes raw control characters and trims', () => {
-		expect(sanitizeTitleText(`${BEL}  spaced${ESC} out  `)).toBe(
-			'spaced out'.replace('out', 'out'),
-		);
+		expect(sanitizeTitleText(`${BEL}  spaced${ESC} out  `)).toBe('spaced out');
 		expect(sanitizeTitleText('clean')).toBe('clean');
 	});
 });
