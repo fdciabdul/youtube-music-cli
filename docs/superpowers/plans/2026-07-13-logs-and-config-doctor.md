@@ -431,14 +431,14 @@ Add to the help template string after the Import Commands section:
 
 ```markdown
 📋 Logs Commands
-$ youtube-music-cli logs                    Show recent debug logs
-  $ youtube-music-cli logs --open Open log file in default editor
-$ youtube-music-cli logs --get-path         Print log file path
-  $ youtube-music-cli logs --set-path <path> Set custom log file path
+$ youtube-music-cli logs Show recent debug logs
+$ youtube-music-cli logs --open Open log file in default editor
+$ youtube-music-cli logs --get-path Print log file path
+$ youtube-music-cli logs --set-path <path> Set custom log file path
 
 🔧 Config Commands
-$ youtube-music-cli config doctor           Check config for issues
-  $ youtube-music-cli config doctor --fix Auto-fix config issues
+$ youtube-music-cli config doctor Check config for issues
+$ youtube-music-cli config doctor --fix Auto-fix config issues
 ```
 
 **Step 5: Verify typecheck passes**

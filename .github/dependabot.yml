@@ -4,7 +4,7 @@
 version: 2
 updates:
   # npm/bun dependencies
-  - package-ecosystem: 'npm'
+  - package-ecosystem: 'bun'
     directory: '/'
     schedule:
       interval: 'weekly'
